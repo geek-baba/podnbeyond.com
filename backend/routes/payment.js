@@ -158,8 +158,9 @@ router.post('/verify-payment', async (req, res) => {
         // Add loyalty points based on tier
         if (payment.booking.loyaltyAccount) {
           const loyaltyAccount = payment.booking.loyaltyAccount;
-          const pointsMultiplier = getPointsMultiplier(loyaltyAccount.tier);
-          const pointsEarned = Math.round(payment.amount * pointsMultiplier);
+          const pointsEarned = calculateLoyaltyPoints(payment.amount, loyaltyAccount.tier);
+          
+          console.log(`Adding loyalty points: ${pointsEarned} points for ₹${payment.amount} payment (${loyaltyAccount.tier} tier)`);
 
           await prisma.loyaltyAccount.update({
             where: { id: loyaltyAccount.id },
@@ -184,11 +185,16 @@ router.post('/verify-payment', async (req, res) => {
 
           const newTier = calculateTier(updatedAccount.pointsBalance);
           if (newTier !== loyaltyAccount.tier) {
+            console.log(`Tier upgrade: ${loyaltyAccount.tier} → ${newTier} for ${loyaltyAccount.email}`);
             await prisma.loyaltyAccount.update({
               where: { id: loyaltyAccount.id },
               data: { tier: newTier }
             });
           }
+
+          console.log(`Loyalty points updated successfully for ${loyaltyAccount.email}: +${pointsEarned} points, Total: ${updatedAccount.pointsBalance + pointsEarned}`);
+        } else {
+          console.log(`No loyalty account found for booking ${payment.bookingId}`);
         }
       }
     } catch (dbError) {
@@ -314,17 +320,34 @@ function calculateTier(points) {
   return 'SILVER';
 }
 
-// Helper function to get points multiplier based on tier
-function getPointsMultiplier(tier) {
+// Helper function to calculate loyalty points based on amount spent and tier
+function calculateLoyaltyPoints(amount, tier) {
+  // Base rate: 1 point per ₹100 spent
+  const basePoints = Math.floor(amount / 100);
+  
+  // Apply tier multiplier
+  const tierMultiplier = getTierMultiplier(tier);
+  const totalPoints = Math.round(basePoints * tierMultiplier);
+  
+  return totalPoints;
+}
+
+// Helper function to get tier multiplier for points calculation
+function getTierMultiplier(tier) {
   switch (tier) {
     case 'PLATINUM':
-      return 2.0; // 2 points per $1
+      return 2.0; // 2x points (2 points per ₹100)
     case 'GOLD':
-      return 1.5; // 1.5 points per $1
+      return 1.5; // 1.5x points (1.5 points per ₹100)
     case 'SILVER':
     default:
-      return 1.0; // 1 point per $1
+      return 1.0; // 1x points (1 point per ₹100)
   }
+}
+
+// Helper function to get points multiplier based on tier (legacy - kept for compatibility)
+function getPointsMultiplier(tier) {
+  return getTierMultiplier(tier);
 }
 
 module.exports = router; 

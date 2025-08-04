@@ -288,6 +288,31 @@ function calculateTier(points) {
   return 'SILVER';
 }
 
+// Helper function to calculate loyalty points based on amount spent and tier
+function calculateLoyaltyPoints(amount, tier) {
+  // Base rate: 1 point per ₹100 spent
+  const basePoints = Math.floor(amount / 100);
+  
+  // Apply tier multiplier
+  const tierMultiplier = getTierMultiplier(tier);
+  const totalPoints = Math.round(basePoints * tierMultiplier);
+  
+  return totalPoints;
+}
+
+// Helper function to get tier multiplier for points calculation
+function getTierMultiplier(tier) {
+  switch (tier) {
+    case 'PLATINUM':
+      return 2.0; // 2x points (2 points per ₹100)
+    case 'GOLD':
+      return 1.5; // 1.5x points (1.5 points per ₹100)
+    case 'SILVER':
+    default:
+      return 1.0; // 1x points (1 point per ₹100)
+  }
+}
+
 // Helper function to get tier benefits
 function getTierBenefits(tier) {
   const benefits = {
@@ -295,7 +320,7 @@ function getTierBenefits(tier) {
       name: 'Silver Tier',
       minPoints: 0,
       benefits: [
-        'Earn 1 point per $1 spent',
+        'Earn 1 point per ₹100 spent',
         'Free WiFi',
         'Late checkout (1 PM)',
         'Welcome drink on arrival'
@@ -305,7 +330,7 @@ function getTierBenefits(tier) {
       name: 'Gold Tier',
       minPoints: 5000,
       benefits: [
-        'Earn 1.5 points per $1 spent',
+        'Earn 1.5 points per ₹100 spent',
         'Free WiFi',
         'Late checkout (2 PM)',
         'Welcome drink on arrival',
@@ -318,7 +343,7 @@ function getTierBenefits(tier) {
       name: 'Platinum Tier',
       minPoints: 10000,
       benefits: [
-        'Earn 2 points per $1 spent',
+        'Earn 2 points per ₹100 spent',
         'Free WiFi',
         'Late checkout (3 PM)',
         'Welcome drink on arrival',
