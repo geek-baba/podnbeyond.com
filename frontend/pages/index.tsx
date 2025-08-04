@@ -26,8 +26,9 @@ export default function Home() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [rooms, setRooms] = useState<Array<{id: number, type: string, price: number, capacity: number}>>([]);
+  const [rooms, setRooms] = useState<Array<{id: number, type: string, price: number, capacity: number, isAvailable?: boolean}>>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
   // Fetch rooms from API
   useEffect(() => {
@@ -46,12 +47,44 @@ export default function Home() {
     fetchRooms();
   }, []);
 
+  const checkAvailability = async (checkIn: string, checkOut: string) => {
+    if (!checkIn || !checkOut) return;
+    
+    setIsCheckingAvailability(true);
+    try {
+      const response = await axios.get(`/api/booking/availability?checkIn=${checkIn}&checkOut=${checkOut}`);
+      const roomsWithAvailability = response.data;
+      
+      setRooms(roomsWithAvailability.map((room: any) => ({
+        id: room.id,
+        type: room.type,
+        price: room.price,
+        capacity: room.capacity,
+        isAvailable: room.isAvailable
+      })));
+    } catch (error) {
+      console.error('Failed to check availability:', error);
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: name === 'guests' ? parseInt(value) : value
     }));
+
+    // Check availability when dates change
+    if (name === 'checkIn' || name === 'checkOut') {
+      const newCheckIn = name === 'checkIn' ? value : formData.checkIn;
+      const newCheckOut = name === 'checkOut' ? value : formData.checkOut;
+      
+      if (newCheckIn && newCheckOut) {
+        checkAvailability(newCheckIn, newCheckOut);
+      }
+    }
   };
 
   const calculateNights = () => {
@@ -92,8 +125,22 @@ export default function Home() {
         roomType: '',
         specialRequests: ''
       });
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to submit booking. Please try again.' });
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        // Double-booking error
+        setMessage({ 
+          type: 'error', 
+          text: error.response.data.error || 'Room is not available for the selected dates. Please choose different dates or room type.' 
+        });
+      } else if (error.response?.status === 400) {
+        // Validation error
+        setMessage({ 
+          type: 'error', 
+          text: error.response.data.error || 'Please check your booking details and try again.' 
+        });
+      } else {
+        setMessage({ type: 'error', text: 'Failed to submit booking. Please try again.' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -244,15 +291,22 @@ export default function Home() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                   <span className="ml-2 text-gray-600">Loading room options...</span>
                 </div>
+              ) : isCheckingAvailability ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="ml-2 text-gray-600">Checking availability...</span>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {rooms.map(room => (
                     <label
                       key={room.id}
-                      className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.roomType === room.type
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                      className={`relative flex flex-col p-4 border-2 rounded-lg transition-all ${
+                        !room.isAvailable
+                          ? 'border-red-200 bg-red-50 cursor-not-allowed opacity-60'
+                          : formData.roomType === room.type
+                          ? 'border-blue-500 bg-blue-50 cursor-pointer'
+                          : 'border-gray-200 hover:border-gray-300 cursor-pointer'
                       }`}
                     >
                       <input
@@ -261,6 +315,7 @@ export default function Home() {
                         value={room.type}
                         checked={formData.roomType === room.type}
                         onChange={handleInputChange}
+                        disabled={!room.isAvailable}
                         className="sr-only"
                       />
                       <div className="flex items-center justify-between">
@@ -268,10 +323,20 @@ export default function Home() {
                           <div className="font-medium text-gray-900">{room.type}</div>
                           <div className="text-sm text-gray-500">${room.price}/night</div>
                           <div className="text-xs text-gray-400">Up to {room.capacity} guests</div>
+                          {!room.isAvailable && (
+                            <div className="text-xs text-red-500 mt-1">Not available</div>
+                          )}
                         </div>
-                        {formData.roomType === room.type && (
+                        {formData.roomType === room.type && room.isAvailable && (
                           <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
                             <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        )}
+                        {!room.isAvailable && (
+                          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
                           </div>
                         )}
                       </div>
