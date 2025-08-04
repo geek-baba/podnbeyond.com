@@ -1,0 +1,26 @@
+name: Deploy to CloudPanel
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CLOUDPANEL_HOST }}
+          username: ${{ secrets.CLOUDPANEL_USER }}
+          key: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+          script: |
+            cd /path/to/your/project
+            git pull origin production
+            npm install --prefix backend
+            npm install --prefix frontend
+            pm2 restart all
