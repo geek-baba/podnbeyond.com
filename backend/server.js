@@ -8,6 +8,7 @@ const loyaltyRoutes = require('./routes/loyalty');
 const paymentRoutes = require('./routes/payment');
 const channelRoutes = require('./routes/channels');
 const cronRoutes = require('./routes/cron');
+const cmsRoutes = require('./routes/cms');
 
 // Import cron service
 const cronService = require('./services/cronService');
@@ -19,6 +20,7 @@ app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/cron', cronRoutes);
+app.use('/api/cms', cmsRoutes);
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {

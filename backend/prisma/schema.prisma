@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,14 +10,60 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum LoyaltyTier {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum ContentType {
+  HERO_SECTION
+  ABOUT_SECTION
+  ROOMS_SECTION
+  AMENITIES_SECTION
+  TESTIMONIALS_SECTION
+  CONTACT_SECTION
+  FOOTER_SECTION
+}
+
+enum ImageType {
+  HERO_BACKGROUND
+  ROOM_IMAGE
+  AMENITY_ICON
+  TESTIMONIAL_AVATAR
+  GALLERY_IMAGE
+  LOGO
+  FAVICON
+}
+
 model Room {
-  id       Int      @id @default(autoincrement())
-  type     String   // e.g., "standard", "deluxe", "suite", "presidential"
-  price    Float    // price per night
-  capacity Int      // number of guests the room can accommodate
-  bookings Booking[]
+  id        Int      @id @default(autoincrement())
+  type      String
+  price     Float
+  capacity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relationship to Bookings
+  bookings  Booking[]
+
+  // Relationship to Room Images
+  images    RoomImage[]
 
   @@map("rooms")
 }
@@ -52,59 +101,139 @@ model Booking {
   @@map("bookings")
 }
 
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
 model Payment {
-  id              Int      @id @default(autoincrement())
-  bookingId       Int
-  booking         Booking  @relation(fields: [bookingId], references: [id])
-  razorpayOrderId String   @unique
+  id          Int      @id @default(autoincrement())
+  bookingId   Int
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  razorpayOrderId String?
   razorpayPaymentId String?
-  amount          Float
-  currency        String   @default("INR")
-  status          PaymentStatus @default(PENDING)
-  paymentMethod   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  amount      Float
+  status      PaymentStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("payments")
 }
 
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
 model LoyaltyAccount {
-  id              Int      @id @default(autoincrement())
-  guestName       String
-  email           String   @unique
-  phone           String?
-  pointsBalance   Int      @default(0)
-  tier            LoyaltyTier @default(SILVER)
-  lastActivityDate DateTime @default(now())
-  totalSpent      Float    @default(0)
-  totalBookings   Int      @default(0)
-  isActive        Boolean  @default(true)
-  
+  id                Int         @id @default(autoincrement())
+  guestName         String
+  email             String      @unique
+  phone             String?
+  pointsBalance     Int         @default(0)
+  tier              LoyaltyTier @default(SILVER)
+  lastActivityDate  DateTime    @default(now())
+  totalSpent        Float       @default(0)
+  totalBookings     Int         @default(0)
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
   // Relationship to Bookings
-  bookings        Booking[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  bookings          Booking[]
 
   @@map("loyalty_accounts")
 }
 
-enum LoyaltyTier {
-  SILVER
-  GOLD
-  PLATINUM
+// CMS Models for Content Management
+
+model Content {
+  id          Int         @id @default(autoincrement())
+  type        ContentType
+  title       String?
+  subtitle    String?
+  description String?
+  content     String?     // JSON content for complex sections
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("contents")
+}
+
+model Image {
+  id          Int       @id @default(autoincrement())
+  type        ImageType
+  filename    String
+  originalName String
+  path        String
+  url         String
+  altText     String?
+  title       String?
+  description String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationship to Room Images
+  roomImages  RoomImage[]
+  
+  // Relationship to Testimonials
+  testimonials Testimonial[]
+  
+  // Relationship to Amenities
+  amenities Amenity[]
+
+  @@map("images")
+}
+
+model RoomImage {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  room      Room     @relation(fields: [roomId], references: [id])
+  imageId   Int
+  image     Image    @relation(fields: [imageId], references: [id])
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("room_images")
+}
+
+model Testimonial {
+  id          Int      @id @default(autoincrement())
+  guestName   String
+  guestEmail  String?
+  rating      Int      @default(5)
+  title       String?
+  content     String
+  avatarImageId Int?
+  avatarImage Image?   @relation(fields: [avatarImageId], references: [id])
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model Amenity {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  iconName    String?
+  iconImageId Int?
+  iconImage   Image?   @relation(fields: [iconImageId], references: [id])
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("amenities")
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  type        String   @default("text") // text, number, boolean, json, image
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
 }
