@@ -188,6 +188,35 @@ router.post('/book', async (req, res) => {
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
     const totalPrice = nights * room.price;
 
+    // Create or update loyalty account
+    let loyaltyAccount = await prisma.loyaltyAccount.findUnique({
+      where: { email }
+    });
+
+    if (!loyaltyAccount) {
+      loyaltyAccount = await prisma.loyaltyAccount.create({
+        data: {
+          email,
+          guestName,
+          phone: phone || null,
+          pointsBalance: 0,
+          tier: 'SILVER'
+        }
+      });
+    } else {
+      // Update guest name if it has changed
+      if (loyaltyAccount.guestName !== guestName) {
+        loyaltyAccount = await prisma.loyaltyAccount.update({
+          where: { email },
+          data: {
+            guestName,
+            phone: phone || loyaltyAccount.phone,
+            lastActivityDate: new Date()
+          }
+        });
+      }
+    }
+
     // Create the booking
     const booking = await prisma.booking.create({
       data: {
@@ -199,10 +228,12 @@ router.post('/book', async (req, res) => {
         guests,
         totalPrice,
         specialRequests: specialRequests || null,
-        roomId: room.id
+        roomId: room.id,
+        loyaltyAccountId: loyaltyAccount.id
       },
       include: {
-        room: true
+        room: true,
+        loyaltyAccount: true
       }
     });
 

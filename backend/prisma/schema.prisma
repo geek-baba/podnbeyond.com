@@ -38,6 +38,10 @@ model Booking {
   // Relationship to Payments
   payments    Payment[]
   
+  // Relationship to Loyalty Account
+  loyaltyAccountId Int?
+  loyaltyAccount   LoyaltyAccount? @relation(fields: [loyaltyAccountId], references: [id])
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -72,4 +76,31 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+model LoyaltyAccount {
+  id              Int      @id @default(autoincrement())
+  guestName       String
+  email           String   @unique
+  phone           String?
+  pointsBalance   Int      @default(0)
+  tier            LoyaltyTier @default(SILVER)
+  lastActivityDate DateTime @default(now())
+  totalSpent      Float    @default(0)
+  totalBookings   Int      @default(0)
+  isActive        Boolean  @default(true)
+  
+  // Relationship to Bookings
+  bookings        Booking[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("loyalty_accounts")
+}
+
+enum LoyaltyTier {
+  SILVER
+  GOLD
+  PLATINUM
 }

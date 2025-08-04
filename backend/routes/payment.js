@@ -136,16 +136,60 @@ router.post('/verify-payment', async (req, res) => {
         }
       });
 
-      // Update booking status to confirmed
+      // Update booking status to confirmed and add loyalty points
       const payment = await prisma.payment.findFirst({
-        where: { razorpayOrderId: razorpay_order_id }
+        where: { razorpayOrderId: razorpay_order_id },
+        include: {
+          booking: {
+            include: {
+              loyaltyAccount: true
+            }
+          }
+        }
       });
 
       if (payment) {
+        // Update booking status
         await prisma.booking.update({
           where: { id: payment.bookingId },
           data: { status: 'CONFIRMED' }
         });
+
+        // Add loyalty points based on tier
+        if (payment.booking.loyaltyAccount) {
+          const loyaltyAccount = payment.booking.loyaltyAccount;
+          const pointsMultiplier = getPointsMultiplier(loyaltyAccount.tier);
+          const pointsEarned = Math.round(payment.amount * pointsMultiplier);
+
+          await prisma.loyaltyAccount.update({
+            where: { id: loyaltyAccount.id },
+            data: {
+              pointsBalance: {
+                increment: pointsEarned
+              },
+              totalSpent: {
+                increment: payment.amount
+              },
+              totalBookings: {
+                increment: 1
+              },
+              lastActivityDate: new Date()
+            }
+          });
+
+          // Check for tier upgrade
+          const updatedAccount = await prisma.loyaltyAccount.findUnique({
+            where: { id: loyaltyAccount.id }
+          });
+
+          const newTier = calculateTier(updatedAccount.pointsBalance);
+          if (newTier !== loyaltyAccount.tier) {
+            await prisma.loyaltyAccount.update({
+              where: { id: loyaltyAccount.id },
+              data: { tier: newTier }
+            });
+          }
+        }
       }
     } catch (dbError) {
       console.error('Error updating payment in database:', dbError);
@@ -262,5 +306,25 @@ router.get('/payments/:bookingId', async (req, res) => {
     });
   }
 });
+
+// Helper function to calculate tier based on points
+function calculateTier(points) {
+  if (points >= 10000) return 'PLATINUM';
+  if (points >= 5000) return 'GOLD';
+  return 'SILVER';
+}
+
+// Helper function to get points multiplier based on tier
+function getPointsMultiplier(tier) {
+  switch (tier) {
+    case 'PLATINUM':
+      return 2.0; // 2 points per $1
+    case 'GOLD':
+      return 1.5; // 1.5 points per $1
+    case 'SILVER':
+    default:
+      return 1.0; // 1 point per $1
+  }
+}
 
 module.exports = router; 
