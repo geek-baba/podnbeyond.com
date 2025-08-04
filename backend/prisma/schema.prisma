@@ -7,10 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Room {
+  id       Int      @id @default(autoincrement())
+  type     String   // e.g., "standard", "deluxe", "suite", "presidential"
+  price    Float    // price per night
+  capacity Int      // number of guests the room can accommodate
+  bookings Booking[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rooms")
+}
+
 model Booking {
-  id        Int      @id @default(autoincrement())
-  guestName String
-  roomType  String
-  checkIn   DateTime
-  checkOut  DateTime
+  id          Int      @id @default(autoincrement())
+  guestName   String
+  email       String
+  phone       String?
+  checkIn     DateTime
+  checkOut    DateTime
+  guests      Int      @default(1)
+  totalPrice  Float
+  specialRequests String?
+  status      BookingStatus @default(PENDING)
+  
+  // Relationship to Room
+  roomId      Int
+  room        Room     @relation(fields: [roomId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
 }
