@@ -216,6 +216,117 @@ router.post('/points/redeem', async (req, res) => {
   }
 });
 
+// Redeem points for discount
+router.post('/redeem', async (req, res) => {
+  try {
+    const { email, points, bookingAmount, reason } = req.body;
+
+    // Validate required fields
+    if (!email || !points || !bookingAmount) {
+      return res.status(400).json({ 
+        error: 'Email, points, and booking amount are required' 
+      });
+    }
+
+    if (points <= 0 || bookingAmount <= 0) {
+      return res.status(400).json({ 
+        error: 'Points and booking amount must be positive' 
+      });
+    }
+
+    // Find loyalty account
+    const loyaltyAccount = await prisma.loyaltyAccount.findUnique({
+      where: { email }
+    });
+
+    if (!loyaltyAccount) {
+      return res.status(404).json({ 
+        error: 'Loyalty account not found',
+        message: 'Please create a booking first to earn loyalty points'
+      });
+    }
+
+    // Check if account is active
+    if (!loyaltyAccount.isActive) {
+      return res.status(400).json({ 
+        error: 'Loyalty account is inactive' 
+      });
+    }
+
+    // Check if user has enough points
+    if (loyaltyAccount.pointsBalance < points) {
+      return res.status(400).json({ 
+        error: 'Insufficient points balance',
+        currentBalance: loyaltyAccount.pointsBalance,
+        requestedPoints: points,
+        message: `You have ${loyaltyAccount.pointsBalance} points, but need ${points} points for this redemption`
+      });
+    }
+
+    // Calculate discount based on points and tier
+    const discountAmount = calculateDiscountAmount(points, loyaltyAccount.tier, bookingAmount);
+    
+    // Validate discount amount
+    if (discountAmount <= 0) {
+      return res.status(400).json({ 
+        error: 'Invalid discount calculation',
+        message: 'The requested points do not qualify for a discount'
+      });
+    }
+
+    // Check if discount exceeds maximum allowed (50% of booking amount)
+    const maxDiscount = bookingAmount * 0.5;
+    if (discountAmount > maxDiscount) {
+      return res.status(400).json({ 
+        error: 'Discount exceeds maximum allowed',
+        requestedDiscount: discountAmount,
+        maxDiscount: maxDiscount,
+        message: `Maximum discount allowed is ₹${maxDiscount} (50% of booking amount)`
+      });
+    }
+
+    // Deduct points from account
+    const updatedAccount = await prisma.loyaltyAccount.update({
+      where: { email },
+      data: {
+        pointsBalance: {
+          decrement: points
+        },
+        lastActivityDate: new Date()
+      }
+    });
+
+    // Log the redemption
+    console.log(`Points redemption: ${loyaltyAccount.email} redeemed ${points} points for ₹${discountAmount} discount on ₹${bookingAmount} booking`);
+
+    res.json({
+      success: true,
+      message: `Successfully redeemed ${points} points for discount`,
+      redemption: {
+        pointsRedeemed: points,
+        discountAmount: discountAmount,
+        bookingAmount: bookingAmount,
+        finalAmount: bookingAmount - discountAmount,
+        pointsRemaining: updatedAccount.pointsBalance,
+        tier: loyaltyAccount.tier,
+        reason: reason || 'Loyalty points redemption'
+      },
+      account: {
+        pointsBalance: updatedAccount.pointsBalance,
+        tier: updatedAccount.tier,
+        lastActivityDate: updatedAccount.lastActivityDate
+      }
+    });
+
+  } catch (error) {
+    console.error('Error redeeming points for discount:', error);
+    res.status(500).json({ 
+      error: 'Failed to redeem points for discount',
+      message: 'Please try again later'
+    });
+  }
+});
+
 // Get loyalty tier benefits
 router.get('/tier-benefits/:tier', async (req, res) => {
   try {
@@ -310,6 +421,37 @@ function getTierMultiplier(tier) {
     case 'SILVER':
     default:
       return 1.0; // 1x points (1 point per ₹100)
+  }
+}
+
+// Helper function to calculate discount amount based on points and tier
+function calculateDiscountAmount(points, tier, bookingAmount) {
+  // Base conversion rate: 1 point = ₹10 discount
+  const baseDiscountRate = 10; // ₹10 per point
+  
+  // Apply tier multiplier for discount calculation
+  const tierDiscountMultiplier = getTierDiscountMultiplier(tier);
+  
+  // Calculate base discount
+  const baseDiscount = points * baseDiscountRate;
+  
+  // Apply tier multiplier
+  const discountAmount = Math.round(baseDiscount * tierDiscountMultiplier);
+  
+  // Ensure discount doesn't exceed booking amount
+  return Math.min(discountAmount, bookingAmount);
+}
+
+// Helper function to get tier discount multiplier
+function getTierDiscountMultiplier(tier) {
+  switch (tier) {
+    case 'PLATINUM':
+      return 1.5; // 1.5x discount value (₹15 per point)
+    case 'GOLD':
+      return 1.25; // 1.25x discount value (₹12.5 per point)
+    case 'SILVER':
+    default:
+      return 1.0; // 1x discount value (₹10 per point)
   }
 }
 

@@ -157,6 +157,41 @@ enum LoyaltyTier {
 }
 ```
 
+### 5. Redeem Points for Discount
+**POST** `/api/loyalty/redeem`
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "points": 100,
+  "bookingAmount": 3600,
+  "reason": "Loyalty discount"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully redeemed 100 points for discount",
+  "redemption": {
+    "pointsRedeemed": 100,
+    "discountAmount": 1000,
+    "bookingAmount": 3600,
+    "finalAmount": 2600,
+    "pointsRemaining": 1500,
+    "tier": "SILVER",
+    "reason": "Loyalty discount"
+  },
+  "account": {
+    "pointsBalance": 1500,
+    "tier": "SILVER",
+    "lastActivityDate": "2025-08-04T17:48:16.365Z"
+  }
+}
+```
+
 ### 5. Get Tier Benefits
 **GET** `/api/loyalty/tier-benefits/:tier`
 
@@ -272,12 +307,47 @@ curl -X POST http://localhost:4000/api/loyalty/points/redeem \
 curl "http://localhost:4000/api/loyalty/tier-benefits/platinum"
 ```
 
+### Redeem points for discount
+```bash
+curl -X POST http://localhost:4000/api/loyalty/redeem \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "points": 100, "bookingAmount": 3600, "reason": "Test discount"}'
+```
+
+### Test insufficient points
+```bash
+curl -X POST http://localhost:4000/api/loyalty/redeem \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "points": 2000, "bookingAmount": 3600, "reason": "Test insufficient"}'
+```
+
+### Test maximum discount limit
+```bash
+curl -X POST http://localhost:4000/api/loyalty/redeem \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "points": 1000, "bookingAmount": 2000, "reason": "Test max discount"}'
+```
+
 ## Business Rules
 
 ### Points Earning
 - Points are only earned on completed payments
 - Points are calculated based on the tier at the time of payment
 - No points for cancelled or failed payments
+
+### Points Redemption for Discounts
+- **Base Rate**: 1 point = ₹10 discount
+- **Tier Multipliers**:
+  - SILVER: 1.0x (₹10 per point)
+  - GOLD: 1.25x (₹12.5 per point)
+  - PLATINUM: 1.5x (₹15 per point)
+- **Maximum Discount**: 50% of booking amount
+- **Minimum Points**: 1 point required for redemption
+- **Redemption Rules**:
+  - Points are deducted immediately upon redemption
+  - Discount cannot exceed booking amount
+  - Redemption is final and non-refundable
+  - Account must be active for redemption
 
 ### Tier Progression
 - SILVER: 0-4,999 points
