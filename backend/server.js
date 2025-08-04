@@ -20,6 +20,16 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/cron', cronRoutes);
 
+// Health check endpoint for deployment
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 app.listen(port, () => {
   console.log(`Backend running at http://localhost:${port}`);
   

@@ -1,26 +1,84 @@
-name: Deploy to CloudPanel
+name: Deploy Hotel Booking App
 
 on:
   push:
     branches:
       - production
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          host: ${{ secrets.CLOUDPANEL_HOST }}
-          username: ${{ secrets.CLOUDPANEL_USER }}
-          key: ${{ secrets.CLOUDPANEL_SSH_KEY }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: |
+          npm ci --only=production
+          npm install -g pm2
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
-            cd /path/to/your/project
-            git pull origin production
-            npm install --prefix backend
-            npm install --prefix frontend
-            pm2 restart all
+            # Navigate to project directory
+            cd ${{ secrets.PROJECT_PATH }}
+            
+            # Pull latest changes
+            git fetch origin
+            git reset --hard origin/production
+            
+            # Install dependencies
+            echo "Installing backend dependencies..."
+            cd backend
+            npm ci --only=production
+            
+            echo "Installing frontend dependencies..."
+            cd ../frontend
+            npm ci
+            npm run build
+            
+            # Run database migrations
+            echo "Running database migrations..."
+            cd ../backend
+            npx prisma migrate deploy
+            
+            # Restart services
+            echo "Restarting services..."
+            pm2 restart hotel-booking-backend || pm2 start server.js --name hotel-booking-backend
+            pm2 restart hotel-booking-frontend || pm2 start npm --name hotel-booking-frontend -- start
+            
+            # Save PM2 configuration
+            pm2 save
+            
+            echo "Deployment completed successfully!"
+
+      - name: Health Check
+        run: |
+          sleep 30
+          curl -f ${{ secrets.HEALTH_CHECK_URL }} || exit 1
