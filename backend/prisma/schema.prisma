@@ -35,6 +35,9 @@ model Booking {
   roomId      Int
   room        Room     @relation(fields: [roomId], references: [id])
   
+  // Relationship to Payments
+  payments    Payment[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -46,4 +49,27 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+model Payment {
+  id              Int      @id @default(autoincrement())
+  bookingId       Int
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  razorpayOrderId String   @unique
+  razorpayPaymentId String?
+  amount          Float
+  currency        String   @default("INR")
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

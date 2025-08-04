@@ -5,11 +5,13 @@ const port = process.env.PORT || 4000;
 
 const bookingRoutes = require('./routes/booking');
 const loyaltyRoutes = require('./routes/loyalty');
+const paymentRoutes = require('./routes/payment');
 
 app.use(cors());
 app.use(express.json());
 app.use('/api/booking', bookingRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.listen(port, () => {
   console.log(`Backend running at http://localhost:${port}`);
