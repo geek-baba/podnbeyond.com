@@ -243,8 +243,19 @@ export default function Home() {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Pod & Beyond Hotel</h1>
-          <p className="text-gray-600 mt-2">Experience luxury and comfort in the heart of the city</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Pod & Beyond Hotel</h1>
+              <p className="text-gray-600 mt-2">Experience luxury and comfort in the heart of the city</p>
+            </div>
+            <a
+              href="/admin"
+              className="inline-flex items-center px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <span className="mr-2">⚙️</span>
+              Admin Dashboard
+            </a>
+          </div>
         </div>
       </div>
 
