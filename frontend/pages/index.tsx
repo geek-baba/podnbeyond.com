@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { RAZORPAY_CONFIG } from '../config/razorpay';
 
 interface BookingFormData {
   guestName: string;
@@ -25,6 +26,7 @@ export default function Home() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [rooms, setRooms] = useState<Array<{id: number, type: string, price: number, capacity: number, isAvailable?: boolean}>>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
@@ -113,18 +115,57 @@ export default function Home() {
     setMessage(null);
 
     try {
-      const response = await axios.post('/api/booking/book', formData);
-      setMessage({ type: 'success', text: 'Booking submitted successfully! We will contact you shortly.' });
-      setFormData({
-        guestName: '',
-        email: '',
-        phone: '',
-        checkIn: '',
-        checkOut: '',
-        guests: 1,
-        roomType: '',
-        specialRequests: ''
+      // Step 1: Create booking
+      const bookingResponse = await axios.post('/api/booking/book', formData);
+      const booking = bookingResponse.data.booking;
+
+      // Step 2: Create payment order
+      const paymentResponse = await axios.post('/api/payment/create-order', {
+        amount: booking.totalPrice,
+        guestName: formData.guestName,
+        bookingId: booking.id,
+        currency: 'INR'
       });
+
+      const orderData = paymentResponse.data;
+
+      // Step 3: Launch Razorpay payment window
+      const options = {
+        key: RAZORPAY_CONFIG.KEY_ID,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: RAZORPAY_CONFIG.HOTEL_NAME,
+        description: `Booking for ${formData.roomType}`,
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          // Handle successful payment
+          await handlePaymentSuccess(response, booking.id);
+        },
+        prefill: {
+          name: formData.guestName,
+          email: formData.email,
+          contact: formData.phone
+        },
+        notes: {
+          bookingId: booking.id.toString(),
+          roomType: formData.roomType
+        },
+        theme: RAZORPAY_CONFIG.THEME,
+        modal: {
+          ondismiss: function() {
+            // Handle payment window dismissal
+            setMessage({ type: 'error', text: 'Payment was cancelled. Please try again.' });
+            setIsLoading(false);
+            setIsPaymentProcessing(false);
+          }
+        }
+      };
+
+      // @ts-ignore - Razorpay is loaded via script tag
+      const rzp = new (window as any).Razorpay(options);
+      setIsPaymentProcessing(true);
+      rzp.open();
+
     } catch (error: any) {
       if (error.response?.status === 409) {
         // Double-booking error
@@ -141,8 +182,51 @@ export default function Home() {
       } else {
         setMessage({ type: 'error', text: 'Failed to submit booking. Please try again.' });
       }
+      setIsLoading(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (response: any, bookingId: number) => {
+    try {
+      // Verify payment on backend
+      const verifyResponse = await axios.post('/api/payment/verify-payment', {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature
+      });
+
+      if (verifyResponse.data.success) {
+        setMessage({ 
+          type: 'success', 
+          text: 'Payment completed successfully! Your booking has been confirmed. We will send you a confirmation email shortly.' 
+        });
+        
+        // Reset form
+        setFormData({
+          guestName: '',
+          email: '',
+          phone: '',
+          checkIn: '',
+          checkOut: '',
+          guests: 1,
+          roomType: '',
+          specialRequests: ''
+        });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: 'Payment verification failed. Please contact support.' 
+        });
+      }
+    } catch (error: any) {
+      console.error('Payment verification error:', error);
+      setMessage({ 
+        type: 'error', 
+        text: 'Payment verification failed. Please contact support.' 
+      });
     } finally {
       setIsLoading(false);
+      setIsPaymentProcessing(false);
     }
   };
 
@@ -397,9 +481,9 @@ export default function Home() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isPaymentProcessing}
               className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all ${
-                isLoading
+                isLoading || isPaymentProcessing
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105'
               }`}
@@ -407,10 +491,15 @@ export default function Home() {
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Processing...
+                  Creating Booking...
+                </div>
+              ) : isPaymentProcessing ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Payment in Progress...
                 </div>
               ) : (
-                'Book Now'
+                `Proceed to Payment - $${calculateTotal()}`
               )}
             </button>
           </form>
