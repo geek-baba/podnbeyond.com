@@ -169,6 +169,131 @@ router.get('/rooms', async (req, res) => {
   }
 });
 
+// Get all rooms (including inactive) for admin
+router.get('/rooms/all', async (req, res) => {
+  try {
+    const rooms = await prisma.room.findMany({
+      orderBy: { pricePerNight: 'asc' }
+    });
+    res.json({ rooms });
+  } catch (error) {
+    console.error('Error fetching all rooms:', error);
+    res.status(500).json({ error: 'Failed to fetch rooms' });
+  }
+});
+
+// Create a new room
+router.post('/rooms', async (req, res) => {
+  try {
+    const { name, type, capacity, description, pricePerNight, status = 'ACTIVE' } = req.body;
+
+    if (!name || !type || !capacity || !pricePerNight) {
+      return res.status(400).json({ error: 'Name, type, capacity, and pricePerNight are required' });
+    }
+
+    const room = await prisma.room.create({
+      data: {
+        name,
+        type,
+        capacity: parseInt(capacity),
+        description: description || null,
+        pricePerNight: parseFloat(pricePerNight),
+        status
+      }
+    });
+
+    res.status(201).json({ success: true, room });
+  } catch (error) {
+    console.error('Error creating room:', error);
+    res.status(500).json({ error: 'Failed to create room' });
+  }
+});
+
+// Update a room
+router.put('/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, type, capacity, description, pricePerNight, status } = req.body;
+
+    const room = await prisma.room.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(name && { name }),
+        ...(type && { type }),
+        ...(capacity && { capacity: parseInt(capacity) }),
+        ...(description !== undefined && { description }),
+        ...(pricePerNight && { pricePerNight: parseFloat(pricePerNight) }),
+        ...(status && { status })
+      }
+    });
+
+    res.json({ success: true, room });
+  } catch (error) {
+    console.error('Error updating room:', error);
+    res.status(500).json({ error: 'Failed to update room' });
+  }
+});
+
+// Delete a room (soft delete by setting status to INACTIVE)
+router.delete('/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if room has any bookings
+    const existingBookings = await prisma.booking.findFirst({
+      where: { roomId: parseInt(id) }
+    });
+
+    if (existingBookings) {
+      return res.status(400).json({ 
+        error: 'Cannot delete room with existing bookings. Set status to INACTIVE instead.' 
+      });
+    }
+
+    // Soft delete by setting status to INACTIVE
+    const room = await prisma.room.update({
+      where: { id: parseInt(id) },
+      data: { status: 'INACTIVE' }
+    });
+
+    res.json({ success: true, message: 'Room deactivated successfully', room });
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    res.status(500).json({ error: 'Failed to delete room' });
+  }
+});
+
+// Get room by ID
+router.get('/rooms/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const room = await prisma.room.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        bookings: {
+          include: {
+            loyaltyAccount: true
+          },
+          orderBy: { createdAt: 'desc' }
+        },
+        ratePlans: {
+          orderBy: { startDate: 'asc' }
+        }
+      }
+    });
+
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    res.json({ success: true, room });
+  } catch (error) {
+    console.error('Error fetching room:', error);
+    res.status(500).json({ error: 'Failed to fetch room' });
+  }
+});
+
 // Check room availability for specific dates
 router.get('/availability', async (req, res) => {
   try {
@@ -555,6 +680,138 @@ router.get('/bookings/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching booking:', error);
     res.status(500).json({ error: 'Failed to fetch booking' });
+  }
+});
+
+// Search bookings
+router.get('/bookings/search', async (req, res) => {
+  try {
+    const { 
+      guestName, 
+      email, 
+      status, 
+      checkInFrom, 
+      checkInTo, 
+      roomType,
+      limit = 50,
+      offset = 0
+    } = req.query;
+
+    const where = {};
+
+    if (guestName) {
+      where.guestName = { contains: guestName, mode: 'insensitive' };
+    }
+
+    if (email) {
+      where.email = { contains: email, mode: 'insensitive' };
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (checkInFrom || checkInTo) {
+      where.checkIn = {};
+      if (checkInFrom) where.checkIn.gte = new Date(checkInFrom);
+      if (checkInTo) where.checkIn.lte = new Date(checkInTo);
+    }
+
+    if (roomType) {
+      where.room = {
+        type: { contains: roomType, mode: 'insensitive' }
+      };
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where,
+      include: {
+        room: true,
+        loyaltyAccount: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+
+    const total = await prisma.booking.count({ where });
+
+    res.json({
+      bookings,
+      total,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Error searching bookings:', error);
+    res.status(500).json({ error: 'Failed to search bookings' });
+  }
+});
+
+// Update booking details
+router.put('/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      guestName, 
+      email, 
+      phone, 
+      checkIn, 
+      checkOut, 
+      guests, 
+      totalPrice, 
+      specialRequests 
+    } = req.body;
+
+    const booking = await prisma.booking.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(guestName && { guestName }),
+        ...(email && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(checkIn && { checkIn: new Date(checkIn) }),
+        ...(checkOut && { checkOut: new Date(checkOut) }),
+        ...(guests && { guests: parseInt(guests) }),
+        ...(totalPrice && { totalPrice: parseFloat(totalPrice) }),
+        ...(specialRequests !== undefined && { specialRequests })
+      },
+      include: {
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    res.json({
+      message: 'Booking updated successfully',
+      booking
+    });
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    res.status(500).json({ error: 'Failed to update booking' });
+  }
+});
+
+// Delete booking (soft delete by setting status to CANCELLED)
+router.delete('/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await prisma.booking.update({
+      where: { id: parseInt(id) },
+      data: { status: 'CANCELLED' },
+      include: {
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    res.json({
+      message: 'Booking cancelled successfully',
+      booking
+    });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.status(500).json({ error: 'Failed to cancel booking' });
   }
 });
 

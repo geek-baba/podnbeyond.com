@@ -25,7 +25,7 @@ jobs:
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: |
-          npm ci --only=production
+          npm ci
           npm install -g pm2
 
       - name: Install Frontend Dependencies
@@ -37,8 +37,16 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
 
-      - name: Deploy to Server
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: |
+          npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Deploy to CloudPanel Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -50,35 +58,72 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
             
             # Pull latest changes
+            echo "Pulling latest changes from production branch..."
             git fetch origin
             git reset --hard origin/production
             
-            # Install dependencies
+            # Install backend dependencies
             echo "Installing backend dependencies..."
             cd backend
             npm ci --only=production
             
-            echo "Installing frontend dependencies..."
-            cd ../frontend
-            npm ci
-            npm run build
+            # Generate Prisma client
+            echo "Generating Prisma client..."
+            npx prisma generate
             
             # Run database migrations
             echo "Running database migrations..."
-            cd ../backend
             npx prisma migrate deploy
             
-            # Restart services
+            # Install frontend dependencies
+            echo "Installing frontend dependencies..."
+            cd ../frontend
+            npm ci --only=production
+            
+            # Build frontend
+            echo "Building frontend..."
+            npm run build
+            
+            # Restart services using PM2
             echo "Restarting services..."
-            pm2 restart hotel-booking-backend || pm2 start server.js --name hotel-booking-backend
-            pm2 restart hotel-booking-frontend || pm2 start npm --name hotel-booking-frontend -- start
+            cd ..
+            
+            # Stop existing processes if they exist
+            pm2 stop hotel-booking-backend 2>/dev/null || true
+            pm2 stop hotel-booking-frontend 2>/dev/null || true
+            pm2 delete hotel-booking-backend 2>/dev/null || true
+            pm2 delete hotel-booking-frontend 2>/dev/null || true
+            
+            # Start backend service
+            echo "Starting backend service..."
+            cd backend
+            pm2 start server.js --name hotel-booking-backend --env production
+            
+            # Start frontend service
+            echo "Starting frontend service..."
+            cd ../frontend
+            pm2 start npm --name hotel-booking-frontend -- start
             
             # Save PM2 configuration
             pm2 save
+            
+            # Show PM2 status
+            echo "PM2 Status:"
+            pm2 status
             
             echo "Deployment completed successfully!"
 
       - name: Health Check
         run: |
-          sleep 30
+          echo "Waiting for services to start..."
+          sleep 45
+          echo "Performing health check..."
           curl -f ${{ secrets.HEALTH_CHECK_URL }} || exit 1
+          echo "Health check passed!"
+
+      - name: Deployment Status
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Frontend: ${{ secrets.FRONTEND_URL || 'Not configured' }}"
+          echo "🔧 Backend: ${{ secrets.BACKEND_URL || 'Not configured' }}"
+          echo "📊 Health Check: ${{ secrets.HEALTH_CHECK_URL || 'Not configured' }}"
