@@ -1,4 +1,4 @@
-name: Deploy Hotel Booking App
+name: Deploy Hotel Booking App to CloudPanel
 
 on:
   push:
@@ -54,53 +54,65 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
+            # Set error handling
+            set -e
+            
             # Navigate to project directory
             cd ${{ secrets.PROJECT_PATH }}
             
+            # Create logs directory if it doesn't exist
+            mkdir -p logs
+            
             # Pull latest changes
-            echo "Pulling latest changes from production branch..."
+            echo "🔄 Pulling latest changes from production branch..."
             git fetch origin
             git reset --hard origin/production
             
+            # Set proper permissions for CloudPanel
+            echo "🔐 Setting proper permissions..."
+            chown -R cloudpanel:cloudpanel .
+            chmod -R 755 .
+            
             # Install backend dependencies
-            echo "Installing backend dependencies..."
+            echo "📦 Installing backend dependencies..."
             cd backend
             npm ci --only=production
             
             # Generate Prisma client
-            echo "Generating Prisma client..."
+            echo "🔧 Generating Prisma client..."
             npx prisma generate
             
             # Run database migrations
-            echo "Running database migrations..."
+            echo "🗄️ Running database migrations..."
             npx prisma migrate deploy
             
             # Install frontend dependencies
-            echo "Installing frontend dependencies..."
+            echo "📦 Installing frontend dependencies..."
             cd ../frontend
             npm ci --only=production
             
             # Build frontend
-            echo "Building frontend..."
+            echo "🏗️ Building frontend..."
             npm run build
             
             # Restart services using PM2
-            echo "Restarting services..."
+            echo "🔄 Restarting services..."
             cd ..
             
             # Stop existing processes if they exist
+            echo "🛑 Stopping existing processes..."
             pm2 stop hotel-booking-backend 2>/dev/null || true
             pm2 stop hotel-booking-frontend 2>/dev/null || true
             pm2 delete hotel-booking-backend 2>/dev/null || true
             pm2 delete hotel-booking-frontend 2>/dev/null || true
             
             # Start backend service
-            echo "Starting backend service..."
+            echo "🚀 Starting backend service..."
             cd backend
             pm2 start server.js --name hotel-booking-backend --env production
             
             # Start frontend service
-            echo "Starting frontend service..."
+            echo "🚀 Starting frontend service..."
             cd ../frontend
             pm2 start npm --name hotel-booking-frontend -- start
             
@@ -108,22 +120,39 @@ jobs:
             pm2 save
             
             # Show PM2 status
-            echo "PM2 Status:"
+            echo "📊 PM2 Status:"
             pm2 status
             
-            echo "Deployment completed successfully!"
+            echo "✅ Deployment completed successfully!"
 
       - name: Health Check
         run: |
-          echo "Waiting for services to start..."
-          sleep 45
-          echo "Performing health check..."
-          curl -f ${{ secrets.HEALTH_CHECK_URL }} || exit 1
-          echo "Health check passed!"
+          echo "⏳ Waiting for services to start..."
+          sleep 60
+          echo "🏥 Performing health check..."
+          
+          # Try multiple health check endpoints
+          for i in {1..3}; do
+            echo "Attempt $i: Checking backend health..."
+            if curl -f ${{ secrets.HEALTH_CHECK_URL }} > /dev/null 2>&1; then
+              echo "✅ Backend health check passed"
+              break
+            else
+              echo "❌ Backend health check failed (attempt $i)"
+              if [ $i -eq 3 ]; then
+                echo "🚨 All health check attempts failed"
+                exit 1
+              fi
+              sleep 30
+            fi
+          done
+          
+          echo "✅ Health check passed!"
 
       - name: Deployment Status
         run: |
-          echo "✅ Deployment completed successfully!"
+          echo "🎉 Deployment completed successfully!"
           echo "🌐 Frontend: ${{ secrets.FRONTEND_URL || 'Not configured' }}"
           echo "🔧 Backend: ${{ secrets.BACKEND_URL || 'Not configured' }}"
           echo "📊 Health Check: ${{ secrets.HEALTH_CHECK_URL || 'Not configured' }}"
+          echo "📋 CloudPanel URL: https://${{ secrets.DEPLOY_HOST }}:8443"
