@@ -48,7 +48,46 @@ router.get('/enabled', async (req, res) => {
   }
 });
 
-// Sync availability with external channel
+// Push availability to external channel
+router.post('/:channelId/push-availability', async (req, res) => {
+  try {
+    const { channelId } = req.params;
+    const { startDate, endDate, rooms } = req.body;
+
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({ 
+        error: 'Start date and end date are required' 
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      return res.status(400).json({ 
+        error: 'End date must be after start date' 
+      });
+    }
+
+    const result = await channelManager.pushAvailability(channelId, start, end, rooms);
+    
+    res.json({
+      success: true,
+      channel: channelId,
+      result
+    });
+
+  } catch (error) {
+    console.error('Error pushing availability:', error);
+    res.status(500).json({ 
+      error: 'Failed to push availability',
+      message: error.message 
+    });
+  }
+});
+
+// Legacy endpoint for backward compatibility
 router.post('/:channelId/sync-availability', async (req, res) => {
   try {
     const { channelId } = req.params;
@@ -70,7 +109,7 @@ router.post('/:channelId/sync-availability', async (req, res) => {
       });
     }
 
-    const result = await channelManager.syncAvailability(channelId, start, end, rooms);
+    const result = await channelManager.pushAvailability(channelId, start, end, rooms);
     
     res.json({
       success: true,
@@ -117,7 +156,46 @@ router.post('/:channelId/push-booking', async (req, res) => {
   }
 });
 
-// Fetch external bookings from channel
+// Fetch bookings from external channel
+router.get('/:channelId/fetch-bookings', async (req, res) => {
+  try {
+    const { channelId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({ 
+        error: 'Start date and end date are required' 
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      return res.status(400).json({ 
+        error: 'End date must be after start date' 
+      });
+    }
+
+    const result = await channelManager.fetchBookings(channelId, start, end);
+    
+    res.json({
+      success: true,
+      channel: channelId,
+      result
+    });
+
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch bookings',
+      message: error.message 
+    });
+  }
+});
+
+// Legacy endpoint for backward compatibility
 router.get('/:channelId/bookings', async (req, res) => {
   try {
     const { channelId } = req.params;
@@ -139,7 +217,7 @@ router.get('/:channelId/bookings', async (req, res) => {
       });
     }
 
-    const result = await channelManager.fetchExternalBookings(channelId, start, end);
+    const result = await channelManager.fetchBookings(channelId, start, end);
     
     res.json({
       success: true,
@@ -156,7 +234,68 @@ router.get('/:channelId/bookings', async (req, res) => {
   }
 });
 
-// Bulk sync availability for all enabled channels
+// Bulk push availability for all enabled channels
+router.post('/push-all-availability', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({ 
+        error: 'Start date and end date are required' 
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      return res.status(400).json({ 
+        error: 'End date must be after start date' 
+      });
+    }
+
+    const enabledChannels = channelManager.getEnabledChannels();
+    const results = [];
+
+    // Push availability for all enabled channels
+    for (const channel of enabledChannels) {
+      try {
+        const result = await channelManager.pushAvailability(
+          channel.channelId, 
+          start, 
+          end
+        );
+        results.push({
+          channel: channel.channelId,
+          success: true,
+          result
+        });
+      } catch (error) {
+        results.push({
+          channel: channel.channelId,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Pushed availability for ${enabledChannels.length} channels`,
+      results
+    });
+
+  } catch (error) {
+    console.error('Error in bulk push:', error);
+    res.status(500).json({ 
+      error: 'Failed to push all channels',
+      message: error.message 
+    });
+  }
+});
+
+// Legacy endpoint for backward compatibility
 router.post('/sync-all-availability', async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
@@ -180,10 +319,10 @@ router.post('/sync-all-availability', async (req, res) => {
     const enabledChannels = channelManager.getEnabledChannels();
     const results = [];
 
-    // Sync availability for all enabled channels
+    // Push availability for all enabled channels
     for (const channel of enabledChannels) {
       try {
-        const result = await channelManager.syncAvailability(
+        const result = await channelManager.pushAvailability(
           channel.channelId, 
           start, 
           end
@@ -258,6 +397,27 @@ router.get('/room-availability', async (req, res) => {
   }
 });
 
+// Get sync logs
+router.get('/sync-logs', async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const logs = await channelManager.getSyncLogs(parseInt(limit));
+    
+    res.json({
+      success: true,
+      logs,
+      count: logs.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching sync logs:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch sync logs',
+      message: error.message 
+    });
+  }
+});
+
 // Test channel connectivity
 router.post('/:channelId/test', async (req, res) => {
   try {
@@ -280,7 +440,7 @@ router.post('/:channelId/test', async (req, res) => {
       });
     }
 
-    // Test availability sync with sample data
+    // Test availability push with sample data
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 7);
@@ -289,7 +449,8 @@ router.post('/:channelId/test', async (req, res) => {
       {
         roomId: 1,
         roomType: 'Standard Room',
-        price: 120,
+        roomName: 'Standard Room',
+        pricePerNight: 120,
         capacity: 2,
         totalRooms: 1,
         availableRooms: 1,
@@ -297,7 +458,7 @@ router.post('/:channelId/test', async (req, res) => {
       }
     ];
 
-    const syncResult = await channelManager.syncAvailability(
+    const pushResult = await channelManager.pushAvailability(
       channelId, 
       startDate, 
       endDate, 
@@ -309,7 +470,7 @@ router.post('/:channelId/test', async (req, res) => {
       channel: channelId,
       status,
       testResult: {
-        syncTest: syncResult,
+        pushTest: pushResult,
         message: 'Channel connectivity test completed successfully'
       }
     });

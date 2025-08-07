@@ -4,139 +4,37 @@ const router = express.Router();
 
 const prisma = new PrismaClient();
 
-// Get all available rooms
-router.get('/rooms', async (req, res) => {
+// Helper function to calculate price using RatePlan if applicable
+async function calculatePrice(roomId, checkInDate, checkOutDate, basePrice) {
   try {
-    const rooms = await prisma.room.findMany({
-      orderBy: { price: 'asc' }
+    // Check if there's a rate plan for the given dates
+    const ratePlan = await prisma.ratePlan.findFirst({
+      where: {
+        roomId: roomId,
+        startDate: { lte: checkInDate },
+        endDate: { gte: checkOutDate }
+      }
     });
-    res.json(rooms);
+
+    if (ratePlan) {
+      console.log(`Using seasonal rate plan: $${ratePlan.seasonalPrice}/night`);
+      return ratePlan.seasonalPrice;
+    }
+
+    console.log(`Using base price: $${basePrice}/night`);
+    return basePrice;
   } catch (error) {
-    console.error('Error fetching rooms:', error);
-    res.status(500).json({ error: 'Failed to fetch rooms' });
+    console.error('Error calculating price:', error);
+    return basePrice; // Fallback to base price
   }
-});
+}
 
-// Check room availability for specific dates
-router.get('/availability', async (req, res) => {
+// Helper function to check room availability
+async function checkRoomAvailability(roomId, checkInDate, checkOutDate) {
   try {
-    const { checkIn, checkOut } = req.query;
-
-    if (!checkIn || !checkOut) {
-      return res.status(400).json({ error: 'Check-in and check-out dates are required' });
-    }
-
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-
-    if (checkInDate >= checkOutDate) {
-      return res.status(400).json({ error: 'Check-out date must be after check-in date' });
-    }
-
-    // Get all rooms with their availability status
-    const rooms = await prisma.room.findMany({
-      include: {
-        bookings: {
-          where: {
-            status: {
-              notIn: ['CANCELLED', 'COMPLETED']
-            },
-            OR: [
-              {
-                AND: [
-                  { checkIn: { lte: checkInDate } },
-                  { checkOut: { gt: checkInDate } }
-                ]
-              },
-              {
-                AND: [
-                  { checkIn: { lt: checkOutDate } },
-                  { checkOut: { gte: checkOutDate } }
-                ]
-              },
-              {
-                AND: [
-                  { checkIn: { gte: checkInDate } },
-                  { checkOut: { lte: checkOutDate } }
-                ]
-              },
-              {
-                AND: [
-                  { checkIn: { lte: checkInDate } },
-                  { checkOut: { gte: checkOutDate } }
-                ]
-              }
-            ]
-          }
-        }
-      },
-      orderBy: { price: 'asc' }
-    });
-
-    // Add availability status to each room
-    const roomsWithAvailability = rooms.map(room => ({
-      ...room,
-      isAvailable: room.bookings.length === 0,
-      conflictingBookings: room.bookings
-    }));
-
-    res.json(roomsWithAvailability);
-  } catch (error) {
-    console.error('Error checking availability:', error);
-    res.status(500).json({ error: 'Failed to check availability' });
-  }
-});
-
-// Create a new booking
-router.post('/book', async (req, res) => {
-  try {
-    const {
-      guestName,
-      email,
-      phone,
-      checkIn,
-      checkOut,
-      guests,
-      roomType,
-      specialRequests
-    } = req.body;
-
-    // Validate required fields
-    if (!guestName || !email || !checkIn || !checkOut || !roomType) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Find the room by type
-    const room = await prisma.room.findFirst({
-      where: { type: roomType }
-    });
-
-    if (!room) {
-      return res.status(404).json({ error: 'Room type not found' });
-    }
-
-    // Check if room capacity is sufficient
-    if (guests > room.capacity) {
-      return res.status(400).json({ 
-        error: `This room can only accommodate ${room.capacity} guests` 
-      });
-    }
-
-    // Convert dates for comparison
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-
-    // Validate dates
-    if (checkInDate >= checkOutDate) {
-      return res.status(400).json({ 
-        error: 'Check-out date must be after check-in date' 
-      });
-    }
-
-    // Check for double-booking (conflicting bookings)
     const conflictingBookings = await prisma.booking.findMany({
       where: {
-        roomId: room.id,
+        roomId: roomId,
         status: {
           notIn: ['CANCELLED', 'COMPLETED'] // Only check active bookings
         },
@@ -173,8 +71,252 @@ router.post('/book', async (req, res) => {
       }
     });
 
-    if (conflictingBookings.length > 0) {
-      const conflictingBooking = conflictingBookings[0];
+    return {
+      isAvailable: conflictingBookings.length === 0,
+      conflictingBookings: conflictingBookings
+    };
+  } catch (error) {
+    console.error('Error checking room availability:', error);
+    throw error;
+  }
+}
+
+// Helper function to calculate loyalty points (1 point per ₹100 spent)
+function calculateLoyaltyPoints(totalPrice) {
+  // Convert to rupees if price is in dollars (assuming 1 USD = 75 INR for calculation)
+  const priceInRupees = totalPrice * 75; // Adjust conversion rate as needed
+  const points = Math.floor(priceInRupees / 100);
+  console.log(`Calculating loyalty points: ₹${priceInRupees} spent = ${points} points`);
+  return points;
+}
+
+// Helper function to determine tier based on total points
+function determineTier(totalPoints) {
+  if (totalPoints >= 10000) {
+    return 'PLATINUM';
+  } else if (totalPoints >= 5000) {
+    return 'GOLD';
+  } else {
+    return 'SILVER';
+  }
+}
+
+// Helper function to update loyalty account with points and tier
+async function updateLoyaltyAccount(loyaltyAccountId, pointsToAdd, totalPrice) {
+  try {
+    // Get current loyalty account
+    const currentAccount = await prisma.loyaltyAccount.findUnique({
+      where: { id: loyaltyAccountId }
+    });
+
+    if (!currentAccount) {
+      throw new Error('Loyalty account not found');
+    }
+
+    // Calculate new total points
+    const newTotalPoints = currentAccount.points + pointsToAdd;
+    
+    // Determine new tier
+    const newTier = determineTier(newTotalPoints);
+    
+    // Check if tier has changed
+    const tierUpgraded = newTier !== currentAccount.tier;
+
+    // Update loyalty account
+    const updatedAccount = await prisma.loyaltyAccount.update({
+      where: { id: loyaltyAccountId },
+      data: {
+        points: newTotalPoints,
+        tier: newTier,
+        lastUpdated: new Date()
+      }
+    });
+
+    console.log(`Loyalty account updated: ${pointsToAdd} points added`);
+    console.log(`Total points: ${currentAccount.points} → ${newTotalPoints}`);
+    
+    if (tierUpgraded) {
+      console.log(`Tier upgraded: ${currentAccount.tier} → ${newTier}`);
+    }
+
+    return {
+      updatedAccount,
+      pointsAdded: pointsToAdd,
+      totalPoints: newTotalPoints,
+      tierUpgraded,
+      newTier,
+      previousTier: currentAccount.tier
+    };
+  } catch (error) {
+    console.error('Error updating loyalty account:', error);
+    throw error;
+  }
+}
+
+// Get all available rooms
+router.get('/rooms', async (req, res) => {
+  try {
+    const rooms = await prisma.room.findMany({
+      where: {
+        status: 'ACTIVE' // Only show active rooms
+      },
+      orderBy: { pricePerNight: 'asc' }
+    });
+    res.json(rooms);
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    res.status(500).json({ error: 'Failed to fetch rooms' });
+  }
+});
+
+// Check room availability for specific dates
+router.get('/availability', async (req, res) => {
+  try {
+    const { checkIn, checkOut } = req.query;
+
+    if (!checkIn || !checkOut) {
+      return res.status(400).json({ error: 'Check-in and check-out dates are required' });
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({ error: 'Check-out date must be after check-in date' });
+    }
+
+    // Get all active rooms with their availability status
+    const rooms = await prisma.room.findMany({
+      where: {
+        status: 'ACTIVE'
+      },
+      include: {
+        bookings: {
+          where: {
+            status: {
+              notIn: ['CANCELLED', 'COMPLETED']
+            },
+            OR: [
+              {
+                AND: [
+                  { checkIn: { lte: checkInDate } },
+                  { checkOut: { gt: checkInDate } }
+                ]
+              },
+              {
+                AND: [
+                  { checkIn: { lt: checkOutDate } },
+                  { checkOut: { gte: checkOutDate } }
+                ]
+              },
+              {
+                AND: [
+                  { checkIn: { gte: checkInDate } },
+                  { checkOut: { lte: checkOutDate } }
+                ]
+              },
+              {
+                AND: [
+                  { checkIn: { lte: checkInDate } },
+                  { checkOut: { gte: checkOutDate } }
+                ]
+              }
+            ]
+          }
+        },
+        ratePlans: {
+          where: {
+            startDate: { lte: checkInDate },
+            endDate: { gte: checkOutDate }
+          }
+        }
+      },
+      orderBy: { pricePerNight: 'asc' }
+    });
+
+    // Add availability status and calculated price to each room
+    const roomsWithAvailability = rooms.map(room => {
+      const isAvailable = room.bookings.length === 0;
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      const pricePerNight = room.ratePlans.length > 0 ? room.ratePlans[0].seasonalPrice : room.pricePerNight;
+      const totalPrice = nights * pricePerNight;
+
+      return {
+        ...room,
+        isAvailable,
+        conflictingBookings: room.bookings,
+        calculatedPrice: {
+          pricePerNight,
+          totalPrice,
+          nights,
+          hasSeasonalRate: room.ratePlans.length > 0
+        }
+      };
+    });
+
+    res.json(roomsWithAvailability);
+  } catch (error) {
+    console.error('Error checking availability:', error);
+    res.status(500).json({ error: 'Failed to check availability' });
+  }
+});
+
+// Create a temporary booking (PENDING status) - will be confirmed after payment
+router.post('/book', async (req, res) => {
+  try {
+    const {
+      guestName,
+      email,
+      phone,
+      checkIn,
+      checkOut,
+      guests,
+      roomId, // Changed from roomType to roomId for more precise booking
+      specialRequests
+    } = req.body;
+
+    // Validate required fields
+    if (!guestName || !email || !checkIn || !checkOut || !roomId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Find the room by ID
+    const room = await prisma.room.findUnique({
+      where: { id: parseInt(roomId) }
+    });
+
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // Check if room is active
+    if (room.status !== 'ACTIVE') {
+      return res.status(400).json({ error: 'Room is not available for booking' });
+    }
+
+    // Check if room capacity is sufficient
+    if (guests > room.capacity) {
+      return res.status(400).json({ 
+        error: `This room can only accommodate ${room.capacity} guests` 
+      });
+    }
+
+    // Convert dates for comparison
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+
+    // Validate dates
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({ 
+        error: 'Check-out date must be after check-in date' 
+      });
+    }
+
+    // Check if room is available for the selected dates
+    const availability = await checkRoomAvailability(room.id, checkInDate, checkOutDate);
+
+    if (!availability.isAvailable) {
+      const conflictingBooking = availability.conflictingBookings[0];
       return res.status(409).json({ 
         error: `Room is not available for the selected dates. Conflicting booking exists from ${conflictingBooking.checkIn.toISOString().split('T')[0]} to ${conflictingBooking.checkOut.toISOString().split('T')[0]}`,
         conflictingDates: {
@@ -184,40 +326,36 @@ router.post('/book', async (req, res) => {
       });
     }
 
-    // Calculate total price
+    // Calculate price using RatePlan if applicable
+    const pricePerNight = await calculatePrice(room.id, checkInDate, checkOutDate, room.pricePerNight);
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    const totalPrice = nights * room.price;
+    const totalPrice = nights * pricePerNight;
 
     // Create or update loyalty account
     let loyaltyAccount = await prisma.loyaltyAccount.findUnique({
-      where: { email }
+      where: { userId: email } // Using email as userId
     });
 
     if (!loyaltyAccount) {
       loyaltyAccount = await prisma.loyaltyAccount.create({
         data: {
-          email,
-          guestName,
-          phone: phone || null,
-          pointsBalance: 0,
-          tier: 'SILVER'
+          userId: email,
+          points: 0,
+          tier: 'SILVER',
+          lastUpdated: new Date()
         }
       });
     } else {
-      // Update guest name if it has changed
-      if (loyaltyAccount.guestName !== guestName) {
-        loyaltyAccount = await prisma.loyaltyAccount.update({
-          where: { email },
-          data: {
-            guestName,
-            phone: phone || loyaltyAccount.phone,
-            lastActivityDate: new Date()
-          }
-        });
-      }
+      // Update last activity
+      loyaltyAccount = await prisma.loyaltyAccount.update({
+        where: { userId: email },
+        data: {
+          lastUpdated: new Date()
+        }
+      });
     }
 
-    // Create the booking
+    // Create the booking with PENDING status (will be confirmed after payment)
     const booking = await prisma.booking.create({
       data: {
         guestName,
@@ -229,7 +367,8 @@ router.post('/book', async (req, res) => {
         totalPrice,
         specialRequests: specialRequests || null,
         roomId: room.id,
-        loyaltyAccountId: loyaltyAccount.id
+        loyaltyAccountId: loyaltyAccount.id,
+        status: 'PENDING' // Explicitly set to PENDING
       },
       include: {
         room: true,
@@ -238,7 +377,7 @@ router.post('/book', async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Booking created successfully',
+      message: 'Temporary booking created successfully. Payment required to confirm.',
       booking: {
         id: booking.id,
         guestName: booking.guestName,
@@ -247,9 +386,19 @@ router.post('/book', async (req, res) => {
         checkOut: booking.checkOut,
         guests: booking.guests,
         totalPrice: booking.totalPrice,
+        pricePerNight: pricePerNight,
+        nights: nights,
+        roomName: booking.room.name,
         roomType: booking.room.type,
-        status: booking.status
-      }
+        status: booking.status, // Will be PENDING
+        loyaltyAccount: {
+          userId: booking.loyaltyAccount.userId,
+          points: booking.loyaltyAccount.points,
+          tier: booking.loyaltyAccount.tier
+        }
+      },
+      paymentRequired: true,
+      nextStep: 'Create payment order using /api/payment/create-order with this booking ID'
     });
 
   } catch (error) {
@@ -258,12 +407,92 @@ router.post('/book', async (req, res) => {
   }
 });
 
+// Confirm booking after payment success (called by payment webhook)
+router.post('/confirm/:bookingId', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { paymentId, paymentAmount } = req.body;
+
+    // Find the booking
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(bookingId) },
+      include: {
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    if (booking.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Booking is not in pending status' });
+    }
+
+    // Verify payment amount matches booking amount
+    if (paymentAmount && paymentAmount !== booking.totalPrice) {
+      console.warn(`Payment amount mismatch: Expected ${booking.totalPrice}, got ${paymentAmount}`);
+    }
+
+    // Update booking status to CONFIRMED
+    const confirmedBooking = await prisma.booking.update({
+      where: { id: parseInt(bookingId) },
+      data: { 
+        status: 'CONFIRMED',
+        updatedAt: new Date()
+      },
+      include: {
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    // Calculate and add loyalty points after payment confirmation
+    const loyaltyPoints = calculateLoyaltyPoints(booking.totalPrice);
+    const loyaltyUpdate = await updateLoyaltyAccount(booking.loyaltyAccountId, loyaltyPoints, booking.totalPrice);
+
+    console.log(`Booking ${bookingId} confirmed after payment success`);
+    console.log(`Loyalty points added: ${loyaltyPoints} points`);
+
+    res.json({
+      message: 'Booking confirmed successfully after payment',
+      booking: {
+        id: confirmedBooking.id,
+        guestName: confirmedBooking.guestName,
+        email: confirmedBooking.email,
+        checkIn: confirmedBooking.checkIn,
+        checkOut: confirmedBooking.checkOut,
+        guests: confirmedBooking.guests,
+        totalPrice: confirmedBooking.totalPrice,
+        roomName: confirmedBooking.room.name,
+        roomType: confirmedBooking.room.type,
+        status: confirmedBooking.status,
+        loyaltyAccount: {
+          userId: loyaltyUpdate.updatedAccount.userId,
+          points: loyaltyUpdate.updatedAccount.points,
+          tier: loyaltyUpdate.updatedAccount.tier,
+          pointsAdded: loyaltyUpdate.pointsAdded,
+          tierUpgraded: loyaltyUpdate.tierUpgraded,
+          newTier: loyaltyUpdate.newTier,
+          previousTier: loyaltyUpdate.previousTier
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error confirming booking:', error);
+    res.status(500).json({ error: 'Failed to confirm booking' });
+  }
+});
+
 // Get all bookings
 router.get('/bookings', async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
       include: {
-        room: true
+        room: true,
+        loyaltyAccount: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -287,7 +516,10 @@ router.patch('/bookings/:id/status', async (req, res) => {
     const booking = await prisma.booking.update({
       where: { id: parseInt(id) },
       data: { status },
-      include: { room: true }
+      include: { 
+        room: true,
+        loyaltyAccount: true
+      }
     });
 
     res.json({
@@ -298,6 +530,31 @@ router.patch('/bookings/:id/status', async (req, res) => {
   } catch (error) {
     console.error('Error updating booking status:', error);
     res.status(500).json({ error: 'Failed to update booking status' });
+  }
+});
+
+// Get booking by ID
+router.get('/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        room: true,
+        loyaltyAccount: true,
+        payments: true
+      }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    res.json(booking);
+  } catch (error) {
+    console.error('Error fetching booking:', error);
+    res.status(500).json({ error: 'Failed to fetch booking' });
   }
 });
 

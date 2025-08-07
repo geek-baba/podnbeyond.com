@@ -127,11 +127,11 @@ const CMSAdminPage: React.FC = () => {
     try {
       switch (activeTab) {
         case 'content':
-          const contentResponse = await axios.get('/api/cms/content');
+          const contentResponse = await axios.get('/api/cms/content/all');
           setContents(contentResponse.data.content || []);
           break;
         case 'images':
-          const imagesResponse = await axios.get('/api/cms/images');
+          const imagesResponse = await axios.get('/api/cms/images/all');
           setImages(imagesResponse.data.images || []);
           break;
         case 'testimonials':

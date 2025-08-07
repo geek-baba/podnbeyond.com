@@ -42,6 +42,22 @@ const upload = multer({
 
 // Content Management Routes
 
+// Get all content
+router.get('/content/all', async (req, res) => {
+  try {
+    const content = await prisma.content.findMany({
+      orderBy: {
+        sortOrder: 'asc'
+      }
+    });
+    
+    res.json({ success: true, content });
+  } catch (error) {
+    console.error('Error fetching all content:', error);
+    res.status(500).json({ error: 'Failed to fetch content' });
+  }
+});
+
 // Get all content by type
 router.get('/content/:type', async (req, res) => {
   try {
@@ -120,6 +136,22 @@ router.post('/images/upload', upload.single('image'), async (req, res) => {
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
+// Get all images
+router.get('/images/all', async (req, res) => {
+  try {
+    const images = await prisma.image.findMany({
+      orderBy: {
+        sortOrder: 'asc'
+      }
+    });
+    
+    res.json({ success: true, images });
+  } catch (error) {
+    console.error('Error fetching all images:', error);
+    res.status(500).json({ error: 'Failed to fetch images' });
   }
 });
 

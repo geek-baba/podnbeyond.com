@@ -31,6 +31,12 @@ enum LoyaltyTier {
   PLATINUM
 }
 
+enum RoomStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
 enum ContentType {
   HERO_SECTION
   ABOUT_SECTION
@@ -51,21 +57,40 @@ enum ImageType {
   FAVICON
 }
 
+// Updated Room model to match specifications
 model Room {
-  id        Int      @id @default(autoincrement())
-  type      String
-  price     Float
-  capacity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int        @id @default(autoincrement())
+  name          String
+  type          String
+  capacity      Int
+  description   String?
+  pricePerNight Float
+  status        RoomStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  // Relationship to Bookings
-  bookings  Booking[]
-
-  // Relationship to Room Images
-  images    RoomImage[]
+  // Relationships
+  bookings      Booking[]
+  images        RoomImage[]
+  ratePlans     RatePlan[]
 
   @@map("rooms")
+}
+
+// New RatePlan model
+model RatePlan {
+  id            Int      @id @default(autoincrement())
+  roomId        Int
+  seasonalPrice Float
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationship to Room
+  room          Room     @relation(fields: [roomId], references: [id])
+
+  @@map("rate_plans")
 }
 
 model Booking {
@@ -115,24 +140,30 @@ model Payment {
   @@map("payments")
 }
 
+// Updated LoyaltyAccount model to match specifications
 model LoyaltyAccount {
-  id                Int         @id @default(autoincrement())
-  guestName         String
-  email             String      @unique
-  phone             String?
-  pointsBalance     Int         @default(0)
-  tier              LoyaltyTier @default(SILVER)
-  lastActivityDate  DateTime    @default(now())
-  totalSpent        Float       @default(0)
-  totalBookings     Int         @default(0)
-  isActive          Boolean     @default(true)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id          Int         @id @default(autoincrement())
+  userId      String      @unique
+  points      Int         @default(0)
+  tier        LoyaltyTier @default(SILVER)
+  lastUpdated DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   // Relationship to Bookings
-  bookings          Booking[]
+  bookings    Booking[]
 
   @@map("loyalty_accounts")
+}
+
+// New OTASyncLog model
+model OTASyncLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+
+  @@map("ota_sync_logs")
 }
 
 // CMS Models for Content Management

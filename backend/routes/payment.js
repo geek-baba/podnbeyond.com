@@ -17,9 +17,9 @@ router.post('/create-order', async (req, res) => {
     const { amount, guestName, bookingId, currency = 'INR' } = req.body;
 
     // Validate required fields
-    if (!amount || !guestName) {
+    if (!amount || !guestName || !bookingId) {
       return res.status(400).json({ 
-        error: 'Amount and guest name are required' 
+        error: 'Amount, guest name, and booking ID are required' 
       });
     }
 
@@ -38,32 +38,55 @@ router.post('/create-order', async (req, res) => {
       });
     }
 
+    // Verify booking exists and is in PENDING status
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(bookingId) },
+      include: { room: true }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    if (booking.status !== 'PENDING') {
+      return res.status(400).json({ 
+        error: `Booking is not in pending status. Current status: ${booking.status}` 
+      });
+    }
+
+    // Verify amount matches booking total
+    if (Math.abs(amount - booking.totalPrice) > 0.01) { // Allow small floating point differences
+      return res.status(400).json({ 
+        error: `Payment amount (${amount}) does not match booking total (${booking.totalPrice})` 
+      });
+    }
+
     // Create Razorpay order
     const orderOptions = {
       amount: amountInPaise,
       currency: currency,
-      receipt: `booking_${bookingId || Date.now()}`,
+      receipt: `booking_${bookingId}`,
       notes: {
         guestName: guestName,
-        bookingId: bookingId || 'N/A',
-        hotel: 'Pod & Beyond Hotel'
+        bookingId: bookingId,
+        hotel: 'Pod & Beyond Hotel',
+        roomType: booking.room.name
       }
     };
 
     const order = await razorpay.orders.create(orderOptions);
 
-    // Save payment record to database if bookingId is provided
-    if (bookingId) {
-      await prisma.payment.create({
-        data: {
-          bookingId: parseInt(bookingId),
-          razorpayOrderId: order.id,
-          amount: amount,
-          currency: currency,
-          status: 'PENDING'
-        }
-      });
-    }
+    // Save payment record to database
+    await prisma.payment.create({
+      data: {
+        bookingId: parseInt(bookingId),
+        razorpayOrderId: order.id,
+        amount: amount,
+        status: 'PENDING'
+      }
+    });
+
+    console.log(`Payment order created for booking ${bookingId}: ${order.id}`);
 
     res.status(201).json({
       success: true,
@@ -71,6 +94,7 @@ router.post('/create-order', async (req, res) => {
       amount: amountInPaise,
       currency: currency,
       receipt: order.receipt,
+      bookingId: bookingId,
       notes: orderOptions.notes
     });
 
@@ -89,7 +113,7 @@ router.post('/create-order', async (req, res) => {
   }
 });
 
-// Verify payment signature
+// Verify payment signature and confirm booking
 router.post('/verify-payment', async (req, res) => {
   try {
     const { 
@@ -126,88 +150,52 @@ router.post('/verify-payment', async (req, res) => {
 
     // Update payment status in database
     try {
-      await prisma.payment.updateMany({
-        where: {
-          razorpayOrderId: razorpay_order_id
-        },
-        data: {
-          razorpayPaymentId: razorpay_payment_id,
-          status: 'COMPLETED'
-        }
-      });
-
-      // Update booking status to confirmed and add loyalty points
       const payment = await prisma.payment.findFirst({
         where: { razorpayOrderId: razorpay_order_id },
         include: {
           booking: {
             include: {
+              room: true,
               loyaltyAccount: true
             }
           }
         }
       });
 
-      if (payment) {
-        // Update booking status
-        await prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { status: 'CONFIRMED' }
-        });
-
-        // Add loyalty points based on tier
-        if (payment.booking.loyaltyAccount) {
-          const loyaltyAccount = payment.booking.loyaltyAccount;
-          const pointsEarned = calculateLoyaltyPoints(payment.amount, loyaltyAccount.tier);
-          
-          console.log(`Adding loyalty points: ${pointsEarned} points for ₹${payment.amount} payment (${loyaltyAccount.tier} tier)`);
-
-          await prisma.loyaltyAccount.update({
-            where: { id: loyaltyAccount.id },
-            data: {
-              pointsBalance: {
-                increment: pointsEarned
-              },
-              totalSpent: {
-                increment: payment.amount
-              },
-              totalBookings: {
-                increment: 1
-              },
-              lastActivityDate: new Date()
-            }
-          });
-
-          // Check for tier upgrade
-          const updatedAccount = await prisma.loyaltyAccount.findUnique({
-            where: { id: loyaltyAccount.id }
-          });
-
-          const newTier = calculateTier(updatedAccount.pointsBalance);
-          if (newTier !== loyaltyAccount.tier) {
-            console.log(`Tier upgrade: ${loyaltyAccount.tier} → ${newTier} for ${loyaltyAccount.email}`);
-            await prisma.loyaltyAccount.update({
-              where: { id: loyaltyAccount.id },
-              data: { tier: newTier }
-            });
-          }
-
-          console.log(`Loyalty points updated successfully for ${loyaltyAccount.email}: +${pointsEarned} points, Total: ${updatedAccount.pointsBalance + pointsEarned}`);
-        } else {
-          console.log(`No loyalty account found for booking ${payment.bookingId}`);
-        }
+      if (!payment) {
+        return res.status(404).json({ error: 'Payment record not found' });
       }
+
+      // Update payment status
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          razorpayPaymentId: razorpay_payment_id,
+          status: 'COMPLETED'
+        }
+      });
+
+      console.log(`Payment ${razorpay_payment_id} verified for booking ${payment.bookingId}`);
+
+      // Confirm the booking and add loyalty points
+      const bookingConfirmation = await confirmBookingAfterPayment(
+        payment.bookingId, 
+        razorpay_payment_id, 
+        payment.amount
+      );
+
+      res.json({
+        success: true,
+        message: 'Payment verified and booking confirmed successfully',
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        booking: bookingConfirmation
+      });
+
     } catch (dbError) {
       console.error('Error updating payment in database:', dbError);
-      // Continue with response even if DB update fails
+      res.status(500).json({ error: 'Failed to update payment status' });
     }
-
-    res.json({
-      success: true,
-      message: 'Payment verified successfully',
-      orderId: razorpay_order_id,
-      paymentId: razorpay_payment_id
-    });
 
   } catch (error) {
     console.error('Error verifying payment:', error);
@@ -216,6 +204,146 @@ router.post('/verify-payment', async (req, res) => {
     });
   }
 });
+
+// Helper function to confirm booking after payment success
+async function confirmBookingAfterPayment(bookingId, paymentId, paymentAmount) {
+  try {
+    // Find the booking
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+
+    if (booking.status !== 'PENDING') {
+      throw new Error(`Booking is not in pending status. Current status: ${booking.status}`);
+    }
+
+    // Update booking status to CONFIRMED
+    const confirmedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { 
+        status: 'CONFIRMED',
+        updatedAt: new Date()
+      },
+      include: {
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    // Calculate and add loyalty points after payment confirmation
+    const loyaltyPoints = calculateLoyaltyPoints(paymentAmount);
+    const loyaltyUpdate = await updateLoyaltyAccount(booking.loyaltyAccountId, loyaltyPoints, paymentAmount);
+
+    console.log(`Booking ${bookingId} confirmed after payment success`);
+    console.log(`Loyalty points added: ${loyaltyPoints} points`);
+
+    return {
+      id: confirmedBooking.id,
+      guestName: confirmedBooking.guestName,
+      email: confirmedBooking.email,
+      checkIn: confirmedBooking.checkIn,
+      checkOut: confirmedBooking.checkOut,
+      guests: confirmedBooking.guests,
+      totalPrice: confirmedBooking.totalPrice,
+      roomName: confirmedBooking.room.name,
+      roomType: confirmedBooking.room.type,
+      status: confirmedBooking.status,
+      loyaltyAccount: {
+        userId: loyaltyUpdate.updatedAccount.userId,
+        points: loyaltyUpdate.updatedAccount.points,
+        tier: loyaltyUpdate.updatedAccount.tier,
+        pointsAdded: loyaltyUpdate.pointsAdded,
+        tierUpgraded: loyaltyUpdate.tierUpgraded,
+        newTier: loyaltyUpdate.newTier,
+        previousTier: loyaltyUpdate.previousTier
+      }
+    };
+
+  } catch (error) {
+    console.error('Error confirming booking after payment:', error);
+    throw error;
+  }
+}
+
+// Helper function to calculate loyalty points (1 point per ₹100 spent)
+function calculateLoyaltyPoints(totalPrice) {
+  // Convert to rupees if price is in dollars (assuming 1 USD = 75 INR for calculation)
+  const priceInRupees = totalPrice * 75; // Adjust conversion rate as needed
+  const points = Math.floor(priceInRupees / 100);
+  console.log(`Calculating loyalty points: ₹${priceInRupees} spent = ${points} points`);
+  return points;
+}
+
+// Helper function to determine tier based on total points
+function determineTier(totalPoints) {
+  if (totalPoints >= 10000) {
+    return 'PLATINUM';
+  } else if (totalPoints >= 5000) {
+    return 'GOLD';
+  } else {
+    return 'SILVER';
+  }
+}
+
+// Helper function to update loyalty account with points and tier
+async function updateLoyaltyAccount(loyaltyAccountId, pointsToAdd, totalPrice) {
+  try {
+    // Get current loyalty account
+    const currentAccount = await prisma.loyaltyAccount.findUnique({
+      where: { id: loyaltyAccountId }
+    });
+
+    if (!currentAccount) {
+      throw new Error('Loyalty account not found');
+    }
+
+    // Calculate new total points
+    const newTotalPoints = currentAccount.points + pointsToAdd;
+    
+    // Determine new tier
+    const newTier = determineTier(newTotalPoints);
+    
+    // Check if tier has changed
+    const tierUpgraded = newTier !== currentAccount.tier;
+
+    // Update loyalty account
+    const updatedAccount = await prisma.loyaltyAccount.update({
+      where: { id: loyaltyAccountId },
+      data: {
+        points: newTotalPoints,
+        tier: newTier,
+        lastUpdated: new Date()
+      }
+    });
+
+    console.log(`Loyalty account updated: ${pointsToAdd} points added`);
+    console.log(`Total points: ${currentAccount.points} → ${newTotalPoints}`);
+    
+    if (tierUpgraded) {
+      console.log(`Tier upgraded: ${currentAccount.tier} → ${newTier}`);
+    }
+
+    return {
+      updatedAccount,
+      pointsAdded: pointsToAdd,
+      totalPoints: newTotalPoints,
+      tierUpgraded,
+      newTier,
+      previousTier: currentAccount.tier
+    };
+  } catch (error) {
+    console.error('Error updating loyalty account:', error);
+    throw error;
+  }
+}
 
 // Get payment details by order ID
 router.get('/order/:orderId', async (req, res) => {
@@ -292,15 +420,14 @@ router.get('/payments/:bookingId', async (req, res) => {
         razorpayOrderId: payment.razorpayOrderId,
         razorpayPaymentId: payment.razorpayPaymentId,
         amount: payment.amount,
-        currency: payment.currency,
         status: payment.status,
-        paymentMethod: payment.paymentMethod,
         createdAt: payment.createdAt,
         booking: {
           id: payment.booking.id,
           guestName: payment.booking.guestName,
-          roomType: payment.booking.room.type,
-          totalPrice: payment.booking.totalPrice
+          roomType: payment.booking.room.name,
+          totalPrice: payment.booking.totalPrice,
+          status: payment.booking.status
         }
       }))
     });
@@ -313,14 +440,14 @@ router.get('/payments/:bookingId', async (req, res) => {
   }
 });
 
-// Helper function to calculate tier based on points
+// Helper function to calculate tier based on points (legacy - kept for compatibility)
 function calculateTier(points) {
   if (points >= 10000) return 'PLATINUM';
   if (points >= 5000) return 'GOLD';
   return 'SILVER';
 }
 
-// Helper function to calculate loyalty points based on amount spent and tier
+// Helper function to calculate loyalty points based on amount spent and tier (legacy - kept for compatibility)
 function calculateLoyaltyPoints(amount, tier) {
   // Base rate: 1 point per ₹100 spent
   const basePoints = Math.floor(amount / 100);
@@ -332,7 +459,7 @@ function calculateLoyaltyPoints(amount, tier) {
   return totalPoints;
 }
 
-// Helper function to get tier multiplier for points calculation
+// Helper function to get tier multiplier for points calculation (legacy - kept for compatibility)
 function getTierMultiplier(tier) {
   switch (tier) {
     case 'PLATINUM':
