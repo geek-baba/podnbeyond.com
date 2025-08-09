@@ -184,6 +184,17 @@ export default function HomePage() {
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&h=900&fit=crop&auto=format&q=80';
   const DEFAULT_LOGO_URL =
     process.env.NEXT_PUBLIC_LOGO_URL || 'https://podnbeyond.com/wp-content/uploads/2024/01/logo.png';
+  const galleryImages: string[] = [
+    'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1551776235-dde6d4829808?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1505691723518-36a5ac3b2d95?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1501117716987-c8e2aef2bffe?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1560448075-bb4caa6cfcf0?w=900&h=600&fit=crop&auto=format&q=80',
+    'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=900&h=600&fit=crop&auto=format&q=80'
+  ];
 
   // CMS Data State
   const [heroContent, setHeroContent] = useState<Content | null>(null);
@@ -514,6 +525,7 @@ export default function HomePage() {
               </div>
               <nav className="hidden md:flex items-center space-x-6 text-white/90">
                 <a href="#rooms" className="hover:text-white transition-colors">Rooms</a>
+                <a href="#gallery" className="hover:text-white transition-colors">Explore</a>
                 <a href="#booking" className="hover:text-white transition-colors">Reservation</a>
                 <a href="#contact" className="hover:text-white transition-colors">Contact</a>
               </nav>
@@ -559,6 +571,48 @@ export default function HomePage() {
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
             <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
               <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
+            </div>
+          </div>
+        </section>
+
+        {/* Explore / Gallery Section */}
+        <section id="gallery" className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-4xl font-bold text-gray-900">Explore Pod n Beyond</h2>
+                <p className="text-gray-600 mt-2">A glimpse into our pods, common areas, and ambiance</p>
+              </div>
+              <a
+                href="https://podnbeyond.com/explore-pod-n-beyond.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Full Portfolio ↗
+              </a>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {galleryImages.map((src, idx) => (
+                <div key={idx} className="relative group overflow-hidden rounded-lg shadow-md">
+                  <img
+                    src={src}
+                    alt={`Gallery ${idx + 1}`}
+                    className="w-full h-56 md:h-64 object-cover transform group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 text-center md:hidden">
+              <a
+                href="https://podnbeyond.com/explore-pod-n-beyond.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Full Portfolio ↗
+              </a>
             </div>
           </div>
         </section>
