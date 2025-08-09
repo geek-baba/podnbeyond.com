@@ -441,9 +441,10 @@ export default function HomePage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'INR',
+      maximumFractionDigits: 0
     }).format(amount);
   };
 
@@ -466,8 +467,8 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>Pod & Beyond Hotel - Luxury Accommodation</title>
-        <meta name="description" content="Experience luxury and comfort at Pod & Beyond Hotel. Book your perfect stay with us." />
+        <title>POD N BEYOND | Smart Hotel – Jamshedpur</title>
+        <meta name="description" content="India's first pod hotel in Jamshedpur. Stay in the heart of the Steel City and experience a world-class ambiance at POD N BEYOND." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -498,18 +499,18 @@ export default function HomePage() {
           {/* Hero Content */}
           <div className="relative z-10 text-center text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              {heroContent?.title || 'Pod & Beyond Hotel'}
+              {heroContent?.title || 'POD N BEYOND | Smart Hotel'}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto font-light">
-              {heroContent?.subtitle || 'Experience luxury and comfort in the heart of the city'}
+              {heroContent?.subtitle || "INDIA'S FIRST POD, LAUNCHED IN JAMSHEDPUR"}
             </p>
             <p className="text-lg mb-8 max-w-2xl mx-auto opacity-90">
-              {heroContent?.description || 'Discover our world-class amenities and exceptional service'}
+              {heroContent?.description || 'Stay in the heart of the STEEL CITY and experience a world-class ambiance'}
             </p>
             
             {/* Price Display */}
             <div className="text-2xl font-bold mb-8">
-              Rooms from $199 / night
+              Rooms from ₹1,999 / night
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -614,7 +615,7 @@ export default function HomePage() {
               <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">En suite</button>
               <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">King</button>
               <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Queen</button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Under $300</button>
+              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Under ₹3,000</button>
             </div>
             
             {/* Rooms Grid */}
@@ -898,7 +899,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">Address</h4>
-                        <p className="text-gray-300">123 Hotel Street, City, State 12345</p>
+                        <p className="text-gray-300">New Kalimati Road, Near Howrah Bridge, Sakchi, Jamshedpur</p>
                       </div>
                     </div>
                     
@@ -908,7 +909,8 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">Phone</h4>
-                        <p className="text-gray-300">+1 (555) 123-4567</p>
+                        <p className="text-gray-300">(91) 82350 71333, (91) 82350 72333, (91) 90315 73555, (91) 82350 74555</p>
+                        <p className="text-gray-300">(91) 90310 00931, (91) 93348 04739</p>
                       </div>
                     </div>
                     
@@ -918,7 +920,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">Email</h4>
-                        <p className="text-gray-300">info@podnbeyond.com</p>
+                        <p className="text-gray-300">info@podnbeyond.com, ravish2301@gmail.com</p>
                       </div>
                     </div>
                   </div>
@@ -976,7 +978,7 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
-      </div>
+    </div>
     </>
   );
 }
