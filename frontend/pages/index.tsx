@@ -180,6 +180,11 @@ const amenities = [
 ];
 
 export default function HomePage() {
+  const DEFAULT_HERO_IMAGE =
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&h=900&fit=crop&auto=format&q=80';
+  const DEFAULT_LOGO_URL =
+    process.env.NEXT_PUBLIC_LOGO_URL || 'https://podnbeyond.com/wp-content/uploads/2024/01/logo.png';
+
   // CMS Data State
   const [heroContent, setHeroContent] = useState<Content | null>(null);
   const [aboutContent, setAboutContent] = useState<Content | null>(null);
@@ -213,6 +218,7 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     const fetchCMSData = async () => {
@@ -477,7 +483,7 @@ export default function HomePage() {
         <section 
           className="relative h-screen flex items-center justify-center"
           style={{
-            backgroundImage: heroImage ? `url(${heroImage.url})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundImage: `url(${heroImage ? heroImage.url : DEFAULT_HERO_IMAGE})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
@@ -489,12 +495,32 @@ export default function HomePage() {
           }}
         >
           {/* Background Image Overlay */}
-          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-          
-          {/* Award Badge */}
-          <div className="absolute top-8 left-8 bg-yellow-500 text-black px-4 py-2 rounded-full text-sm font-bold">
-            🏆 TRAVELLERS CHOICE AWARD 2024
+          <div className="absolute inset-0 bg-black/40"></div>
+
+          {/* Top Header with Logo */}
+          <div className="absolute top-0 left-0 right-0 z-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {!logoFailed ? (
+                  <img
+                    src={DEFAULT_LOGO_URL}
+                    alt="POD N BEYOND"
+                    className="h-10 md:h-12 w-auto"
+                    onError={() => setLogoFailed(true)}
+                  />
+                ) : (
+                  <span className="text-white text-xl md:text-2xl font-bold tracking-wide">pod ’n’ beyond</span>
+                )}
+              </div>
+              <nav className="hidden md:flex items-center space-x-6 text-white/90">
+                <a href="#rooms" className="hover:text-white transition-colors">Rooms</a>
+                <a href="#booking" className="hover:text-white transition-colors">Reservation</a>
+                <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+              </nav>
+            </div>
           </div>
+          
+          {/* Removed award badge as requested */}
           
           {/* Hero Content */}
           <div className="relative z-10 text-center text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
@@ -577,24 +603,39 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Amenities Section */}
+        {/* Read More Section (replaces amenities) */}
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Hotel Amenities</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Enjoy world-class facilities and services designed for your comfort and convenience
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {amenities.map((amenity, index) => (
-                <div key={index} className="bg-gray-50 p-8 rounded-lg text-center hover:shadow-lg transition-shadow duration-300">
-                  <div className="text-4xl mb-4">{amenity.icon}</div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{amenity.name}</h3>
-                  <p className="text-gray-600">{amenity.description}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">NEW GENERATION “BUDGET SMART HOTEL”</h2>
+                <p className="text-lg text-gray-700 mb-6">
+                  POD N BEYOND is India’s first pod hotel launched in Jamshedpur. Stay in the heart of the STEEL CITY and experience a world-class ambiance with smart, comfortable, and affordable pods.
+                </p>
+                <ul className="space-y-3 text-gray-700 mb-8">
+                  <li className="flex items-start"><span className="mr-2">⏰</span> 24 HOURS Check-in / Check Out</li>
+                  <li className="flex items-start"><span className="mr-2">🕒</span> SHORT STAYS: 4 hrs, 8 hrs, 12 hrs (facilities without Breakfast)</li>
+                  <li className="flex items-start"><span className="mr-2">🧳</span> LONG STAYS: Don’t forget to ask for long term special deals!</li>
+                </ul>
+                <a
+                  href="https://podnbeyond.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  READ MORE
+                </a>
+              </div>
+              <div className="relative">
+                <img
+                  src={heroImage ? heroImage.url : DEFAULT_HERO_IMAGE}
+                  alt="POD N BEYOND"
+                  className="rounded-xl shadow-2xl"
+                />
+                <div className="absolute -bottom-6 -right-6 bg-white p-4 rounded-lg shadow-lg">
+                  <div className="text-sm text-gray-600">Book Your Pod Now! Come make new friends.</div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
@@ -884,7 +925,7 @@ export default function HomePage() {
 
         {/* Contact Section */}
         {contactContent && (
-          <section className="py-20 bg-gray-900 text-white">
+          <section id="contact" className="py-20 bg-gray-900 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div>
