@@ -10,7 +10,7 @@ Before running the setup script, ensure you have:
 2. **Node.js 18+** installed
 3. **PostgreSQL** installed and running
 4. **Git** installed
-5. **Your Razorpay production keys** ready
+5. **Your Razorpay production keys** ready (optional - can be added later)
 6. **Your domain names** ready
 
 ## 🎯 Quick Setup (5 Minutes)
@@ -48,9 +48,10 @@ The script will guide you through:
    - Database name and user (auto-generated)
    - Secure password (auto-generated)
 
-3. **Razorpay Configuration**
+3. **Razorpay Configuration** (Optional)
    - Production Key ID (starts with `rzp_live_`)
    - Production Secret Key
+   - Can be skipped and added later
 
 4. **Security Setup**
    - JWT secret (auto-generated)
@@ -219,6 +220,26 @@ cd ../frontend && npm ci --only=production && npm run build
 # Restart services
 pm2 restart all
 ```
+
+## 💳 Adding Razorpay Keys Later
+
+If you skipped Razorpay configuration during setup, you can add them later:
+
+```bash
+# Navigate to project directory
+cd /home/cloudpanel/htdocs/podnbeyond-app
+
+# Run the Razorpay keys update script
+./scripts/update-razorpay-keys.sh
+```
+
+This script will:
+- Find your project directory automatically
+- Show current Razorpay configuration
+- Guide you through adding new keys
+- Update both backend and frontend environment files
+- Restart services automatically
+- Create backups of existing configuration
 
 ---
 

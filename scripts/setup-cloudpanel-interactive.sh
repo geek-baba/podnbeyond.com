@@ -187,9 +187,18 @@ collect_configuration() {
     # Razorpay configuration
     echo
     print_step "Razorpay Configuration"
-    print_warning "You'll need your Razorpay production keys for this step."
-    get_input "Enter Razorpay Key ID (starts with rzp_live_)" "" RAZORPAY_KEY_ID
-    get_input "Enter Razorpay Key Secret" "" RAZORPAY_KEY_SECRET
+    print_warning "Razorpay production keys are required for payment processing."
+    print_status "You can skip this step now and add keys later, but payments won't work until configured."
+    
+    if confirm_action "Do you have Razorpay production keys ready?"; then
+        get_input "Enter Razorpay Key ID (starts with rzp_live_)" "" RAZORPAY_KEY_ID
+        get_input "Enter Razorpay Key Secret" "" RAZORPAY_KEY_SECRET
+    else
+        print_status "Using placeholder keys for now. You'll need to update them later."
+        RAZORPAY_KEY_ID="rzp_live_PLACEHOLDER_KEY_ID"
+        RAZORPAY_KEY_SECRET="placeholder_secret_key"
+        print_warning "⚠️  IMPORTANT: Update Razorpay keys in environment files before going live!"
+    fi
     
     # JWT Secret
     echo
@@ -695,6 +704,17 @@ display_final_instructions() {
     print_warning "Please save your configuration file ($CONFIG_FILE) securely!"
     print_warning "Database password: $DB_PASSWORD"
     print_warning "JWT secret: $JWT_SECRET"
+    
+    # Check if using placeholder Razorpay keys
+    if [[ "$RAZORPAY_KEY_ID" == "rzp_live_PLACEHOLDER_KEY_ID" ]]; then
+        echo
+        print_warning "⚠️  RAZORPAY KEYS NOT CONFIGURED!"
+        print_status "To enable payments, update these files with your production keys:"
+        echo "• $PROJECT_DIR/backend/.env"
+        echo "• $PROJECT_DIR/frontend/.env.local"
+        echo
+        print_status "Replace the placeholder values with your actual Razorpay production keys."
+    fi
     echo
     
     print_status "For support, contact: info@podnbeyond.com"
