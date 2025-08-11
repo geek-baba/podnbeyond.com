@@ -2,14 +2,14 @@ module.exports = {
   apps: [
     {
       name: 'hotel-booking-backend',
-      script: './backend/server.js',
-      cwd: './',
+      script: 'server.js',
+      cwd: './backend',
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'development',
+        NODE_ENV: 'production',
         PORT: 4000
       },
       env_production: {
@@ -31,7 +31,7 @@ module.exports = {
       watch: false,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'development',
+        NODE_ENV: 'production',
         PORT: 3000
       },
       env_production: {

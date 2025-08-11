@@ -76,6 +76,98 @@ router.get('/account/:email', async (req, res) => {
   }
 });
 
+// Get loyalty account by userId
+router.get('/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    let loyaltyAccount = await prisma.loyaltyAccount.findUnique({
+      where: { userId },
+      include: {
+        bookings: {
+          include: {
+            room: true,
+            payments: {
+              where: {
+                status: 'COMPLETED'
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
+      }
+    });
+
+    // Create new account if doesn't exist
+    if (!loyaltyAccount) {
+      loyaltyAccount = await prisma.loyaltyAccount.create({
+        data: {
+          userId,
+          points: 0,
+          tier: 'SILVER'
+        },
+        include: {
+          bookings: {
+            include: {
+              room: true,
+              payments: {
+                where: {
+                  status: 'COMPLETED'
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'desc'
+            }
+          }
+        }
+      });
+    }
+
+    // Calculate redemption history from completed bookings
+    const redemptionHistory = loyaltyAccount.bookings
+      .filter(booking => booking.payments.length > 0)
+      .map(booking => ({
+        id: booking.id,
+        date: booking.createdAt,
+        type: 'Booking',
+        description: `${booking.room.name} - ${booking.guestName}`,
+        pointsEarned: Math.floor(booking.totalPrice * 75 / 100), // 1 point per ₹100 spent
+        amount: booking.totalPrice,
+        status: booking.status
+      }));
+
+    res.json({
+      success: true,
+      account: {
+        id: loyaltyAccount.id,
+        userId: loyaltyAccount.userId,
+        points: loyaltyAccount.points,
+        tier: loyaltyAccount.tier,
+        lastUpdated: loyaltyAccount.lastUpdated,
+        createdAt: loyaltyAccount.createdAt,
+        bookings: loyaltyAccount.bookings.map(booking => ({
+          id: booking.id,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          totalPrice: booking.totalPrice,
+          status: booking.status,
+          roomName: booking.room.name,
+          roomType: booking.room.type,
+          createdAt: booking.createdAt
+        })),
+        redemptionHistory: redemptionHistory
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching loyalty account by userId:', error);
+    res.status(500).json({ error: 'Failed to fetch loyalty account' });
+  }
+});
+
 // Get loyalty points (legacy endpoint)
 router.get('/points', async (req, res) => {
   try {
@@ -356,39 +448,118 @@ router.get('/accounts', async (req, res) => {
     const accounts = await prisma.loyaltyAccount.findMany({
       include: {
         bookings: {
-          select: {
-            id: true,
-            totalPrice: true,
-            status: true,
-            createdAt: true
-          }
+          include: {
+            room: true
+          },
+          orderBy: { createdAt: 'desc' }
         }
       },
-      orderBy: {
-        pointsBalance: 'desc'
-      }
+      orderBy: { lastUpdated: 'desc' }
     });
 
-    res.json({
-      success: true,
-      accounts: accounts.map(account => ({
-        id: account.id,
-        guestName: account.guestName,
-        email: account.email,
-        phone: account.phone,
-        pointsBalance: account.pointsBalance,
-        tier: account.tier,
-        lastActivityDate: account.lastActivityDate,
-        totalSpent: account.totalSpent,
-        totalBookings: account.totalBookings,
-        isActive: account.isActive,
-        bookingCount: account.bookings.length
-      }))
-    });
+    // Transform data to match frontend expectations
+    const transformedAccounts = accounts.map(account => ({
+      id: account.id,
+      guestName: account.userId, // Using userId as guestName for now
+      email: account.userId, // Using userId as email for now
+      phone: null,
+      pointsBalance: account.points,
+      tier: account.tier,
+      lastActivityDate: account.lastUpdated,
+      totalSpent: account.bookings.reduce((sum, booking) => sum + booking.totalPrice, 0),
+      totalBookings: account.bookings.length,
+      isActive: true
+    }));
 
+    res.json({ accounts: transformedAccounts });
   } catch (error) {
     console.error('Error fetching loyalty accounts:', error);
     res.status(500).json({ error: 'Failed to fetch loyalty accounts' });
+  }
+});
+
+// Update loyalty account (admin endpoint)
+router.put('/accounts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { points, tier } = req.body;
+
+    const account = await prisma.loyaltyAccount.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(points !== undefined && { points: parseInt(points) }),
+        ...(tier && { tier }),
+        lastUpdated: new Date()
+      }
+    });
+
+    res.json({ success: true, account });
+  } catch (error) {
+    console.error('Error updating loyalty account:', error);
+    res.status(500).json({ error: 'Failed to update loyalty account' });
+  }
+});
+
+// Search loyalty accounts (admin endpoint)
+router.get('/accounts/search', async (req, res) => {
+  try {
+    const { userId, tier, minPoints, maxPoints, limit = 50, offset = 0 } = req.query;
+
+    const where = {};
+
+    if (userId) {
+      where.userId = { contains: userId, mode: 'insensitive' };
+    }
+
+    if (tier) {
+      where.tier = tier;
+    }
+
+    if (minPoints || maxPoints) {
+      where.points = {};
+      if (minPoints) where.points.gte = parseInt(minPoints);
+      if (maxPoints) where.points.lte = parseInt(maxPoints);
+    }
+
+    const accounts = await prisma.loyaltyAccount.findMany({
+      where,
+      include: {
+        bookings: {
+          include: {
+            room: true
+          }
+        }
+      },
+      orderBy: { lastUpdated: 'desc' },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+
+    const total = await prisma.loyaltyAccount.count({ where });
+
+    // Transform data
+    const transformedAccounts = accounts.map(account => ({
+      id: account.id,
+      guestName: account.userId,
+      email: account.userId,
+      phone: null,
+      pointsBalance: account.points,
+      tier: account.tier,
+      lastActivityDate: account.lastUpdated,
+      totalSpent: account.bookings.reduce((sum, booking) => sum + booking.totalPrice, 0),
+      totalBookings: account.bookings.length,
+      isActive: true
+    }));
+
+    res.json({
+      accounts: transformedAccounts,
+      total,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Error searching loyalty accounts:', error);
+    res.status(500).json({ error: 'Failed to search loyalty accounts' });
   }
 });
 

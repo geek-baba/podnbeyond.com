@@ -159,6 +159,14 @@ router.get('/images/all', async (req, res) => {
 router.get('/images/:type', async (req, res) => {
   try {
     const { type } = req.params;
+    
+    // Validate that type is a valid ImageType enum value
+    const validTypes = ['HERO_IMAGE', 'ROOM_IMAGE', 'AMENITY_ICON', 'TESTIMONIAL_AVATAR', 'GALLERY_IMAGE', 'LOGO', 'FAVICON'];
+    
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: 'Invalid image type' });
+    }
+    
     const images = await prisma.image.findMany({
       where: {
         type: type,

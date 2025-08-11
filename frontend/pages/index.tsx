@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
+import { RAZORPAY_CONFIG } from '../config/razorpay';
 
 // Types for CMS data
 interface Content {
@@ -50,6 +51,33 @@ interface Amenity {
   iconImage: Image | null;
   isActive: boolean;
   sortOrder: number;
+}
+
+// Room interface for backend API
+interface Room {
+  id: number;
+  name: string;
+  type: string;
+  capacity: number;
+  description: string | null;
+  pricePerNight: number;
+  status: string;
+  availableRooms?: number;
+  totalPrice?: number;
+  nights?: number;
+  hasSeasonalRate?: boolean;
+}
+
+// Booking form data interface
+interface BookingFormData {
+  guestName: string;
+  email: string;
+  phone: string;
+  checkIn: string;
+  checkOut: string;
+  guests: string;
+  roomId: string;
+  specialRequests: string;
 }
 
 // Enhanced room data with multiple images like the WordPress site
@@ -103,197 +131,149 @@ const rooms = [
     description: "Perfect for business travelers with work space",
     price: 249,
     capacity: 2,
-    features: ["Work Space", "Business Amenities", "High-Speed WiFi"],
+    features: ["Work Space", "High-Speed WiFi", "Business Center Access"],
     images: [
       "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop"
+      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop"
     ],
-    badge: "Popular"
+    badge: "Business"
   },
   {
     id: 5,
     name: "Ocean View Pod",
-    description: "Stunning ocean views with premium amenities",
+    description: "Stunning ocean views with balcony access",
     price: 349,
     capacity: 2,
-    features: ["Ocean View", "Premium Amenities", "Private Balcony"],
+    features: ["Ocean View", "Private Balcony", "Premium Location"],
     images: [
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop"
     ],
-    badge: "Featured"
+    badge: "Ocean View"
   },
   {
     id: 6,
     name: "Studio Pod Suite",
-    description: "King-sized bed with living area and sofa bed",
+    description: "Luxury studio with full kitchen and living area",
     price: 499,
     capacity: 3,
-    features: ["King Bed", "Living Area", "Sofa Bed"],
+    features: ["Full Kitchen", "Living Area", "Luxury Amenities"],
     images: [
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop"
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop"
     ],
-    badge: "Updated"
+    badge: "Luxury"
   }
 ];
 
-// Package deals like the WordPress site
-const packages = [
-  {
-    id: 1,
-    name: "Spa Packages",
-    price: 149,
-    originalPrice: 199,
-    discount: "Buy 1 Get 1 Free",
-    description: "Relaxing spa treatments and wellness packages for the perfect getaway",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&h=400&fit=crop"
-  },
-  {
-    id: 2,
-    name: "Adventure Awaits",
-    price: 125,
-    originalPrice: 135,
-    discount: "$10 Discount",
-    description: "Explore the city with our adventure package including guided tours",
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop"
-  },
-  {
-    id: 3,
-    name: "Exclusive Online Deals",
-    price: 180,
-    originalPrice: 240,
-    discount: "25% Off",
-    description: "Special online-only rates with premium amenities and services",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop"
-  }
-];
-
-// Enhanced amenities with icons
+// Amenities data
 const amenities = [
-  { name: "Free WiFi", icon: "📶", description: "High-speed internet throughout the hotel" },
-  { name: "Swimming Pool", icon: "🏊‍♂️", description: "Relaxing outdoor pool with lounge chairs" },
-  { name: "Fitness Center", icon: "💪", description: "24/7 gym with modern equipment" },
-  { name: "Restaurant", icon: "🍽️", description: "Fine dining with local and international cuisine" },
-  { name: "Spa & Wellness", icon: "🧘‍♀️", description: "Rejuvenating spa treatments and massage services" },
-  { name: "Conference Rooms", icon: "💼", description: "Business facilities for meetings and events" }
-];
-
-// Enhanced testimonials
-const testimonials = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    rating: 5,
-    title: "Exceptional Service",
-    content: "The staff went above and beyond to make our stay memorable. The pods were spotless and the amenities were top-notch. Highly recommend!",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-    location: "New York"
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    rating: 5,
-    title: "Perfect Location",
-    content: "Great location in the heart of the city. Easy access to attractions and restaurants. The hotel itself is beautiful with excellent service.",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-    location: "Los Angeles"
-  },
-  {
-    id: 3,
-    name: "Emily Rodriguez",
-    rating: 4,
-    title: "Comfortable Stay",
-    content: "Very comfortable pods and friendly staff. The breakfast was delicious and the pool area was perfect for relaxation.",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-    location: "Chicago"
-  }
+  { icon: "🏊‍♂️", name: "Swimming Pool", description: "Heated outdoor pool with stunning views" },
+  { icon: "🏋️‍♂️", name: "Fitness Center", description: "24/7 gym with modern equipment" },
+  { icon: "🍽️", name: "Restaurant", description: "Fine dining with local and international cuisine" },
+  { icon: "🚗", name: "Free Parking", description: "Complimentary parking for all guests" },
+  { icon: "📶", name: "Free WiFi", description: "High-speed internet throughout the hotel" },
+  { icon: "🧖‍♀️", name: "Spa & Wellness", description: "Relaxing spa treatments and massage" }
 ];
 
 export default function HomePage() {
-  // Form state
-  const [formData, setFormData] = useState({
+  const DEFAULT_HERO_IMAGE =
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&h=900&fit=crop&auto=format&q=80';
+  const DEFAULT_LOGO_URL =
+    process.env.NEXT_PUBLIC_LOGO_URL || 'https://podnbeyond.com/wp-content/uploads/2024/01/logo.png';
+  const [galleryImages, setGalleryImages] = useState<Array<{id: number, url: string, title?: string, altText?: string}>>([]);
+
+  // CMS Data State
+  const [heroContent, setHeroContent] = useState<Content | null>(null);
+  const [aboutContent, setAboutContent] = useState<Content | null>(null);
+  const [contactContent, setContactContent] = useState<Content | null>(null);
+  const [footerContent, setFooterContent] = useState<Content | null>(null);
+  const [testimonialsData, setTestimonialsData] = useState<Testimonial[]>([]);
+  const [amenitiesData, setAmenitiesData] = useState<Amenity[]>([]);
+  const [heroImage, setHeroImage] = useState<Image | null>(null);
+  const [isLoadingCMS, setIsLoadingCMS] = useState(true);
+
+  // Booking Form State
+  const [formData, setFormData] = useState<BookingFormData>({
     guestName: '',
     email: '',
     phone: '',
     checkIn: '',
     checkOut: '',
     guests: '1',
-    roomType: '',
+    roomId: '',
     specialRequests: ''
   });
 
+  // Room Availability State
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [nights, setNights] = useState<number>(0);
+
+  // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
-  const [availableRooms, setAvailableRooms] = useState([]);
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
-  // CMS Data
-  const [heroContent, setHeroContent] = useState<Content | null>(null);
-  const [heroImage, setHeroImage] = useState<Image | null>(null);
-  const [aboutContent, setAboutContent] = useState<Content | null>(null);
-  const [testimonialsData, setTestimonialsData] = useState<Testimonial[]>([]);
-  const [amenitiesData, setAmenitiesData] = useState<Amenity[]>([]);
-  const [contactContent, setContactContent] = useState<Content | null>(null);
-  const [footerContent, setFooterContent] = useState<Content | null>(null);
-  const [isLoadingCMS, setIsLoadingCMS] = useState(true);
-
-  // Fetch CMS data
   useEffect(() => {
     const fetchCMSData = async () => {
       try {
-        console.log('Fetching CMS data...');
-        
-        // Fetch hero content and image
+        // Fetch hero content
         const heroResponse = await axios.get('/api/cms/content/HERO_SECTION');
-        console.log('Hero response:', heroResponse.data);
-        if (heroResponse.data.content && heroResponse.data.content.length > 0) {
-          setHeroContent(heroResponse.data.content[0]);
-        }
-
-        const heroImageResponse = await axios.get('/api/cms/images/HERO_BACKGROUND');
-        console.log('Hero image response:', heroImageResponse.data);
-        if (heroImageResponse.data.images && heroImageResponse.data.images.length > 0) {
-          setHeroImage(heroImageResponse.data.images[0]);
+        if (heroResponse.data.success) {
+          setHeroContent(heroResponse.data.content);
         }
 
         // Fetch about content
         const aboutResponse = await axios.get('/api/cms/content/ABOUT_SECTION');
-        console.log('About response:', aboutResponse.data);
-        if (aboutResponse.data.content && aboutResponse.data.content.length > 0) {
-          setAboutContent(aboutResponse.data.content[0]);
+        if (aboutResponse.data.success) {
+          setAboutContent(aboutResponse.data.content);
         }
-
-        // Fetch testimonials
-        const testimonialsResponse = await axios.get('/api/cms/testimonials');
-        console.log('Testimonials response:', testimonialsResponse.data);
-        setTestimonialsData(testimonialsResponse.data.testimonials || []);
-
-        // Fetch amenities
-        const amenitiesResponse = await axios.get('/api/cms/amenities');
-        console.log('Amenities response:', amenitiesResponse.data);
-        setAmenitiesData(amenitiesResponse.data.amenities || []);
 
         // Fetch contact content
         const contactResponse = await axios.get('/api/cms/content/CONTACT_SECTION');
-        console.log('Contact response:', contactResponse.data);
-        if (contactResponse.data.content && contactResponse.data.content.length > 0) {
-          setContactContent(contactResponse.data.content[0]);
+        if (contactResponse.data.success) {
+          setContactContent(contactResponse.data.content);
         }
 
         // Fetch footer content
         const footerResponse = await axios.get('/api/cms/content/FOOTER_SECTION');
-        console.log('Footer response:', footerResponse.data);
-        if (footerResponse.data.content && footerResponse.data.content.length > 0) {
-          setFooterContent(footerResponse.data.content[0]);
+        if (footerResponse.data.success) {
+          setFooterContent(footerResponse.data.content);
         }
-        
-        console.log('CMS data fetching completed');
+
+        // Fetch testimonials
+        const testimonialsResponse = await axios.get('/api/cms/testimonials');
+        if (testimonialsResponse.data.success) {
+          setTestimonialsData(testimonialsResponse.data.testimonials);
+        }
+
+        // Fetch amenities
+        const amenitiesResponse = await axios.get('/api/cms/amenities');
+        if (amenitiesResponse.data.success) {
+          setAmenitiesData(amenitiesResponse.data.amenities);
+        }
+
+        // Fetch hero image
+        const heroImageResponse = await axios.get('/api/cms/images/HERO_IMAGE');
+        if (heroImageResponse.data.success && heroImageResponse.data.images.length > 0) {
+          setHeroImage(heroImageResponse.data.images[0]);
+        }
+
+        // Fetch gallery images
+        const galleryResponse = await axios.get('/api/cms/images/GALLERY_IMAGE');
+        if (galleryResponse.data.success) {
+          setGalleryImages(galleryResponse.data.images);
+        }
+
       } catch (error) {
-        console.error('Failed to fetch CMS data:', error);
+        console.error('Error fetching CMS data:', error);
       } finally {
         setIsLoadingCMS(false);
       }
@@ -301,6 +281,189 @@ export default function HomePage() {
 
     fetchCMSData();
   }, []);
+
+  // Fetch available rooms when dates change
+  useEffect(() => {
+    if (formData.checkIn && formData.checkOut) {
+      fetchAvailableRooms();
+    }
+  }, [formData.checkIn, formData.checkOut, formData.guests]);
+
+  const fetchAvailableRooms = async () => {
+    if (!formData.checkIn || !formData.checkOut) return;
+
+    setIsLoadingRooms(true);
+    try {
+      const response = await axios.get('/api/booking/availability', {
+        params: {
+          checkIn: formData.checkIn,
+          checkOut: formData.checkOut,
+          guests: parseInt(formData.guests)
+        }
+      });
+
+      if (response.data.success) {
+        setAvailableRooms(response.data.rooms);
+      }
+    } catch (error) {
+      console.error('Error fetching available rooms:', error);
+      setAvailableRooms([]);
+    } finally {
+      setIsLoadingRooms(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+
+    // Update selected room and calculate price when room changes
+    if (name === 'roomId') {
+      const room = availableRooms.find(r => r.id.toString() === value);
+      setSelectedRoom(room || null);
+      
+      if (room && formData.checkIn && formData.checkOut) {
+        const checkIn = new Date(formData.checkIn);
+        const checkOut = new Date(formData.checkOut);
+        const nightsCount = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+        setNights(nightsCount);
+        setTotalPrice(room.totalPrice || room.pricePerNight * nightsCount);
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage('');
+
+    try {
+      // Prepare booking data with correct types
+      const bookingData = {
+        ...formData,
+        guests: parseInt(formData.guests),
+        roomId: parseInt(formData.roomId)
+      };
+
+      // Create booking (PENDING status)
+      const bookingResponse = await axios.post('/api/booking/book', bookingData);
+      const bookingId = bookingResponse.data.booking.id;
+      const bookingTotalPrice = bookingResponse.data.booking.totalPrice;
+
+      // Create payment order
+      const orderResponse = await axios.post('/api/payment/create-order', {
+        amount: bookingTotalPrice,
+        guestName: formData.guestName,
+        bookingId: bookingId
+      });
+
+      if (orderResponse.data.success) {
+        setIsPaymentProcessing(true);
+        
+        // Initialize Razorpay with centralized config
+        const options = {
+          key: RAZORPAY_CONFIG.KEY_ID,
+          amount: orderResponse.data.amount,
+          currency: 'INR',
+          name: RAZORPAY_CONFIG.HOTEL_NAME,
+          description: `${RAZORPAY_CONFIG.HOTEL_DESCRIPTION} - ${selectedRoom?.name || 'Room'}`,
+          order_id: orderResponse.data.orderId,
+          handler: (response: any) => handlePaymentSuccess(response, bookingId),
+          prefill: {
+            name: formData.guestName,
+            email: formData.email,
+            contact: formData.phone
+          },
+          theme: RAZORPAY_CONFIG.THEME,
+          modal: {
+            ondismiss: () => {
+              setIsPaymentProcessing(false);
+              setSubmitMessage('Payment cancelled. You can try again.');
+            }
+          }
+        };
+
+        const razorpay = new (window as any).Razorpay(options);
+        razorpay.open();
+      } else {
+        setSubmitMessage('Failed to create payment order');
+      }
+    } catch (error: any) {
+      console.error('Booking error:', error);
+      setSubmitMessage(error.response?.data?.error || 'Failed to create booking');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (response: any, bookingId: number) => {
+    try {
+      console.log('Payment successful, verifying with backend...', response);
+      
+      // Verify payment and confirm booking
+      const verificationResponse = await axios.post('/api/payment/verify-payment', {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature
+      });
+
+      if (verificationResponse.data.success) {
+        console.log('Payment verified, booking finalized:', verificationResponse.data);
+        
+        // Show success message with booking details
+        const bookingDetails = verificationResponse.data.booking;
+        setSubmitMessage(`✅ Booking confirmed and payment successful! 
+          Booking ID: ${bookingDetails.id}
+          Room: ${bookingDetails.roomName}
+          Check-in: ${new Date(bookingDetails.checkIn).toLocaleDateString()}
+          Check-out: ${new Date(bookingDetails.checkOut).toLocaleDateString()}
+          Total: ${formatCurrency(bookingDetails.totalPrice)}
+          
+          A confirmation email has been sent to ${bookingDetails.email}`);
+        
+        // Reset form
+        setFormData({
+          guestName: '',
+          email: '',
+          phone: '',
+          checkIn: '',
+          checkOut: '',
+          guests: '1',
+          roomId: '',
+          specialRequests: ''
+        });
+        setSelectedRoom(null);
+        setTotalPrice(0);
+        setNights(0);
+        
+        // Clear available rooms to force refresh
+        setAvailableRooms([]);
+      } else {
+        console.error('Payment verification failed:', verificationResponse.data);
+        setSubmitMessage('❌ Payment verification failed. Please contact support.');
+      }
+    } catch (error: any) {
+      console.error('Payment verification error:', error);
+      setSubmitMessage(`❌ Payment verification failed: ${error.response?.data?.error || 'Unknown error'}. Please contact support.`);
+    } finally {
+      setIsPaymentProcessing(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const renderStars = (rating: number) => {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  };
 
   // Show loading only for a short time, then show the page with fallback content
   if (isLoadingCMS && false) { // Temporarily disable loading screen
@@ -314,43 +477,11 @@ export default function HomePage() {
     );
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitMessage('');
-
-    try {
-      const response = await axios.post('/api/booking/book', formData);
-      setSubmitMessage('Booking submitted successfully! We will contact you soon.');
-      setFormData({
-        guestName: '',
-        email: '',
-        phone: '',
-        checkIn: '',
-        checkOut: '',
-        guests: '1',
-        roomType: '',
-        specialRequests: ''
-      });
-    } catch (error) {
-      setSubmitMessage('Error submitting booking. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <>
       <Head>
-        <title>Pod & Beyond Hotel - Luxury Accommodation</title>
-        <meta name="description" content="Experience luxury and comfort at Pod & Beyond Hotel. Book your perfect stay with us." />
+        <title>POD N BEYOND | Smart Hotel – Jamshedpur</title>
+        <meta name="description" content="India's first pod hotel in Jamshedpur. Stay in the heart of the Steel City and experience a world-class ambiance at POD N BEYOND." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -359,7 +490,7 @@ export default function HomePage() {
         <section 
           className="relative h-screen flex items-center justify-center"
           style={{
-            backgroundImage: heroImage ? `url(${heroImage.url})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundImage: `url(${heroImage ? heroImage.url : DEFAULT_HERO_IMAGE})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
@@ -371,28 +502,49 @@ export default function HomePage() {
           }}
         >
           {/* Background Image Overlay */}
-          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-          
-          {/* Award Badge */}
-          <div className="absolute top-8 left-8 bg-yellow-500 text-black px-4 py-2 rounded-full text-sm font-bold">
-            🏆 TRAVELLERS CHOICE AWARD 2024
+          <div className="absolute inset-0 bg-black/40"></div>
+
+          {/* Top Header with Logo */}
+          <div className="absolute top-0 left-0 right-0 z-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {!logoFailed ? (
+                  <img
+                    src={DEFAULT_LOGO_URL}
+                    alt="POD N BEYOND"
+                    className="h-10 md:h-12 w-auto"
+                    onError={() => setLogoFailed(true)}
+                  />
+                ) : (
+                  <span className="text-white text-xl md:text-2xl font-bold tracking-wide">pod ’n’ beyond</span>
+                )}
+              </div>
+              <nav className="hidden md:flex items-center space-x-6 text-white/90">
+                <a href="#rooms" className="hover:text-white transition-colors">Rooms</a>
+                <a href="#gallery" className="hover:text-white transition-colors">Explore</a>
+                <a href="#booking" className="hover:text-white transition-colors">Reservation</a>
+                <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+              </nav>
+            </div>
           </div>
+          
+          {/* Removed award badge as requested */}
           
           {/* Hero Content */}
           <div className="relative z-10 text-center text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              {heroContent?.title || 'Pod & Beyond Hotel'}
+              {heroContent?.title || 'POD N BEYOND | Smart Hotel'}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto font-light">
-              {heroContent?.subtitle || 'Experience luxury and comfort in the heart of the city'}
+              {heroContent?.subtitle || "INDIA'S FIRST POD, LAUNCHED IN JAMSHEDPUR"}
             </p>
             <p className="text-lg mb-8 max-w-2xl mx-auto opacity-90">
-              {heroContent?.description || 'Discover our world-class amenities and exceptional service'}
+              {heroContent?.description || 'Stay in the heart of the STEEL CITY and experience a world-class ambiance'}
             </p>
             
             {/* Price Display */}
             <div className="text-2xl font-bold mb-8">
-              Rooms from $199 / night
+              Rooms from ₹1,999 / night
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -415,6 +567,59 @@ export default function HomePage() {
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
             <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
               <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
+            </div>
+          </div>
+        </section>
+
+        {/* Explore / Gallery Section */}
+        <section id="gallery" className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-4xl font-bold text-gray-900">Explore Pod n Beyond</h2>
+                <p className="text-gray-600 mt-2">A glimpse into our pods, common areas, and ambiance</p>
+              </div>
+              <a
+                href="https://podnbeyond.com/explore-pod-n-beyond.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Full Portfolio ↗
+              </a>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {galleryImages.length > 0 ? (
+                galleryImages.map((image) => (
+                  <div key={image.id} className="relative group overflow-hidden rounded-lg shadow-md">
+                    <img
+                      src={image.url}
+                      alt={image.altText || image.title || `Gallery ${image.id}`}
+                      className="w-full h-56 md:h-64 object-cover transform group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                    {image.title && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <h3 className="text-white text-sm font-medium">{image.title}</h3>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500">Gallery images will appear here once imported to CMS</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-8 text-center md:hidden">
+              <a
+                href="https://podnbeyond.com/explore-pod-n-beyond.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Full Portfolio ↗
+              </a>
             </div>
           </div>
         </section>
@@ -459,24 +664,39 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Amenities Section */}
+        {/* Read More Section (replaces amenities) */}
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Hotel Amenities</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Enjoy world-class facilities and services designed for your comfort and convenience
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {amenities.map((amenity, index) => (
-                <div key={index} className="bg-gray-50 p-8 rounded-lg text-center hover:shadow-lg transition-shadow duration-300">
-                  <div className="text-4xl mb-4">{amenity.icon}</div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{amenity.name}</h3>
-                  <p className="text-gray-600">{amenity.description}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">NEW GENERATION “BUDGET SMART HOTEL”</h2>
+                <p className="text-lg text-gray-700 mb-6">
+                  POD N BEYOND is India’s first pod hotel launched in Jamshedpur. Stay in the heart of the STEEL CITY and experience a world-class ambiance with smart, comfortable, and affordable pods.
+                </p>
+                <ul className="space-y-3 text-gray-700 mb-8">
+                  <li className="flex items-start"><span className="mr-2">⏰</span> 24 HOURS Check-in / Check Out</li>
+                  <li className="flex items-start"><span className="mr-2">🕒</span> SHORT STAYS: 4 hrs, 8 hrs, 12 hrs (facilities without Breakfast)</li>
+                  <li className="flex items-start"><span className="mr-2">🧳</span> LONG STAYS: Don’t forget to ask for long term special deals!</li>
+                </ul>
+                <a
+                  href="https://podnbeyond.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  READ MORE
+                </a>
+              </div>
+              <div className="relative">
+                <img
+                  src={heroImage ? heroImage.url : DEFAULT_HERO_IMAGE}
+                  alt="POD N BEYOND"
+                  className="rounded-xl shadow-2xl"
+                />
+                <div className="absolute -bottom-6 -right-6 bg-white p-4 rounded-lg shadow-lg">
+                  <div className="text-sm text-gray-600">Book Your Pod Now! Come make new friends.</div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
@@ -497,12 +717,14 @@ export default function HomePage() {
               <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">En suite</button>
               <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">King</button>
               <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Queen</button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Under $300</button>
+              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Under ₹3,000</button>
             </div>
             
+            {/* Rooms Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {rooms.map((room) => (
-                <div key={room.id} className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div key={room.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                  {/* Room Images */}
                   <div className="relative h-64 overflow-hidden">
                     <img 
                       src={room.images[0]} 
@@ -510,73 +732,44 @@ export default function HomePage() {
                       className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                     />
                     {room.badge && (
-                      <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
                         {room.badge}
                       </div>
                     )}
-                    <div className="absolute top-4 right-4 bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-semibold">
-                      ${room.price}/night
+                    <div className="absolute top-4 right-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">
+                      {formatCurrency(room.price)}
                     </div>
                   </div>
+                  
+                  {/* Room Details */}
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{room.name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{room.name}</h3>
                     <p className="text-gray-600 mb-4">{room.description}</p>
                     
                     {/* Features */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       {room.features.map((feature, index) => (
-                        <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                        <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
                           {feature}
                         </span>
                       ))}
                     </div>
                     
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Sleeps {room.capacity}</span>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        Check Availability
-                      </button>
+                    {/* Capacity */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-gray-600">Capacity: {room.capacity} guests</span>
+                      <span className="text-2xl font-bold text-blue-600">{formatCurrency(room.price)}</span>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Packages Section - Like WordPress site */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">PACKAGES</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Choose from some of the most popular vacation packages
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {packages.map((pkg) => (
-                <div key={pkg.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <div className="relative h-48 overflow-hidden">
-                    <img 
-                      src={pkg.image} 
-                      alt={pkg.name}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      {pkg.discount}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center mb-4">
-                      <span className="text-3xl font-bold text-blue-600">${pkg.price}</span>
-                      <span className="text-gray-500 line-through ml-2">${pkg.originalPrice}</span>
-                      <span className="text-sm text-gray-500 ml-2">/person</span>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{pkg.name}</h3>
-                    <p className="text-gray-600 mb-4">{pkg.description}</p>
-                    <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                      Book Package
+                    
+                    {/* Book Now Button */}
+                    <button 
+                      onClick={() => {
+                        document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+                        setFormData(prev => ({ ...prev, roomType: room.name }));
+                      }}
+                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Book Now
                     </button>
                   </div>
                 </div>
@@ -585,54 +778,20 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Guests Say</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Read reviews from our satisfied guests who have experienced our exceptional service
+        {/* Booking Form Section */}
+        <section id="booking" className="py-20 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Book Your Stay</h2>
+              <p className="text-xl text-gray-600">
+                Reserve your perfect room and experience luxury at its finest
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="bg-white p-8 rounded-lg shadow-lg">
-                  <div className="flex items-center mb-4">
-                    <img 
-                      src={testimonial.avatar} 
-                      alt={testimonial.name}
-                      className="w-12 h-12 rounded-full mr-4"
-                    />
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-                      <p className="text-sm text-gray-500">{testimonial.location}</p>
-                      <div className="flex text-yellow-400">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <span key={i}>★</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <h5 className="font-semibold text-gray-900 mb-2">{testimonial.title}</h5>
-                  <p className="text-gray-600 italic">"{testimonial.content}"</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Booking Section */}
-        <section id="booking" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
-                <h2 className="text-2xl font-bold text-white">Book Your Stay</h2>
-                <p className="text-blue-100 mt-2">Select your dates and preferences to reserve your perfect room</p>
-              </div>
-              
-              <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gray-50 rounded-lg p-8 shadow-lg">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Guest Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="guestName" className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
                     <input
@@ -643,11 +802,11 @@ export default function HomePage() {
                       value={formData.guestName}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="John Doe"
+                      placeholder="Enter your full name"
                     />
                   </div>
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
                     <input
                       type="email"
                       id="email"
@@ -656,24 +815,25 @@ export default function HomePage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      required
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="Enter your email"
                     />
                   </div>
                 </div>
-                
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+
+                {/* Stay Details */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label htmlFor="checkIn" className="block text-sm font-medium text-gray-700 mb-2">Check-in Date *</label>
@@ -682,9 +842,9 @@ export default function HomePage() {
                       id="checkIn"
                       name="checkIn"
                       required
-                      min={new Date().toISOString().split('T')[0]}
                       value={formData.checkIn}
                       onChange={handleInputChange}
+                      min={new Date().toISOString().split('T')[0]}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
@@ -695,9 +855,9 @@ export default function HomePage() {
                       id="checkOut"
                       name="checkOut"
                       required
-                      min={formData.checkIn || new Date().toISOString().split('T')[0]}
                       value={formData.checkOut}
                       onChange={handleInputChange}
+                      min={formData.checkIn || new Date().toISOString().split('T')[0]}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
@@ -720,27 +880,77 @@ export default function HomePage() {
                     </select>
                   </div>
                 </div>
-                
+
+                {/* Room Selection */}
                 <div>
-                  <label htmlFor="roomType" className="block text-sm font-medium text-gray-700 mb-2">Room Type *</label>
-                  <select
-                    id="roomType"
-                    name="roomType"
-                    required
-                    value={formData.roomType}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select a room type</option>
-                    <option value="deluxe-pod">Deluxe Pod Suite - $299/night</option>
-                    <option value="premium-pod">Premium Pod Room - $199/night</option>
-                    <option value="family-pod">Family Pod Suite - $399/night</option>
-                    <option value="business-pod">Business Pod Suite - $249/night</option>
-                    <option value="ocean-view-pod">Ocean View Pod - $349/night</option>
-                    <option value="studio-pod">Studio Pod Suite - $499/night</option>
-                  </select>
+                  <label htmlFor="roomId" className="block text-sm font-medium text-gray-700 mb-2">Select Room *</label>
+                  {isLoadingRooms ? (
+                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
+                        Loading available rooms...
+                      </div>
+                    </div>
+                  ) : availableRooms.length > 0 ? (
+                    <select
+                      id="roomId"
+                      name="roomId"
+                      required
+                      value={formData.roomId}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select a room</option>
+                      {availableRooms.map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.name} - {formatCurrency(room.totalPrice || room.pricePerNight)} 
+                          {room.hasSeasonalRate && ' (Seasonal Rate)'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : formData.checkIn && formData.checkOut ? (
+                    <div className="w-full px-4 py-3 border border-red-300 rounded-lg bg-red-50 text-red-700">
+                      No rooms available for the selected dates and guest count.
+                    </div>
+                  ) : (
+                    <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                      Please select check-in and check-out dates to see available rooms.
+                    </div>
+                  )}
                 </div>
-                
+
+                {/* Price Summary */}
+                {selectedRoom && totalPrice > 0 && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">Booking Summary</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Room:</span>
+                        <span>{selectedRoom.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Nights:</span>
+                        <span>{nights} night{nights !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Price per night:</span>
+                        <span>{formatCurrency(selectedRoom.pricePerNight)}</span>
+                      </div>
+                      {selectedRoom.hasSeasonalRate && (
+                        <div className="flex justify-between text-blue-600">
+                          <span>Seasonal rate applied</span>
+                        </div>
+                      )}
+                      <div className="border-t pt-1 mt-2">
+                        <div className="flex justify-between font-semibold">
+                          <span>Total:</span>
+                          <span>{formatCurrency(totalPrice)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label htmlFor="specialRequests" className="block text-sm font-medium text-gray-700 mb-2">Special Requests</label>
                   <textarea
@@ -755,17 +965,19 @@ export default function HomePage() {
                 </div>
                 
                 {submitMessage && (
-                  <div className={`p-4 rounded-lg ${submitMessage.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                  <div className={`p-4 rounded-lg ${submitMessage.includes('Error') || submitMessage.includes('Failed') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                     {submitMessage}
                   </div>
                 )}
                 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isPaymentProcessing || !formData.roomId}
                   className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isSubmitting ? 'Booking...' : 'Book Now'}
+                  {isSubmitting ? 'Creating Booking...' : 
+                   isPaymentProcessing ? 'Processing Payment...' : 
+                   'Proceed to Payment'}
                 </button>
               </form>
             </div>
@@ -774,7 +986,7 @@ export default function HomePage() {
 
         {/* Contact Section */}
         {contactContent && (
-          <section className="py-20 bg-gray-900 text-white">
+          <section id="contact" className="py-20 bg-gray-900 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div>
@@ -789,7 +1001,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">Address</h4>
-                        <p className="text-gray-300">123 Hotel Street, City, State 12345</p>
+                        <p className="text-gray-300">New Kalimati Road, Near Howrah Bridge, Sakchi, Jamshedpur</p>
                       </div>
                     </div>
                     
@@ -799,7 +1011,8 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">Phone</h4>
-                        <p className="text-gray-300">+1 (555) 123-4567</p>
+                        <p className="text-gray-300">(91) 82350 71333, (91) 82350 72333, (91) 90315 73555, (91) 82350 74555</p>
+                        <p className="text-gray-300">(91) 90310 00931, (91) 93348 04739</p>
                       </div>
                     </div>
                     
@@ -809,7 +1022,7 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h4 className="font-semibold">Email</h4>
-                        <p className="text-gray-300">info@podnbeyond.com</p>
+                        <p className="text-gray-300">info@podnbeyond.com, ravish2301@gmail.com</p>
                       </div>
                     </div>
                   </div>
@@ -857,6 +1070,7 @@ export default function HomePage() {
               <div className="flex justify-center space-x-6 mb-8">
                 <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
                 <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+                <a href="/loyalty" className="text-gray-400 hover:text-white transition-colors">Loyalty Program</a>
                 <a href="/admin" className="text-gray-400 hover:text-white transition-colors">Admin</a>
               </div>
               
@@ -866,7 +1080,7 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
-      </div>
+    </div>
     </>
   );
 }
