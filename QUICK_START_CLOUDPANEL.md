@@ -18,8 +18,15 @@ Before running the setup script, ensure you have:
 ### Step 1: Download and Run Setup
 
 ```bash
-# SSH into your CloudPanel server
+# SSH into your CloudPanel server as root first
 ssh root@your-server-ip
+
+# Create a regular user for deployment (if not exists)
+adduser cloudpanel
+usermod -aG sudo cloudpanel
+
+# Switch to the cloudpanel user
+su - cloudpanel
 
 # Clone the repository (production branch)
 git clone -b production https://github.com/geek-baba/podnbeyond.com.git
@@ -28,6 +35,23 @@ cd podnbeyond.com
 # Run the interactive setup (script will handle everything)
 ./scripts/setup-cloudpanel-interactive.sh
 ```
+
+**Alternative: Root Setup (if you prefer to run as root):**
+```bash
+# SSH as root
+ssh root@your-server-ip
+
+# Clone and run root setup script
+git clone -b production https://github.com/geek-baba/podnbeyond.com.git
+cd podnbeyond.com
+./scripts/setup-cloudpanel-root.sh
+```
+
+This script will:
+- Create the cloudpanel user automatically
+- Set up proper permissions
+- Clone the repository
+- Run the interactive setup as the cloudpanel user
 
 **Note**: The setup script will automatically:
 - Make itself executable

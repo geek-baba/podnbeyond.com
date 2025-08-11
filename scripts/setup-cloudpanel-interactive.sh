@@ -100,8 +100,19 @@ check_system_requirements() {
     
     # Check if running as root
     if [[ $EUID -eq 0 ]]; then
-        print_error "This script should not be run as root. Please run as a regular user with sudo privileges."
-        exit 1
+        print_warning "⚠️  This script is designed to run as a regular user with sudo privileges for security."
+        print_status "Recommended approach:"
+        echo "1. Create a user: adduser cloudpanel && usermod -aG sudo cloudpanel"
+        echo "2. Switch user: su - cloudpanel"
+        echo "3. Run script: ./scripts/setup-cloudpanel-interactive.sh"
+        echo
+        
+        if confirm_action "Do you want to continue as root anyway (not recommended)?"; then
+            print_warning "Continuing as root. This is not recommended for production environments."
+        else
+            print_error "Setup cancelled. Please run as a regular user with sudo privileges."
+            exit 1
+        fi
     fi
     
     # Check OS
