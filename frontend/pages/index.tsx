@@ -184,17 +184,7 @@ export default function HomePage() {
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&h=900&fit=crop&auto=format&q=80';
   const DEFAULT_LOGO_URL =
     process.env.NEXT_PUBLIC_LOGO_URL || 'https://podnbeyond.com/wp-content/uploads/2024/01/logo.png';
-  const galleryImages: string[] = [
-    'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1551776235-dde6d4829808?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1505691723518-36a5ac3b2d95?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1501117716987-c8e2aef2bffe?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1560448075-bb4caa6cfcf0?w=900&h=600&fit=crop&auto=format&q=80',
-    'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=900&h=600&fit=crop&auto=format&q=80'
-  ];
+  const [galleryImages, setGalleryImages] = useState<Array<{id: number, url: string, title?: string, altText?: string}>>([]);
 
   // CMS Data State
   const [heroContent, setHeroContent] = useState<Content | null>(null);
@@ -274,6 +264,12 @@ export default function HomePage() {
         const heroImageResponse = await axios.get('/api/cms/images/HERO_IMAGE');
         if (heroImageResponse.data.success && heroImageResponse.data.images.length > 0) {
           setHeroImage(heroImageResponse.data.images[0]);
+        }
+
+        // Fetch gallery images
+        const galleryResponse = await axios.get('/api/cms/images/GALLERY_IMAGE');
+        if (galleryResponse.data.success) {
+          setGalleryImages(galleryResponse.data.images);
         }
 
       } catch (error) {
@@ -593,16 +589,27 @@ export default function HomePage() {
               </a>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {galleryImages.map((src, idx) => (
-                <div key={idx} className="relative group overflow-hidden rounded-lg shadow-md">
-                  <img
-                    src={src}
-                    alt={`Gallery ${idx + 1}`}
-                    className="w-full h-56 md:h-64 object-cover transform group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+              {galleryImages.length > 0 ? (
+                galleryImages.map((image) => (
+                  <div key={image.id} className="relative group overflow-hidden rounded-lg shadow-md">
+                    <img
+                      src={image.url}
+                      alt={image.altText || image.title || `Gallery ${image.id}`}
+                      className="w-full h-56 md:h-64 object-cover transform group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                    {image.title && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <h3 className="text-white text-sm font-medium">{image.title}</h3>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500">Gallery images will appear here once imported to CMS</p>
                 </div>
-              ))}
+              )}
             </div>
             <div className="mt-8 text-center md:hidden">
               <a
