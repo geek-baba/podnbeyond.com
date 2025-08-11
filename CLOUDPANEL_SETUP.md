@@ -1,14 +1,20 @@
 # 🚀 CloudPanel Server Setup Guide
 
-This guide will help you configure your CloudPanel server for the Hotel Booking App deployment.
+This guide will help you configure your CloudPanel server for the POD N BEYOND Hotel Booking App deployment.
 
 ## 📋 Prerequisites
 
 ### Server Requirements
 - **Operating System**: Debian 12/11 or Ubuntu 24.04/22.04 LTS
 - **Architecture**: Intel x86 or ARM64
-- **Minimum Specs**: 1 Core, 2GB RAM, 10GB Disk
-- **Recommended**: 2+ Cores, 4GB+ RAM, 20GB+ Disk
+- **Minimum Specs**: 2 Core, 4GB RAM, 20GB Disk
+- **Recommended**: 4+ Cores, 8GB+ RAM, 50GB+ Disk (for production)
+
+### Software Requirements
+- **Node.js**: 18.x or higher
+- **PostgreSQL**: 14+ (for database)
+- **PM2**: For process management
+- **Git**: For deployment
 
 ## 🛠️ CloudPanel Installation
 
@@ -58,8 +64,8 @@ Create a second site for the backend API:
 1. **In CloudPanel, go to "Databases"**
 2. **Click "Add Database"**
 3. **Database Type**: `PostgreSQL`
-4. **Database Name**: `hotel_booking`
-5. **Username**: `hotel_user`
+4. **Database Name**: `podnbeyond_hotel`
+5. **Username**: `podnbeyond_user`
 6. **Password**: Generate a strong password
 7. **Note down the connection details**
 
@@ -67,7 +73,7 @@ Create a second site for the backend API:
 
 Your `DATABASE_URL` will be:
 ```
-postgresql://hotel_user:password@localhost:5432/hotel_booking
+postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hotel
 ```
 
 ## 🔐 Environment Variables Setup
@@ -79,11 +85,11 @@ Create `.env` files in both frontend and backend directories:
 **Backend `.env`** (`/home/cloudpanel/htdocs/api.your-domain.com/.env`):
 ```bash
 # Database
-DATABASE_URL="postgresql://hotel_user:password@localhost:5432/hotel_booking"
+DATABASE_URL="postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hotel"
 
-# Razorpay
-RAZORPAY_KEY_ID="your_razorpay_key_id"
-RAZORPAY_KEY_SECRET="your_razorpay_secret_key"
+# Razorpay (Production Keys)
+RAZORPAY_KEY_ID="rzp_live_your_production_key_id"
+RAZORPAY_KEY_SECRET="your_production_secret_key"
 
 # Server
 NODE_ENV="production"
@@ -91,17 +97,26 @@ PORT=4000
 
 # CORS
 CORS_ORIGIN="https://your-domain.com"
+
+# JWT Secret
+JWT_SECRET="your-super-secure-jwt-secret-key"
+
+# File Uploads
+UPLOAD_PATH="/home/cloudpanel/htdocs/api.your-domain.com/uploads"
 ```
 
-**Frontend `.env`** (`/home/cloudpanel/htdocs/your-domain.com/.env`):
+**Frontend `.env.local`** (`/home/cloudpanel/htdocs/your-domain.com/.env.local`):
 ```bash
 # API Configuration
 NEXT_PUBLIC_API_URL="https://api.your-domain.com"
-NEXT_PUBLIC_RAZORPAY_KEY_ID="your_razorpay_key_id"
+NEXT_PUBLIC_RAZORPAY_KEY_ID="rzp_live_your_production_key_id"
 
 # Next.js
 NODE_ENV="production"
 PORT=3000
+
+# Branding
+NEXT_PUBLIC_LOGO_URL="https://podnbeyond.com/wp-content/uploads/2024/01/logo.png"
 ```
 
 ## 📁 File Structure Setup
@@ -113,8 +128,8 @@ PORT=3000
 ssh root@your-server-ip
 
 # Create project directory
-mkdir -p /home/cloudpanel/htdocs/hotel-booking-app
-cd /home/cloudpanel/htdocs/hotel-booking-app
+mkdir -p /home/cloudpanel/htdocs/podnbeyond-app
+cd /home/cloudpanel/htdocs/podnbeyond-app
 
 # Clone your repository
 git clone https://github.com/geek-baba/podnbeyond.com.git .
@@ -124,10 +139,14 @@ git clone https://github.com/geek-baba/podnbeyond.com.git .
 
 ```bash
 # Set proper ownership
-chown -R cloudpanel:cloudpanel /home/cloudpanel/htdocs/hotel-booking-app
+chown -R cloudpanel:cloudpanel /home/cloudpanel/htdocs/podnbeyond-app
 
 # Set proper permissions
-chmod -R 755 /home/cloudpanel/htdocs/hotel-booking-app
+chmod -R 755 /home/cloudpanel/htdocs/podnbeyond-app
+
+# Create uploads directory with proper permissions
+mkdir -p /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads
+chmod 755 /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads
 ```
 
 ## 🔧 PM2 Installation & Configuration
@@ -147,13 +166,13 @@ pm2 save
 
 ### 2. Create PM2 Ecosystem Config
 
-Create `/home/cloudpanel/htdocs/hotel-booking-app/ecosystem.config.js`:
+Create `/home/cloudpanel/htdocs/podnbeyond-app/ecosystem.config.js`:
 
 ```javascript
 module.exports = {
   apps: [
     {
-      name: 'hotel-booking-backend',
+      name: 'podnbeyond-backend',
       script: 'server.js',
       cwd: './backend',
       instances: 1,
@@ -167,10 +186,11 @@ module.exports = {
       error_file: './logs/backend-error.log',
       out_file: './logs/backend-out.log',
       log_file: './logs/backend-combined.log',
-      time: true
+      time: true,
+      env_file: './backend/.env'
     },
     {
-      name: 'hotel-booking-frontend',
+      name: 'podnbeyond-frontend',
       script: 'npm',
       args: 'start',
       cwd: './frontend',
@@ -185,32 +205,12 @@ module.exports = {
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',
       log_file: './logs/frontend-combined.log',
-      time: true
+      time: true,
+      env_file: './frontend/.env.local'
     }
   ]
 };
 ```
-
-## 🔒 Security Configuration
-
-### 1. Firewall Setup
-
-In CloudPanel:
-1. **Go to "Security" → "Firewall"**
-2. **Allow ports**: 22 (SSH), 80 (HTTP), 443 (HTTPS), 3000, 4000
-3. **Block unnecessary ports**
-
-### 2. SSL Certificates
-
-1. **Go to "SSL" in CloudPanel**
-2. **Add Let's Encrypt certificate** for your domains
-3. **Enable automatic renewal**
-
-### 3. Access Restrictions
-
-1. **Go to "Security" → "Access Restriction"**
-2. **Add your IP** to whitelist for CloudPanel access
-3. **Configure Basic Auth** if needed
 
 ## 🚀 Initial Deployment
 
@@ -218,25 +218,33 @@ In CloudPanel:
 
 ```bash
 # Navigate to project directory
-cd /home/cloudpanel/htdocs/hotel-booking-app
+cd /home/cloudpanel/htdocs/podnbeyond-app
 
-# Install dependencies
-cd backend && npm ci --only=production
-cd ../frontend && npm ci --only=production
+# Install dependencies for both projects
+npm run install:all
 
 # Generate Prisma client
-cd ../backend
+cd backend
 npx prisma generate
 
-# Run migrations
+# Run database migrations
 npx prisma migrate deploy
+
+# Seed initial CMS data
+node prisma/seed_cms.js
+
+# Import gallery images
+node scripts/import_gallery_images.js
 
 # Build frontend
 cd ../frontend
 npm run build
 
-# Start services with PM2
+# Create logs directory
 cd ..
+mkdir -p logs
+
+# Start services with PM2
 pm2 start ecosystem.config.js --env production
 pm2 save
 ```
@@ -253,6 +261,9 @@ pm2 logs
 # Test endpoints
 curl http://localhost:4000/api/health
 curl http://localhost:3000
+
+# Test gallery images
+curl http://localhost:4000/api/cms/images/GALLERY_IMAGE
 ```
 
 ## 🔄 Continuous Deployment Setup
@@ -279,6 +290,49 @@ git config --global user.name "Deployment User"
 git config --global user.email "deploy@your-domain.com"
 ```
 
+### 3. GitHub Actions Workflow
+
+The project includes a GitHub Actions workflow for automated deployment. Ensure your repository has the following secrets configured:
+
+- `CLOUDPANEL_HOST`: Your server IP
+- `CLOUDPANEL_USER`: Deployment username
+- `CLOUDPANEL_SSH_KEY`: Private SSH key for deployment
+- `DATABASE_URL`: Production database URL
+- `RAZORPAY_KEY_ID`: Production Razorpay key
+- `RAZORPAY_KEY_SECRET`: Production Razorpay secret
+
+## 🔒 Security Configuration
+
+### 1. Firewall Setup
+
+In CloudPanel:
+1. **Go to "Security" → "Firewall"**
+2. **Allow ports**: 22 (SSH), 80 (HTTP), 443 (HTTPS), 3000, 4000
+3. **Block unnecessary ports**
+
+### 2. SSL Certificates
+
+1. **Go to "SSL" in CloudPanel**
+2. **Add Let's Encrypt certificate** for your domains
+3. **Enable automatic renewal**
+
+### 3. Access Restrictions
+
+1. **Go to "Security" → "Access Restriction"**
+2. **Add your IP** to whitelist for CloudPanel access
+3. **Configure Basic Auth** if needed
+
+### 4. File Upload Security
+
+```bash
+# Secure uploads directory
+chmod 755 /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads
+chown cloudpanel:cloudpanel /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads
+
+# Configure nginx to serve uploads securely
+# Add to your nginx configuration if needed
+```
+
 ## 📊 Monitoring Setup
 
 ### 1. PM2 Monitoring
@@ -292,6 +346,10 @@ pm2 logs
 
 # Check status
 pm2 status
+
+# Monitor specific app
+pm2 logs podnbeyond-backend
+pm2 logs podnbeyond-frontend
 ```
 
 ### 2. CloudPanel Monitoring
@@ -300,14 +358,28 @@ pm2 status
 - **Logs**: Check application logs in CloudPanel
 - **Backups**: Set up automated backups
 
+### 3. Application Health Checks
+
+```bash
+# Health check endpoint
+curl https://api.your-domain.com/api/health
+
+# Database connection test
+curl https://api.your-domain.com/api/cms/content/all
+
+# Gallery images test
+curl https://api.your-domain.com/api/cms/images/GALLERY_IMAGE
+```
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
 
 1. **Permission Denied**
    ```bash
-   chown -R cloudpanel:cloudpanel /home/cloudpanel/htdocs/hotel-booking-app
-   chmod -R 755 /home/cloudpanel/htdocs/hotel-booking-app
+   chown -R cloudpanel:cloudpanel /home/cloudpanel/htdocs/podnbeyond-app
+   chmod -R 755 /home/cloudpanel/htdocs/podnbeyond-app
+   chmod 755 /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads
    ```
 
 2. **Port Already in Use**
@@ -323,10 +395,14 @@ pm2 status
 3. **Database Connection Failed**
    ```bash
    # Test database connection
-   psql -h localhost -U hotel_user -d hotel_booking
+   psql -h localhost -U podnbeyond_user -d podnbeyond_hotel
    
    # Check PostgreSQL status
    sudo systemctl status postgresql
+   
+   # Check Prisma connection
+   cd backend
+   npx prisma db pull
    ```
 
 4. **PM2 Process Not Starting**
@@ -337,6 +413,72 @@ pm2 status
    # Restart PM2 daemon
    pm2 kill
    pm2 start ecosystem.config.js
+   
+   # Check environment variables
+   pm2 env podnbeyond-backend
+   ```
+
+5. **Gallery Images Not Loading**
+   ```bash
+   # Check if images exist
+   ls -la /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads/
+   
+   # Re-import images if needed
+   cd backend
+   node scripts/import_gallery_images.js
+   
+   # Check file permissions
+   chmod 644 /home/cloudpanel/htdocs/podnbeyond-app/backend/uploads/*
+   ```
+
+6. **Razorpay Payment Issues**
+   ```bash
+   # Verify environment variables
+   echo $RAZORPAY_KEY_ID
+   echo $RAZORPAY_KEY_SECRET
+   
+   # Test payment endpoint
+   curl -X POST https://api.your-domain.com/api/payment/create-order \
+     -H "Content-Type: application/json" \
+     -d '{"amount": 1000, "guestName": "Test User", "bookingId": 1}'
+   ```
+
+## 🔄 Maintenance
+
+### Regular Tasks
+
+1. **Database Backups**
+   ```bash
+   # Create backup script
+   pg_dump -h localhost -U podnbeyond_user podnbeyond_hotel > backup_$(date +%Y%m%d).sql
+   ```
+
+2. **Log Rotation**
+   ```bash
+   # Configure logrotate for PM2 logs
+   sudo nano /etc/logrotate.d/pm2
+   ```
+
+3. **Security Updates**
+   ```bash
+   # Update system packages
+   sudo apt update && sudo apt upgrade
+   
+   # Update Node.js dependencies
+   cd /home/cloudpanel/htdocs/podnbeyond-app
+   npm audit fix
+   ```
+
+4. **Performance Monitoring**
+   ```bash
+   # Monitor memory usage
+   pm2 monit
+   
+   # Check disk space
+   df -h
+   
+   # Monitor database performance
+   # Use CloudPanel's built-in monitoring
    ```
 
 ## 📞 Support
@@ -346,7 +488,13 @@ For CloudPanel-specific issues:
 - **Discord**: [CloudPanel Discord](https://discord.gg/cloudpanel)
 - **GitHub**: [CloudPanel GitHub](https://github.com/cloudpanel-io/cloudpanel-ce)
 
+For POD N BEYOND Hotel Booking App issues:
+- **Email**: info@podnbeyond.com
+- **Phone**: (91) 82350 71333
+- **Website**: https://podnbeyond.com
+
 ---
 
 **Last Updated**: August 2025
-**Version**: 1.0.0
+**Version**: 2.0.0
+**Compatible with**: POD N BEYOND Hotel Booking App v2.0+
