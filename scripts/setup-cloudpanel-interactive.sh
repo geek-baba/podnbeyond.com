@@ -148,10 +148,14 @@ check_system_requirements() {
     # Check if we're in the right directory
     if [[ ! -f "package.json" ]] || [[ ! -d "backend" ]] || [[ ! -d "frontend" ]]; then
         print_error "This script must be run from the project root directory."
+        print_status "Please run: git clone -b production https://github.com/geek-baba/podnbeyond.com.git && cd podnbeyond.com"
         exit 1
     fi
     
     print_status "Project structure verified ✓"
+    
+    # Make this script executable
+    chmod +x "$0"
 }
 
 # Function to collect configuration
@@ -312,7 +316,14 @@ setup_project_directory() {
     
     # Copy project files
     print_status "Copying project files..."
-    cp -r . "$PROJECT_DIR/"
+    if [[ -d ".git" ]]; then
+        # We're in a git repository, copy current files
+        cp -r . "$PROJECT_DIR/"
+    else
+        # We're not in a git repository, clone from production branch
+        print_status "Cloning from production branch..."
+        git clone -b production https://github.com/geek-baba/podnbeyond.com.git "$PROJECT_DIR"
+    fi
     
     # Set proper permissions
     print_status "Setting permissions..."

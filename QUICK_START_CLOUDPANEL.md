@@ -15,26 +15,24 @@ Before running the setup script, ensure you have:
 
 ## 🎯 Quick Setup (5 Minutes)
 
-### Step 1: Download the Project
+### Step 1: Download and Run Setup
 
 ```bash
 # SSH into your CloudPanel server
 ssh root@your-server-ip
 
-# Clone the repository
-git clone https://github.com/geek-baba/podnbeyond.com.git
+# Clone the repository (production branch)
+git clone -b production https://github.com/geek-baba/podnbeyond.com.git
 cd podnbeyond.com
-```
 
-### Step 2: Run the Interactive Setup Script
-
-```bash
-# Make the script executable (if not already)
-chmod +x scripts/setup-cloudpanel-interactive.sh
-
-# Run the interactive setup
+# Run the interactive setup (script will handle everything)
 ./scripts/setup-cloudpanel-interactive.sh
 ```
+
+**Note**: The setup script will automatically:
+- Make itself executable
+- Clone from the production branch if needed
+- Handle all configuration and installation
 
 ### Step 3: Follow the Interactive Prompts
 
