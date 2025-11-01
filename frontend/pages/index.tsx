@@ -891,7 +891,12 @@ export default function HomePage() {
                     type="button"
                     onClick={() => {
                       if (formData.checkIn && formData.checkOut) {
-                        document.getElementById('available-rooms')?.scrollIntoView({ behavior: 'smooth' });
+                        fetchAvailableRooms();
+                        setTimeout(() => {
+                          document.getElementById('available-rooms')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 300);
+                      } else {
+                        alert('Please select check-in and check-out dates');
                       }
                     }}
                     className="bg-white text-blue-600 px-12 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg"
