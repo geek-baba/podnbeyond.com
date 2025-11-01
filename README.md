@@ -3,45 +3,66 @@
 > Experience the future of affordable luxury accommodation in Jamshedpur
 
 **Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)  
-**Location**: Jamshedpur, India  
-**Contact**: info@podnbeyond.com | +91 82350 71333
+**Locations**: 3 Properties in Jamshedpur (Kasidih, Bistupur, Sakchi)  
+**Contact**: info@podnbeyond.com | +91-90310 00931
 
 ---
 
 ## 🏨 About POD N BEYOND
 
-POD N BEYOND is Jamshedpur's premier capsule hotel, offering modern, comfortable, and affordable accommodation for travelers, professionals, and urban explorers. Our state-of-the-art facility combines Japanese capsule hotel efficiency with contemporary Indian hospitality.
+**India's First Pod Hotel Chain** - POD N BEYOND is revolutionizing affordable luxury accommodation in Jamshedpur with **3 premium properties** across the city. Our state-of-the-art facilities combine Japanese capsule hotel efficiency with contemporary Indian hospitality, offering travelers a unique, modern stay experience.
+
+### 🏢 Our Properties
+
+1. **Capsule Pod Hotel, Kasidih** - Budget-friendly pods near the bus stand (3 pod types)
+2. **Pod n Beyond Smart Hotel @Bistupur** - Premium location with business amenities (4 pod types)  
+3. **Pod n Beyond Smart Hotel @Sakchi** - Flagship property with 8 different pod options
 
 ### Why Choose POD N BEYOND?
 
+- 🌐 **Multi-Property Network** - Search and book across all 3 locations from one platform
 - ✨ **Modern Capsule Design** - Private, secure, and climate-controlled sleeping pods
-- 💰 **Affordable Luxury** - Premium amenities at budget-friendly prices
-- 📍 **Prime Location** - Easy access to Jamshedpur's business and entertainment districts
-- 🔒 **Smart Booking** - Real-time availability and instant confirmation
-- 💳 **Flexible Payments** - Multiple payment options including Razorpay integration
-- 🎁 **Loyalty Rewards** - Earn points with every stay
+- 💰 **Affordable Luxury** - Pods from ₹999 to ₹3,699/night
+- 📍 **Strategic Locations** - Properties in Kasidih, Bistupur, and Sakchi
+- 🔒 **Unified Booking** - One search, all properties, real-time availability
+- 💳 **Secure Payments** - Razorpay integration with test mode for development
+- 🎁 **Loyalty Rewards** - Earn points across all properties
+- 🤖 **AI Assistant** - Intelligent chatbot for instant customer support
 
 ---
 
 ## 🌟 Key Features
 
+### 🌐 Multi-Property Management (NEW!)
+
+- **Unified Platform** - Manage 3 properties from a single dashboard
+- **Cross-Property Search** - Guests can search across all locations simultaneously
+- **Property-Specific Pages** - Each location has detailed information and room listings
+- **Centralized Inventory** - Real-time availability tracking for all 15+ room types
+- **Location-Based Filtering** - Guests can filter by specific property or view all
+- **Property Analytics** - Track performance across all locations
+
 ### For Guests
 
-- **Instant Online Booking** - Book your pod in seconds with real-time availability
-- **Secure Payments** - Razorpay-powered payment gateway for safe transactions
-- **Loyalty Program** - Earn 10% cashback on every booking, redeemable on future stays
-- **Multiple Pod Types** - Choose from Standard, Deluxe, and Premium capsules
-- **24/7 Support** - Round-the-clock customer service
-- **Mobile Friendly** - Book from any device, anywhere
+- **Multi-Property Search** - Find available pods across all 3 Jamshedpur locations
+- **Real-Time Availability** - See live pod availability for your selected dates
+- **Secure Payments** - Razorpay integration with test mode for development
+- **Intelligent Chatbot** - 24/7 AI assistant for instant answers
+- **Loyalty Program** - Earn points across all properties, redeem anywhere
+- **Pod Variety** - 8 different pod types: Capsule, Single, Double, Bunk, Tri, Quadra, Queen, King
+- **Transparent Pricing** - From ₹999 (Capsule) to ₹3,699 (King) per night
+- **Mobile Optimized** - Book from any device, anywhere
 
 ### For Hotel Management
 
-- **Admin Dashboard** - Comprehensive control panel for all operations
-- **Real-time Inventory** - Manage pod availability and pricing
-- **Booking Management** - Track, modify, and manage reservations
-- **Revenue Analytics** - Insights into bookings, revenue, and occupancy
+- **Multi-Property Dashboard** - Control all 3 locations from one admin panel
+- **Property Management** - Add, edit, and manage multiple hotel locations
+- **Room Management** - Assign rooms to properties, set pricing, manage availability
+- **Booking Management** - View and manage bookings across all properties
+- **Payment Gateway** - Configure Razorpay for live/test modes
+- **OTA Integration** - Connect to Booking.com, Airbnb, MakeMyTrip, and more
+- **Loyalty System** - Track guest rewards across all properties
 - **CMS Integration** - Update website content without coding
-- **Channel Manager** - Connect to multiple OTAs (coming soon)
 
 ---
 

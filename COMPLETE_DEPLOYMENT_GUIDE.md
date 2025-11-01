@@ -755,9 +755,107 @@ rm GITHUB_ACTIONS_DEPLOYMENT.md
 
 ---
 
-**Last Updated**: August 2025  
-**Version**: 3.0.0  
-**Compatible with**: POD N BEYOND Hotel Booking App v2.0+
+## 🌐 Multi-Property Platform Features
+
+### Overview
+
+POD N BEYOND has been upgraded to a **multi-property booking platform** that manages 3 hotel locations from a single unified system. This allows guests to search and book across all properties seamlessly.
+
+### Key Features
+
+#### 1. **Property Management System**
+- **Database Schema**: New `Property` model with full location details
+- **Room Association**: Each room is linked to a specific property via `propertyId`
+- **Properties API**: RESTful endpoints for property CRUD operations
+  - `GET /api/properties` - List all properties
+  - `GET /api/properties/:id` - Get property details
+  - `GET /api/properties/:id/rooms` - Get rooms for a property
+  - `GET /api/properties/:id/availability` - Check availability by property
+
+#### 2. **Unified Guest Booking Flow**
+- **Search Form**: Date + Guests + Location filter (or "All Locations")
+- **Cross-Property Search**: Find available rooms across all 3 properties simultaneously
+- **Location Badges**: Each room displays its property location (📍 Bistupur, Kasidih, Sakchi)
+- **Smart Results**: Shows "X rooms available across all properties" or by location
+- **Direct Booking**: Book from search results with property context
+
+#### 3. **Current Properties (Seeded Data)**
+
+| Property | Location | Pods | Price Range | Rating |
+|----------|----------|------|-------------|--------|
+| Capsule Pod Hotel | Kasidih | 3 types | ₹999 - ₹1,599 | 4.5/5 |
+| Pod n Beyond Smart Hotel | Bistupur | 4 types | ₹1,499 - ₹3,699 | 4.6/5 |
+| Pod n Beyond Smart Hotel | Sakchi (Flagship) | 8 types | ₹999 - ₹3,499 | 4.4/5 |
+
+#### 4. **Admin Panel Enhancements**
+- **Properties Tab**: View, edit, and manage all properties
+- **Property Selector**: Filter bookings/rooms by property
+- **Multi-Location Analytics**: Track performance across locations
+- **Centralized Management**: One dashboard for all 3 properties
+
+#### 5. **New Components & Features**
+- **AI Chatbot Widget**: Intelligent customer support assistant
+  - Quick replies for common questions
+  - Property information
+  - Pricing guidance
+  - Contact details
+- **Property Cards**: Beautiful display of all locations on homepage
+- **Location Dropdown**: Filter by specific property or "All Locations"
+- **Updated Contact Info**: Simplified footer with clickable phone/email links
+
+### Seeding Multi-Property Data
+
+To populate the database with properties and rooms:
+
+```bash
+cd backend
+node seed_properties.js
+```
+
+This creates:
+- 3 properties with full details
+- 15 rooms linked to properties
+- Ratings and amenities for each location
+
+### Migration Notes
+
+When deploying to production:
+
+1. **Database Migration**:
+```bash
+cd ~/htdocs/capsulepodhotel.com/backend
+npx prisma migrate deploy
+```
+
+2. **Seed Properties**:
+```bash
+node seed_properties.js
+```
+
+3. **Restart Services**:
+```bash
+pm2 restart all
+```
+
+### API Endpoints Reference
+
+```bash
+# Properties
+GET  /api/properties                          # List all properties
+GET  /api/properties/:id                      # Get property details
+GET  /api/properties/:id/rooms                # Get property rooms
+GET  /api/properties/:id/availability         # Check availability
+
+# Existing Booking Endpoints (still work)
+GET  /api/booking/availability                # Legacy availability check
+POST /api/booking/book                        # Create booking
+```
+
+---
+
+**Last Updated**: November 2025  
+**Version**: 4.0.0 (Multi-Property Platform)  
+**Compatible with**: POD N BEYOND Multi-Property Booking Platform v3.0+
 
 > **Note**: This is the ONLY deployment guide you need. All other deployment guides are deprecated and should be removed to avoid confusion.
 
