@@ -293,7 +293,7 @@ PORT=4000
 # CORS
 CORS_ORIGIN="https://capsulepodhotel.com"
 
-# JWT Secret
+# JWT Secret (Generate with: openssl rand -base64 64)
 JWT_SECRET="your-super-secure-jwt-secret-key"
 
 # File Uploads
@@ -316,7 +316,36 @@ NEXT_PUBLIC_LOGO_URL="https://podnbeyond.com/wp-content/uploads/2024/01/logo.png
 
 ### Step 5: Setup Database
 
+#### 5a: Grant Database Permissions (Run as root)
+
+First, ensure the database user has proper permissions. **SSH as root** to run these commands:
+
 ```bash
+# SSH as root
+ssh root@your-server-ip
+
+# Grant schema permissions
+sudo -u postgres psql -d podnbeyond_hotel << 'EOF'
+GRANT ALL ON SCHEMA public TO podnbeyond_user;
+ALTER SCHEMA public OWNER TO podnbeyond_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO podnbeyond_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO podnbeyond_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO podnbeyond_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO podnbeyond_user;
+EOF
+
+# Exit root session
+exit
+```
+
+#### 5b: Run Migrations and Seed Data (As site user)
+
+Now switch back to the site user and run the database setup:
+
+```bash
+# SSH as site user
+ssh capsulepodhotel@your-server-ip
+
 # Navigate to backend
 cd /home/capsulepodhotel/htdocs/capsulepodhotel.com/backend
 
@@ -343,15 +372,28 @@ cd /home/capsulepodhotel/htdocs/capsulepodhotel.com/frontend
 npm run build
 ```
 
-### Step 7: Create PM2 Configuration
+### Step 7: Verify PM2 Configuration
 
-Create `/home/capsulepodhotel/htdocs/capsulepodhotel.com/ecosystem.config.js`:
+The repository already includes `ecosystem.config.js` at the project root. Verify it exists:
+
+```bash
+# Navigate to project root
+cd /home/capsulepodhotel/htdocs/capsulepodhotel.com
+
+# Check if file exists
+ls -la ecosystem.config.js
+
+# View the contents (optional)
+cat ecosystem.config.js
+```
+
+The file should look like this (app names may vary - `hotel-booking-*` or `podnbeyond-*` both work fine):
 
 ```javascript
 module.exports = {
   apps: [
     {
-      name: 'podnbeyond-backend',
+      name: 'hotel-booking-backend',  // or 'podnbeyond-backend'
       script: 'server.js',
       cwd: './backend',
       instances: 1,
@@ -362,14 +404,17 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 4000
       },
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 4000
+      },
       error_file: './logs/backend-error.log',
       out_file: './logs/backend-out.log',
       log_file: './logs/backend-combined.log',
-      time: true,
-      env_file: './backend/.env'
+      time: true
     },
     {
-      name: 'podnbeyond-frontend',
+      name: 'hotel-booking-frontend',  // or 'podnbeyond-frontend'
       script: 'npm',
       args: 'start',
       cwd: './frontend',
@@ -381,15 +426,20 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000
       },
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 3000
+      },
       error_file: './logs/frontend-error.log',
       out_file: './logs/frontend-out.log',
       log_file: './logs/frontend-combined.log',
-      time: true,
-      env_file: './frontend/.env.local'
+      time: true
     }
   ]
 };
 ```
+
+**Note**: The file is already correctly configured - no changes needed! Just verify it exists and proceed to Step 8.
 
 ### Step 8: Start Services
 
