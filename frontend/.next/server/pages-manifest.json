@@ -1,9 +1,8 @@
 {
   "/_app": "pages/_app.js",
-  "/_document": "pages/_document.js",
   "/_error": "pages/_error.js",
-  "/admin": "pages/admin.js",
-  "/admin/cms": "pages/admin/cms.js",
+  "/_document": "pages/_document.js",
   "/": "pages/index.js",
-  "/loyalty": "pages/loyalty.js"
+  "/admin": "pages/admin.js",
+  "/admin/cms": "pages/admin/cms.js"
 }

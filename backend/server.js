@@ -25,6 +25,7 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/gallery', require('./routes/gallery'));
+app.use('/api/properties', require('./routes/properties'));
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {

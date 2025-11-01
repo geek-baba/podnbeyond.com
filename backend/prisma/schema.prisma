@@ -37,6 +37,12 @@ enum RoomStatus {
   MAINTENANCE
 }
 
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
 enum ContentType {
   HERO_SECTION
   ABOUT_SECTION
@@ -57,6 +63,36 @@ enum ImageType {
   FAVICON
 }
 
+// Property/Hotel model for multi-property support
+model Property {
+  id            Int            @id @default(autoincrement())
+  name          String
+  slug          String         @unique
+  location      String
+  address       String?
+  city          String
+  state         String         @default("Jharkhand")
+  pincode       String?
+  phone         String?
+  email         String?
+  rating        Float?         @default(0)
+  totalRatings  Int            @default(0)
+  description   String?
+  amenities     String[]       @default([])
+  features      String[]       @default([])
+  images        String[]       @default([])
+  latitude      Float?
+  longitude     Float?
+  status        PropertyStatus @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relationships
+  rooms         Room[]
+
+  @@map("properties")
+}
+
 // Updated Room model to match specifications
 model Room {
   id            Int        @id @default(autoincrement())
@@ -66,6 +102,11 @@ model Room {
   description   String?
   pricePerNight Float
   status        RoomStatus @default(ACTIVE)
+  
+  // Property relationship
+  propertyId    Int
+  property      Property   @relation(fields: [propertyId], references: [id])
+  
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
