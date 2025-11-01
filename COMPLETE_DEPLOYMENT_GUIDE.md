@@ -147,7 +147,7 @@ Click **"New repository secret"** for each of these:
 | Secret Name | Description | Example Value |
 |-------------|-------------|---------------|
 | `DEPLOY_HOST` | Your server IP address | `123.45.67.89` |
-| `DEPLOY_USER` | SSH username (use 'deploy' user) | `deploy` |
+| `DEPLOY_USER` | CloudPanel site username | `capsulepodhotel` |
 | `DEPLOY_SSH_KEY` | Private SSH key (see Step 3) | `-----BEGIN RSA PRIVATE KEY-----...` |
 | `DEPLOY_PORT` | SSH port (usually 22) | `22` |
 | `PROJECT_PATH` | Project directory on server | `/home/capsulepodhotel/htdocs/capsulepodhotel.com` |
@@ -160,7 +160,7 @@ Click **"New repository secret"** for each of these:
 
 #### 🔑 Important Notes:
 
-- **DEPLOY_USER**: Use `deploy` if you created a dedicated deploy user (recommended), or use the site user like `capsulepodhotel`
+- **DEPLOY_USER**: Use the CloudPanel site user (e.g., `capsulepodhotel`) - this user already owns all project files and runs PM2 processes
 - **DEPLOY_SSH_KEY**: Must include the full private key with BEGIN and END markers (see Step 3 below)
 - **DATABASE_URL**: Replace `password` with your actual database password from Step 5 (Create Database)
 - **RAZORPAY Keys**: You can use placeholder values like `rzp_test_placeholder123456` for now and update them later before going live
@@ -168,7 +168,6 @@ Click **"New repository secret"** for each of these:
   - Test keys start with `rzp_test_`
   - **IMPORTANT**: Update these to real production keys before accepting real payments!
 - **PROJECT_PATH**: Must match the document root from CloudPanel site configuration
-- **DEPLOY_USER Permissions**: The deploy user needs read/write access to the PROJECT_PATH
 
 ### Step 3: Generate SSH Key for GitHub Actions
 
@@ -180,7 +179,7 @@ This SSH key allows GitHub Actions to connect to your server and deploy automati
 
 ```bash
 # Run this on YOUR LOCAL MACHINE (laptop/desktop)
-ssh-keygen -t rsa -b 4096 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy
+ssh-keygen -t rsa -b 4096 -C "github-actions-capsulepodhotel" -f ~/.ssh/github_actions_capsulepodhotel
 
 # When prompted:
 # - Press Enter to accept the default location
@@ -188,36 +187,36 @@ ssh-keygen -t rsa -b 4096 -C "github-actions-deploy" -f ~/.ssh/github_actions_de
 ```
 
 This creates TWO files:
-- `~/.ssh/github_actions_deploy` (private key - goes to GitHub)
-- `~/.ssh/github_actions_deploy.pub` (public key - goes to server)
+- `~/.ssh/github_actions_capsulepodhotel` (private key - goes to GitHub)
+- `~/.ssh/github_actions_capsulepodhotel.pub` (public key - goes to server)
 
 #### Step 3b: Copy Public Key to Server
 
 ```bash
-# Option 1: If you have a 'deploy' user on your server (RECOMMENDED)
-ssh-copy-id -i ~/.ssh/github_actions_deploy.pub deploy@your-server-ip
+# Copy the public key to your CloudPanel site user
+ssh-copy-id -i ~/.ssh/github_actions_capsulepodhotel.pub capsulepodhotel@your-server-ip
 
-# Option 2: If using the site user
-# ssh-copy-id -i ~/.ssh/github_actions_deploy.pub capsulepodhotel@your-server-ip
+# You'll be prompted for the password once
+# After this, the key will allow passwordless SSH access
 ```
-
-**Note**: If you created a `deploy` user on CloudPanel, use Option 1. The `deploy` user is better for security and separation of concerns.
 
 #### Step 3c: Test the Connection
 
 ```bash
-# Test with your deploy user
-ssh -i ~/.ssh/github_actions_deploy deploy@your-server-ip
+# Test SSH connection with the new key
+ssh -i ~/.ssh/github_actions_capsulepodhotel capsulepodhotel@your-server-ip
 
 # If successful, you should connect without a password
 # Type 'exit' to return to your local machine
 ```
 
+**✅ If the connection works**, you're ready to proceed!
+
 #### Step 3d: Copy Private Key for GitHub Secret
 
 ```bash
 # Display the private key (still on YOUR LOCAL MACHINE)
-cat ~/.ssh/github_actions_deploy
+cat ~/.ssh/github_actions_capsulepodhotel
 
 # Copy the ENTIRE output including the BEGIN and END lines:
 # -----BEGIN RSA PRIVATE KEY-----
@@ -231,31 +230,11 @@ cat ~/.ssh/github_actions_deploy
 - Keep this private key secure - don't share it anywhere else
 - The public key (`.pub` file) is on your server and is safe to share
 
-#### Step 3e: Grant Deploy User Access to Project Directory
-
-Since you're using a `deploy` user, it needs permissions to access and modify the project files:
-
-```bash
-# SSH into your server
-ssh deploy@your-server-ip
-
-# Add deploy user to the site user's group (if needed)
-sudo usermod -a -G capsulepodhotel deploy
-
-# Set proper permissions on project directory
-sudo chown -R capsulepodhotel:capsulepodhotel /home/capsulepodhotel/htdocs/capsulepodhotel.com
-sudo chmod -R 775 /home/capsulepodhotel/htdocs/capsulepodhotel.com
-
-# Verify access
-ls -la /home/capsulepodhotel/htdocs/capsulepodhotel.com
-```
-
-**Alternatively**, you can give the deploy user ownership:
-
-```bash
-# Give deploy user full ownership (if they're the primary deployment user)
-sudo chown -R deploy:deploy /home/capsulepodhotel/htdocs/capsulepodhotel.com
-```
+**Why use the site user?**
+- ✅ CloudPanel site user already owns all project files
+- ✅ PM2 processes run as this user naturally
+- ✅ No permission issues during deployment
+- ✅ Simpler, cleaner setup
 
 ---
 
