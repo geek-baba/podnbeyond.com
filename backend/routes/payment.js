@@ -544,12 +544,9 @@ router.post('/test-confirm', async (req, res) => {
       data: {
         bookingId: booking.id,
         amount: booking.totalPrice,
-        currency: 'INR',
-        status: 'SUCCESS',
-        paymentMethod: 'TEST',
+        status: 'COMPLETED',
         razorpayOrderId: orderId || `test_order_${Date.now()}`,
-        razorpayPaymentId: `test_payment_${Date.now()}`,
-        razorpaySignature: 'test_signature'
+        razorpayPaymentId: `test_payment_${Date.now()}`
       }
     });
 
@@ -590,7 +587,11 @@ router.post('/test-confirm', async (req, res) => {
 
   } catch (error) {
     console.error('Error in test payment confirmation:', error);
-    res.status(500).json({ error: 'Failed to confirm test payment' });
+    res.status(500).json({ 
+      error: 'Failed to confirm test payment',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
