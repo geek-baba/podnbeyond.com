@@ -54,9 +54,21 @@ if [ ! -d "/home/cloudpanel" ]; then
     print_info "Continuing with deployment anyway..."
 fi
 
+# Load NVM if available (required for Node.js access in non-interactive shells)
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    print_info "Loading NVM..."
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+fi
+
 # Check Node.js version
-NODE_VERSION=$(node --version)
-print_info "Node.js version: $NODE_VERSION"
+if command -v node &> /dev/null; then
+    NODE_VERSION=$(node --version)
+    print_info "Node.js version: $NODE_VERSION"
+else
+    print_error "Node.js not found. Please install Node.js or ensure NVM is properly configured."
+    exit 1
+fi
 
 # Check if PM2 is installed
 if ! command -v pm2 &> /dev/null; then
