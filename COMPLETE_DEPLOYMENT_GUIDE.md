@@ -127,35 +127,82 @@ git push origin production
 
 ### Step 2: Configure GitHub Secrets
 
-Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**
+**Location**: Go to your GitHub repository → **Settings** → **Secrets and variables** → **Actions**
 
-Add these secrets:
+**Type**: Use **Repository secrets** (not Environment secrets) - they work for all workflows and are simpler to manage.
+
+**Note**: GitHub requires adding secrets **one by one** individually. Prepare all your values before starting.
+
+#### 💡 Pro Tips for Adding Secrets:
+
+1. **Prepare a text file** with all values ready before you start
+2. **Copy-paste carefully** - Especially for long values like SSH keys and database URLs
+3. **Double-check** - You can't view secrets after saving, only update them
+4. **Test incrementally** - Add critical secrets first and test the workflow
+
+#### Secrets to Add:
+
+Click **"New repository secret"** for each of these:
 
 | Secret Name | Description | Example Value |
 |-------------|-------------|---------------|
-| `DEPLOY_HOST` | Your server IP | `123.456.789.012` |
-| `DEPLOY_USER` | SSH username | `capsulepodhotel` |
-| `DEPLOY_SSH_KEY` | Private SSH key | `-----BEGIN RSA PRIVATE KEY-----...` |
-| `DEPLOY_PORT` | SSH port | `22` |
-| `PROJECT_PATH` | Project directory | `/home/capsulepodhotel/htdocs/capsulepodhotel.com` |
-| `DATABASE_URL` | Database connection | `postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hotel` |
-| `RAZORPAY_KEY_ID` | Razorpay key | `rzp_live_your_key_id` |
-| `RAZORPAY_KEY_SECRET` | Razorpay secret | `your_secret_key` |
-| `NEXT_PUBLIC_API_URL` | API URL | `https://api.capsulepodhotel.com` or `https://capsulepodhotel.com/api` |
-| `HEALTH_CHECK_URL` | Health check URL | `https://api.capsulepodhotel.com/api/health` |
+| `DEPLOY_HOST` | Your server IP address | `123.45.67.89` |
+| `DEPLOY_USER` | SSH username (CloudPanel site user) | `capsulepodhotel` |
+| `DEPLOY_SSH_KEY` | Private SSH key (see below) | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `DEPLOY_PORT` | SSH port (usually 22) | `22` |
+| `PROJECT_PATH` | Project directory on server | `/home/capsulepodhotel/htdocs/capsulepodhotel.com` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hotel` |
+| `RAZORPAY_KEY_ID` | Razorpay production key ID | `rzp_live_xxxxxxxxxxxxx` |
+| `RAZORPAY_KEY_SECRET` | Razorpay production secret | `your_production_secret_key` |
+| `NEXT_PUBLIC_API_URL` | API URL for frontend | `https://api.capsulepodhotel.com` |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Same as RAZORPAY_KEY_ID | `rzp_live_xxxxxxxxxxxxx` |
+| `HEALTH_CHECK_URL` | Health check endpoint | `https://api.capsulepodhotel.com/api/health` |
+
+#### 🔑 Important Notes:
+
+- **DEPLOY_SSH_KEY**: Must include the full private key with BEGIN and END markers (see Step 3 below)
+- **DATABASE_URL**: Replace `password` with your actual database password from Step 5
+- **RAZORPAY_KEY_ID**: Starts with `rzp_live_` for production (or `rzp_test_` for testing)
+- **PROJECT_PATH**: Match the document root from CloudPanel site configuration
 
 ### Step 3: Generate SSH Key for GitHub Actions
 
+This SSH key allows GitHub Actions to connect to your server and deploy automatically.
+
 ```bash
-# Generate SSH key
+# Generate a new SSH key pair specifically for GitHub Actions
 ssh-keygen -t rsa -b 4096 -C "github-actions" -f ~/.ssh/github_actions
 
-# Copy public key to server
+# When prompted:
+# - Press Enter to accept the default location
+# - Press Enter twice to skip passphrase (required for automated deployments)
+```
+
+```bash
+# Copy the public key to your server (enables passwordless SSH)
 ssh-copy-id -i ~/.ssh/github_actions.pub capsulepodhotel@your-server-ip
 
-# Copy private key content for GitHub secret
-cat ~/.ssh/github_actions
+# Test the connection
+ssh -i ~/.ssh/github_actions capsulepodhotel@your-server-ip
+# If successful, you should connect without a password. Type 'exit' to return.
 ```
+
+#### 📋 Copy Private Key for GitHub Secret
+
+```bash
+# Display the private key
+cat ~/.ssh/github_actions
+
+# Copy the ENTIRE output including the BEGIN and END lines:
+# -----BEGIN RSA PRIVATE KEY-----
+# [many lines of key content]
+# -----END RSA PRIVATE KEY-----
+```
+
+**Important**: 
+- Copy the **entire** private key including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----` markers
+- Paste this complete content into the `DEPLOY_SSH_KEY` secret in GitHub
+- Don't share this private key anywhere else
 
 ---
 
