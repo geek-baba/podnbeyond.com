@@ -591,58 +591,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Explore / Gallery Section */}
-        <section id="gallery" className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-10">
-              <div>
-                <h2 className="text-4xl font-bold text-gray-900">Explore Pod n Beyond</h2>
-                <p className="text-gray-600 mt-2">A glimpse into our pods, common areas, and ambiance</p>
-              </div>
-              <a
-                href="https://podnbeyond.com/explore-pod-n-beyond.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                View Full Portfolio ↗
-              </a>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {galleryImages.length > 0 ? (
-                galleryImages.map((image) => (
-                  <div key={image.id} className="relative group overflow-hidden rounded-lg shadow-md">
-                    <img
-                      src={image.url}
-                      alt={image.altText || image.title || `Gallery ${image.id}`}
-                      className="w-full h-56 md:h-64 object-cover transform group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                    {image.title && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <h3 className="text-white text-sm font-medium">{image.title}</h3>
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-gray-500">Gallery images will appear here once imported to CMS</p>
-                </div>
-              )}
-            </div>
-            <div className="mt-8 text-center md:hidden">
-              <a
-                href="https://podnbeyond.com/explore-pod-n-beyond.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                View Full Portfolio ↗
-              </a>
-            </div>
-          </div>
-        </section>
 
         {/* About Section with Image Gallery */}
         {aboutContent && (
