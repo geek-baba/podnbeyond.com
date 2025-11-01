@@ -490,89 +490,65 @@ curl http://localhost:4000/api/cms/images/GALLERY_IMAGE
 
 ### Step 1: Verify GitHub Actions Workflow
 
-The repository should already have `.github/workflows/deploy.yml`. If not, create it:
-
-```yaml
-name: Deploy to Production
-
-on:
-  push:
-    branches: [ production ]
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install Backend Dependencies
-      working-directory: ./backend
-      run: npm ci --only=production
-      
-    - name: Install Frontend Dependencies
-      working-directory: ./frontend
-      run: npm ci
-      
-    - name: Build Frontend
-      working-directory: ./frontend
-      run: npm run build
-      env:
-        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-        
-    - name: Deploy to Server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_SSH_KEY }}
-        port: ${{ secrets.DEPLOY_PORT || 22 }}
-        script: |
-          cd ${{ secrets.PROJECT_PATH }}
-          git pull origin production
-          cd backend && npm ci --only=production
-          npx prisma generate
-          npx prisma migrate deploy
-          cd ../frontend && npm ci --only=production
-          npm run build
-          cd ..
-          pm2 restart all
-          
-    - name: Health Check
-      run: |
-        sleep 30
-        curl -f ${{ secrets.HEALTH_CHECK_URL }} || exit 1
-```
-
-### Step 2: Test Automated Deployment
+The repository includes two workflow files. For CloudPanel deployments, use `deploy-cloudpanel.yml`:
 
 ```bash
-# Switch to production branch
+# On your server, verify the workflow file exists
+cd ~/htdocs/capsulepodhotel.com
+ls -la .github/workflows/
+
+# You should see:
+# - deploy-cloudpanel.yml (recommended for CloudPanel)
+# - deploy.yml (alternative workflow)
+```
+
+The `deploy-cloudpanel.yml` workflow is optimized for CloudPanel because it:
+
+- ✅ Uses `rsync` for efficient file synchronization
+- ✅ Leverages `ecosystem.config.js` for PM2 management
+- ✅ Uses `pm2 startOrReload` instead of `pm2 restart all`
+- ✅ Calls the `deploy-cloudpanel.sh` script if available
+- ✅ Includes proper health checks
+- ✅ Better error handling
+
+**The workflow file already exists in your repository** - no need to create it!
+
+### Step 2: Create Production Branch (If Needed)
+
+The `deploy-cloudpanel.yml` workflow triggers on pushes to the `production` branch:
+
+```bash
+# Check if production branch exists
+git branch -a | grep production
+
+# If it doesn't exist, create it from main
+git checkout -b production
+git push origin production
+
+# If it exists, switch to it
+git checkout production
+```
+
+### Step 3: Test Automated Deployment
+
+```bash
+# Make sure you're on production branch
 git checkout production
 
-# Make a small change
-echo "# Test deployment" >> README.md
+# Merge latest changes from main
+git merge main
 
-# Commit and push
-git add README.md
-git commit -m "Test automated deployment"
+# Push to trigger deployment
 git push origin production
 ```
 
-### Step 3: Monitor Deployment
+### Step 4: Monitor Deployment
 
 1. **Go to GitHub**: Repository → **Actions** tab
-2. **Check Workflow**: Look for "Deploy to Production" workflow
+2. **Check Workflow**: Look for "Deploy to CloudPanel" workflow
 3. **Monitor Steps**: Watch each step complete
 4. **Check Logs**: If any step fails, check the logs
+5. **Verify Health Check**: The workflow includes automated health checks
 
 ---
 
