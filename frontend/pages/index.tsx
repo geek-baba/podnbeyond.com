@@ -301,7 +301,7 @@ export default function HomePage() {
 
     setIsLoadingRooms(true);
     try {
-      const response = await axios.get('/api/booking/availability', {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/availability`, {
         params: {
           checkIn: formData.checkIn,
           checkOut: formData.checkOut,
@@ -309,8 +309,9 @@ export default function HomePage() {
         }
       });
 
-      if (response.data.success) {
-        setAvailableRooms(response.data.rooms);
+      // API returns array directly
+      if (Array.isArray(response.data)) {
+        setAvailableRooms(response.data.filter(room => room.isAvailable));
       }
     } catch (error) {
       console.error('Error fetching available rooms:', error);
@@ -337,7 +338,9 @@ export default function HomePage() {
         const checkOut = new Date(formData.checkOut);
         const nightsCount = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
         setNights(nightsCount);
-        setTotalPrice(room.totalPrice || room.pricePerNight * nightsCount);
+        // Use calculatedPrice from availability API if available
+        const calculatedTotal = room.calculatedPrice?.totalPrice;
+        setTotalPrice(calculatedTotal || room.pricePerNight * nightsCount);
       }
     }
   };
@@ -932,8 +935,8 @@ export default function HomePage() {
                       <option value="">Select a room</option>
                       {availableRooms.map((room) => (
                         <option key={room.id} value={room.id}>
-                          {room.name} - {formatCurrency(room.totalPrice || room.pricePerNight)} 
-                          {room.hasSeasonalRate && ' (Seasonal Rate)'}
+                          {room.name} - {formatCurrency(room.calculatedPrice?.totalPrice || room.pricePerNight)} 
+                          ({room.capacity} guest{room.capacity > 1 ? 's' : ''})
                         </option>
                       ))}
                     </select>
