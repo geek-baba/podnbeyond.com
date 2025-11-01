@@ -1,22 +1,22 @@
 # POD N BEYOND - Modern Capsule Hotel Website & Booking Platform
 
-> Experience the future of affordable luxury accommodation in Mumbai
+> Experience the future of affordable luxury accommodation in Jamshedpur
 
 **Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)  
-**Location**: Mumbai, India  
+**Location**: Jamshedpur, India  
 **Contact**: info@podnbeyond.com | +91 82350 71333
 
 ---
 
 ## 🏨 About POD N BEYOND
 
-POD N BEYOND is Mumbai's premier capsule hotel, offering modern, comfortable, and affordable accommodation for travelers, professionals, and urban explorers. Our state-of-the-art facility combines Japanese capsule hotel efficiency with contemporary Indian hospitality.
+POD N BEYOND is Jamshedpur's premier capsule hotel, offering modern, comfortable, and affordable accommodation for travelers, professionals, and urban explorers. Our state-of-the-art facility combines Japanese capsule hotel efficiency with contemporary Indian hospitality.
 
 ### Why Choose POD N BEYOND?
 
 - ✨ **Modern Capsule Design** - Private, secure, and climate-controlled sleeping pods
 - 💰 **Affordable Luxury** - Premium amenities at budget-friendly prices
-- 📍 **Prime Location** - Easy access to Mumbai's business and entertainment districts
+- 📍 **Prime Location** - Easy access to Jamshedpur's business and entertainment districts
 - 🔒 **Smart Booking** - Real-time availability and instant confirmation
 - 💳 **Flexible Payments** - Multiple payment options including Razorpay integration
 - 🎁 **Loyalty Rewards** - Earn points with every stay
@@ -99,7 +99,7 @@ Visit our [website](https://capsulepodhotel.com) to explore:
 - **Budget Travelers** - Backpackers, solo travelers seeking affordable accommodation
 - **Business Professionals** - Short-term stays for meetings and conferences
 - **Transit Passengers** - Airport proximity for layovers and early/late flights
-- **Urban Explorers** - Young professionals exploring Mumbai
+- **Urban Explorers** - Young professionals exploring Jamshedpur
 - **International Tourists** - Unique capsule hotel experience
 
 ---
@@ -158,7 +158,7 @@ This platform is production-ready and deployed on CloudPanel. For technical depl
 - **Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)
 - **Email**: info@podnbeyond.com
 - **Phone**: +91 82350 71333
-- **Address**: Mumbai, India
+- **Address**: Jamshedpur, India
 
 ### For Developers
 - **Repository**: [github.com/geek-baba/podnbeyond.com](https://github.com/geek-baba/podnbeyond.com)
@@ -169,7 +169,7 @@ This platform is production-ready and deployed on CloudPanel. For technical depl
 
 ## 🏆 Awards & Recognition
 
-- Modern capsule hotel concept in Mumbai
+- Modern capsule hotel concept in Jamshedpur
 - Innovative booking and loyalty system
 - Technology-driven hospitality
 
@@ -222,4 +222,4 @@ Built with passion for modern hospitality and powered by cutting-edge technology
 
 ---
 
-**Visit us at [capsulepodhotel.com](https://capsulepodhotel.com) - Experience affordable luxury in Mumbai!** 🏨✨
+**Visit us at [capsulepodhotel.com](https://capsulepodhotel.com) - Experience affordable luxury in Jamshedpur!** 🏨✨
