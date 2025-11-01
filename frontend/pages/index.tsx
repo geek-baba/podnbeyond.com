@@ -3,6 +3,7 @@ import Head from 'next/head';
 import axios from 'axios';
 import { RAZORPAY_CONFIG } from '../config/razorpay';
 import Gallery from '../components/Gallery';
+import ChatBot from '../components/ChatBot';
 
 // Types for CMS data
 interface Content {
@@ -1162,14 +1163,14 @@ export default function HomePage() {
                   <p className="text-xl mb-6">{contactContent.subtitle}</p>
                   <p className="text-gray-300 mb-8">{contactContent.description}</p>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex items-center">
                       <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
                         <span className="text-white text-xl">📍</span>
                       </div>
                       <div>
-                        <h4 className="font-semibold">Address</h4>
-                        <p className="text-gray-300">New Kalimati Road, Near Howrah Bridge, Sakchi, Jamshedpur</p>
+                        <h4 className="font-semibold text-lg">Address</h4>
+                        <p className="text-gray-300">Bistupur, Jamshedpur</p>
                       </div>
                     </div>
                     
@@ -1178,9 +1179,10 @@ export default function HomePage() {
                         <span className="text-white text-xl">📞</span>
                       </div>
                       <div>
-                        <h4 className="font-semibold">Phone</h4>
-                        <p className="text-gray-300">(91) 82350 71333, (91) 82350 72333, (91) 90315 73555, (91) 82350 74555</p>
-                        <p className="text-gray-300">(91) 90310 00931, (91) 93348 04739</p>
+                        <h4 className="font-semibold text-lg">Phone</h4>
+                        <a href="tel:+919031000931" className="text-gray-300 hover:text-white transition-colors">
+                          +91-90310 00931
+                        </a>
                       </div>
                     </div>
                     
@@ -1189,39 +1191,16 @@ export default function HomePage() {
                         <span className="text-white text-xl">✉️</span>
                       </div>
                       <div>
-                        <h4 className="font-semibold">Email</h4>
-                        <p className="text-gray-300">info@podnbeyond.com, ravish2301@gmail.com</p>
+                        <h4 className="font-semibold text-lg">Email</h4>
+                        <a href="mailto:info@podnbeyond.com" className="text-gray-300 hover:text-white transition-colors">
+                          info@podnbeyond.com
+                        </a>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-gray-800 p-8 rounded-lg">
-                  <h3 className="text-2xl font-bold mb-6">Send us a Message</h3>
-                  <form className="space-y-4">
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <textarea
-                      rows={4}
-                      placeholder="Your Message"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    ></textarea>
-                    <button
-                      type="submit"
-                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Send Message
-                    </button>
-                  </form>
-                </div>
+                <ChatBot />
               </div>
             </div>
           </section>
