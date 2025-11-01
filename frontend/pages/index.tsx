@@ -193,6 +193,8 @@ export default function HomePage() {
   const DEFAULT_LOGO_URL = '/logo-podnbeyond.png';
   const [galleryImages, setGalleryImages] = useState<Array<{id: number, url: string, title?: string, altText?: string}>>([]);
   const [apiRooms, setApiRooms] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
 
   // CMS Data State
   const [heroContent, setHeroContent] = useState<Content | null>(null);
@@ -215,6 +217,7 @@ export default function HomePage() {
     roomId: '',
     specialRequests: ''
   });
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
 
   // Room Availability State
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
@@ -280,7 +283,18 @@ export default function HomePage() {
           setGalleryImages(galleryResponse.data.images);
         }
 
-        // Fetch rooms from API
+        // Fetch properties
+        const propertiesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
+        if (propertiesResponse.data.success) {
+          console.log('✅ Loaded', propertiesResponse.data.count, 'properties');
+          setProperties(propertiesResponse.data.properties);
+          // Auto-select first property (flagship Sakchi)
+          const flagship = propertiesResponse.data.properties.find((p: any) => p.slug.includes('sakchi')) || propertiesResponse.data.properties[0];
+          setSelectedProperty(flagship);
+          setSelectedPropertyId(flagship?.id || null);
+        }
+
+        // Fetch rooms from API (legacy fallback)
         const roomsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/rooms`);
         if (Array.isArray(roomsResponse.data)) {
           console.log('✅ Loaded', roomsResponse.data.length, 'rooms from API:', roomsResponse.data.map(r => r.name));
@@ -297,29 +311,52 @@ export default function HomePage() {
     fetchCMSData();
   }, []);
 
+  // Fetch rooms when property changes
+  useEffect(() => {
+    async function fetchPropertyRooms() {
+      if (selectedPropertyId) {
+        try {
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${selectedPropertyId}/rooms`);
+          if (response.data.success) {
+            setApiRooms(response.data.rooms);
+            console.log(`✅ Loaded ${response.data.count} rooms for ${selectedProperty?.name}`);
+          }
+        } catch (error) {
+          console.error('Error fetching property rooms:', error);
+        }
+      }
+    }
+    fetchPropertyRooms();
+  }, [selectedPropertyId]);
+
   // Fetch available rooms when dates change
   useEffect(() => {
     if (formData.checkIn && formData.checkOut) {
       fetchAvailableRooms();
     }
-  }, [formData.checkIn, formData.checkOut, formData.guests]);
+  }, [formData.checkIn, formData.checkOut, formData.guests, selectedPropertyId]);
 
   const fetchAvailableRooms = async () => {
     if (!formData.checkIn || !formData.checkOut) return;
+    if (!selectedPropertyId) {
+      console.warn('No property selected');
+      return;
+    }
 
     setIsLoadingRooms(true);
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/availability`, {
+      // Use property-specific availability endpoint
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${selectedPropertyId}/availability`, {
         params: {
           checkIn: formData.checkIn,
-          checkOut: formData.checkOut,
-          guests: parseInt(formData.guests)
+          checkOut: formData.checkOut
         }
       });
 
-      // API returns array directly
-      if (Array.isArray(response.data)) {
-        setAvailableRooms(response.data.filter(room => room.isAvailable));
+      // API returns {success, rooms: [...]}
+      if (response.data.success && Array.isArray(response.data.rooms)) {
+        setAvailableRooms(response.data.rooms);
+        console.log(`✅ Found ${response.data.rooms.length} available rooms at ${selectedProperty?.name}`);
       }
     } catch (error) {
       console.error('Error fetching available rooms:', error);
@@ -622,7 +659,78 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Choose Your Location Section */}
+        <section id="location-selector" className="py-20 bg-gradient-to-b from-blue-50 to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Location</h2>
+              <p className="text-xl text-gray-600">POD N BEYOND - {properties.length} properties across Jamshedpur</p>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {properties.map((property) => (
+                <div
+                  key={property.id}
+                  onClick={() => {
+                    setSelectedProperty(property);
+                    setSelectedPropertyId(property.id);
+                    setAvailableRooms([]);
+                    setFormData({...formData, roomId: ''});
+                  }}
+                  className={`cursor-pointer rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ${
+                    selectedPropertyId === property.id ? 'ring-4 ring-blue-600 scale-105' : ''
+                  }`}
+                >
+                  <div className="relative h-48">
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_API_URL}${property.images[0]}`}
+                      alt={property.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {selectedPropertyId === property.id && (
+                      <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        ✓ Selected
+                      </div>
+                    )}
+                    <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full shadow-lg">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-yellow-500">⭐</span>
+                        <span className="font-semibold text-gray-900">{property.rating}</span>
+                        <span className="text-gray-500 text-xs">({property.totalRatings})</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white p-5">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{property.name}</h3>
+                    <p className="text-sm text-gray-600 mb-3 flex items-center">
+                      <span className="mr-1">📍</span>
+                      {property.location}, {property.city}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {property.features.slice(0, 2).map((feature: string, idx: number) => (
+                        <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {property._count.rooms} rooms available
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-8">
+              <a
+                href="/properties"
+                className="inline-block text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                View All Properties & Details →
+              </a>
+            </div>
+          </div>
+        </section>
 
         {/* Read More Section (replaces amenities) */}
         <section className="py-20 bg-white">
@@ -679,8 +787,13 @@ export default function HomePage() {
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-gray-900 mb-4">ROOMS & SUITES</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Choose from a variety of sizes and styles.
+                {selectedProperty ? `${selectedProperty.name} - ${selectedProperty.location}` : 'Choose from a variety of sizes and styles.'}
               </p>
+              {selectedProperty && (
+                <p className="text-sm text-gray-500 mt-2">
+                  {selectedProperty._count.rooms} room types available at this location
+                </p>
+              )}
             </div>
             
             {/* Filter Buttons */}
@@ -694,7 +807,9 @@ export default function HomePage() {
             
             {/* Rooms Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {(apiRooms.length > 0 ? apiRooms : rooms).map((room) => {
+              {(apiRooms.length > 0 ? apiRooms : rooms)
+                .filter(room => !selectedPropertyId || room.propertyId === selectedPropertyId || !room.propertyId)
+                .map((room) => {
                 console.log('Rendering room:', room.name, '- Price:', room.pricePerNight || room.price);
                 const roomPrice = room.pricePerNight || room.price;
                 const roomImages = room.images || [`${process.env.NEXT_PUBLIC_API_URL}/uploads/podnbeyond-gallery-${(room.id % 9) + 1}.jpg`];
@@ -767,6 +882,18 @@ export default function HomePage() {
               <p className="text-xl text-gray-600">
                 Reserve your perfect room and experience luxury at its finest
               </p>
+              {selectedProperty && (
+                <div className="mt-4 inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
+                  <span className="mr-2">📍</span>
+                  <span className="font-semibold">{selectedProperty.name}</span>
+                  <button
+                    onClick={() => document.getElementById('location-selector')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="ml-3 text-blue-600 hover:text-blue-700 text-sm underline"
+                  >
+                    Change Location
+                  </button>
+                </div>
+              )}
             </div>
             
             <div className="bg-gray-50 rounded-lg p-8 shadow-lg">
