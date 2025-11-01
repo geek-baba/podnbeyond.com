@@ -81,92 +81,99 @@ interface BookingFormData {
   specialRequests: string;
 }
 
-// Enhanced room data with multiple images like the WordPress site
+// POD N BEYOND actual pod types (fallback if API doesn't load)
 const rooms = [
   {
     id: 1,
-    name: "Deluxe Pod Suite",
-    description: "Spacious pod with premium amenities and city view",
-    price: 299,
-    capacity: 2,
-    features: ["Private Patio", "City View", "Premium Amenities"],
-    images: [
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=600&fit=crop"
-    ],
-    badge: "Updated"
+    name: "Capsule Pod",
+    description: "Compact and efficient capsule-style pod perfect for solo travelers. Features reading light, power outlet, and secure locker.",
+    price: 999,
+    pricePerNight: 999,
+    capacity: 1,
+    type: "Capsule",
+    features: ["Wi-Fi", "Reading Light", "Power Outlet", "Secure Locker"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-1.jpg"],
+    badge: "Budget Friendly"
   },
   {
     id: 2,
-    name: "Premium Pod Room",
-    description: "Luxury pod with modern design and comfort",
-    price: 199,
+    name: "Single Pod",
+    description: "Private single pod with comfortable bed and modern amenities. Perfect for budget-conscious travelers.",
+    price: 1299,
+    pricePerNight: 1299,
     capacity: 1,
-    features: ["Modern Design", "Comfort", "Queen Bed"],
-    images: [
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop"
-    ],
-    badge: "Large"
+    type: "Single",
+    features: ["Wi-Fi", "TV", "Work Desk", "Private Bathroom"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-2.jpg"],
+    badge: "Popular"
   },
   {
     id: 3,
-    name: "Family Pod Suite",
-    description: "Large pod perfect for families with extra space",
-    price: 399,
-    capacity: 4,
-    features: ["Family Size", "Extra Space", "King Bed"],
-    images: [
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop"
-    ],
-    badge: "NEWLY RENOVATED"
+    name: "Bunk Pod",
+    description: "Unique bunk-style pod perfect for friends or family. Features two comfortable bunks with privacy curtains.",
+    price: 1599,
+    pricePerNight: 1599,
+    capacity: 2,
+    type: "Bunk",
+    features: ["Wi-Fi", "Privacy Curtains", "Reading Lights", "Shared Bathroom"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-3.jpg"]
   },
   {
     id: 4,
-    name: "Business Pod Suite",
-    description: "Perfect for business travelers with work space",
-    price: 249,
+    name: "Double Pod",
+    description: "Spacious double pod with queen-size bed for couples or friends traveling together.",
+    price: 1899,
+    pricePerNight: 1899,
     capacity: 2,
-    features: ["Work Space", "High-Speed WiFi", "Business Center Access"],
-    images: [
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop"
-    ],
-    badge: "Business"
+    type: "Double",
+    features: ["Wi-Fi", "TV", "Work Desk", "Private Bathroom", "Mini Fridge"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-4.jpg"]
   },
   {
     id: 5,
-    name: "Ocean View Pod",
-    description: "Stunning ocean views with balcony access",
-    price: 349,
-    capacity: 2,
-    features: ["Ocean View", "Private Balcony", "Premium Location"],
-    images: [
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=600&fit=crop"
-    ],
-    badge: "Ocean View"
+    name: "Tri Pod",
+    description: "Three-person pod ideal for small groups or families. Comfortable and affordable.",
+    price: 2499,
+    pricePerNight: 2499,
+    capacity: 3,
+    type: "Tri",
+    features: ["Wi-Fi", "TV", "Private Bathroom", "Hot Breakfast"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-5.jpg"]
   },
   {
     id: 6,
-    name: "Studio Pod Suite",
-    description: "Luxury studio with full kitchen and living area",
-    price: 499,
-    capacity: 3,
-    features: ["Full Kitchen", "Living Area", "Luxury Amenities"],
-    images: [
-      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop"
-    ],
+    name: "Queen Pod",
+    description: "Luxurious queen pod with premium amenities and extra space. Perfect for a comfortable stay.",
+    price: 2799,
+    pricePerNight: 2799,
+    capacity: 2,
+    type: "Queen",
+    features: ["Wi-Fi", "Smart TV", "Work Desk", "Premium Bathroom", "Coffee Maker"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-6.jpg"],
     badge: "Luxury"
+  },
+  {
+    id: 7,
+    name: "Quadra Pod",
+    description: "Spacious four-person pod perfect for families. Features separate sleeping areas and ample space.",
+    price: 3299,
+    pricePerNight: 3299,
+    capacity: 4,
+    type: "Quadra",
+    features: ["Wi-Fi", "TV", "Work Desk", "Private Bathroom", "Mini Fridge"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-7.jpg"]
+  },
+  {
+    id: 8,
+    name: "King Pod",
+    description: "Our most spacious and luxurious pod with king-size bed and premium facilities. Ultimate comfort.",
+    price: 3499,
+    pricePerNight: 3499,
+    capacity: 2,
+    type: "King",
+    features: ["Wi-Fi", "Smart TV", "Work Station", "Premium Bathroom", "Coffee Maker", "City View"],
+    images: ["http://localhost:4000/uploads/podnbeyond-gallery-8.jpg"],
+    badge: "Premium"
   }
 ];
 
