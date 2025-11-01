@@ -67,7 +67,7 @@ If you want a separate API subdomain:
 3. **Domain**: `api.capsulepodhotel.com`
 4. **Node.js Version**: `18.x`
 5. **Port**: `4000`
-6. **Document Root**: `/home/capsulepodhotel/htdocs/api.capsulepodhotel.com`
+6. **Document Root**: `/home/capsulepodhotel-api/htdocs/api.capsulepodhotel.com`
 
 ### Step 5: Create Database
 
@@ -648,3 +648,8 @@ rm GITHUB_ACTIONS_DEPLOYMENT.md
 **Compatible with**: POD N BEYOND Hotel Booking App v2.0+
 
 > **Note**: This is the ONLY deployment guide you need. All other deployment guides are deprecated and should be removed to avoid confusion.
+
+
+
+
+
