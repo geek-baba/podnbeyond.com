@@ -233,84 +233,80 @@ export default function HomePage() {
   const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
-    const fetchCMSData = async () => {
+    const fetchAllData = async () => {
+      // Fetch CMS content (non-critical, failures won't block properties)
       try {
-        // Fetch hero content
         const heroResponse = await axios.get('/api/cms/content/HERO_SECTION');
-        if (heroResponse.data.success) {
-          setHeroContent(heroResponse.data.content);
-        }
+        if (heroResponse.data.success) setHeroContent(heroResponse.data.content);
+      } catch (err) { console.warn('⚠️  Hero content not available'); }
 
-        // Fetch about content
+      try {
         const aboutResponse = await axios.get('/api/cms/content/ABOUT_SECTION');
-        if (aboutResponse.data.success) {
-          setAboutContent(aboutResponse.data.content);
-        }
+        if (aboutResponse.data.success) setAboutContent(aboutResponse.data.content);
+      } catch (err) { console.warn('⚠️  About content not available'); }
 
-        // Fetch contact content
+      try {
         const contactResponse = await axios.get('/api/cms/content/CONTACT_SECTION');
-        if (contactResponse.data.success) {
-          setContactContent(contactResponse.data.content);
-        }
+        if (contactResponse.data.success) setContactContent(contactResponse.data.content);
+      } catch (err) { console.warn('⚠️  Contact content not available'); }
 
-        // Fetch footer content
+      try {
         const footerResponse = await axios.get('/api/cms/content/FOOTER_SECTION');
-        if (footerResponse.data.success) {
-          setFooterContent(footerResponse.data.content);
-        }
+        if (footerResponse.data.success) setFooterContent(footerResponse.data.content);
+      } catch (err) { console.warn('⚠️  Footer content not available'); }
 
-        // Fetch testimonials
+      try {
         const testimonialsResponse = await axios.get('/api/cms/testimonials');
-        if (testimonialsResponse.data.success) {
-          setTestimonialsData(testimonialsResponse.data.testimonials);
-        }
+        if (testimonialsResponse.data.success) setTestimonialsData(testimonialsResponse.data.testimonials);
+      } catch (err) { console.warn('⚠️  Testimonials not available'); }
 
-        // Fetch amenities
+      try {
         const amenitiesResponse = await axios.get('/api/cms/amenities');
-        if (amenitiesResponse.data.success) {
-          setAmenitiesData(amenitiesResponse.data.amenities);
-        }
+        if (amenitiesResponse.data.success) setAmenitiesData(amenitiesResponse.data.amenities);
+      } catch (err) { console.warn('⚠️  Amenities not available'); }
 
-        // Fetch hero image
+      try {
         const heroImageResponse = await axios.get('/api/cms/images/HERO_IMAGE');
         if (heroImageResponse.data.success && heroImageResponse.data.images.length > 0) {
           setHeroImage(heroImageResponse.data.images[0]);
         }
+      } catch (err) { console.warn('⚠️  Hero image not available'); }
 
-        // Fetch gallery images
+      try {
         const galleryResponse = await axios.get('/api/cms/images/GALLERY_IMAGE');
-        if (galleryResponse.data.success) {
-          setGalleryImages(galleryResponse.data.images);
-        }
+        if (galleryResponse.data.success) setGalleryImages(galleryResponse.data.images);
+      } catch (err) { console.warn('⚠️  Gallery images not available'); }
 
-        // Fetch properties
+      // CRITICAL: Fetch properties (must succeed for booking to work)
+      try {
         console.log('🔍 Fetching properties from:', `${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
         const propertiesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
         console.log('📦 Properties response:', propertiesResponse.data);
         if (propertiesResponse.data.success) {
           console.log('✅ Loaded', propertiesResponse.data.count, 'properties:', propertiesResponse.data.properties.map((p: any) => p.name));
           setProperties(propertiesResponse.data.properties);
-          // Don't auto-select - let user choose via "All Locations" or specific property
           console.log('✅ Properties state updated');
         } else {
           console.error('❌ Properties fetch unsuccessful:', propertiesResponse.data);
         }
+      } catch (error) {
+        console.error('❌ CRITICAL: Failed to load properties:', error);
+        alert('Failed to load hotel locations. Please refresh the page.');
+      }
 
-        // Fetch rooms from API (legacy fallback)
+      // Fetch rooms (legacy fallback)
+      try {
         const roomsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/rooms`);
         if (Array.isArray(roomsResponse.data)) {
-          console.log('✅ Loaded', roomsResponse.data.length, 'rooms from API:', roomsResponse.data.map(r => r.name));
+          console.log('✅ Loaded', roomsResponse.data.length, 'rooms from API');
           setApiRooms(roomsResponse.data);
         }
+      } catch (err) { console.warn('⚠️  Legacy rooms API not available'); }
 
-      } catch (error) {
-        console.error('Error fetching CMS data:', error);
-      } finally {
-        setIsLoadingCMS(false);
-      }
+      setIsLoadingCMS(false);
     };
 
-    fetchCMSData();
+    fetchAllData();
   }, []);
 
   // Fetch rooms when property changes
