@@ -659,15 +659,24 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Choose Your Location Section */}
-        <section id="location-selector" className="py-20 bg-gradient-to-b from-blue-50 to-white">
+        {/* Our Properties - Prominent Section */}
+        <section id="location-selector" className="py-24 bg-gradient-to-b from-white via-blue-50 to-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Location</h2>
-              <p className="text-xl text-gray-600">POD N BEYOND - {properties.length} properties across Jamshedpur</p>
+            {/* Section Header */}
+            <div className="text-center mb-16">
+              <div className="inline-block mb-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                POD N BEYOND LOCATIONS
+              </div>
+              <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+                Choose Your Perfect Location
+              </h2>
+              <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
+                India's First Pod Hotel Chain - {properties.length} Premium Properties in Jamshedpur
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Properties Grid - Large Prominent Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
               {properties.map((property) => (
                 <div
                   key={property.id}
@@ -676,57 +685,109 @@ export default function HomePage() {
                     setSelectedPropertyId(property.id);
                     setAvailableRooms([]);
                     setFormData({...formData, roomId: ''});
+                    document.getElementById('rooms')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className={`cursor-pointer rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ${
-                    selectedPropertyId === property.id ? 'ring-4 ring-blue-600 scale-105' : ''
+                  className={`group cursor-pointer rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 ${
+                    selectedPropertyId === property.id ? 'ring-4 ring-blue-600 shadow-2xl scale-105' : ''
                   }`}
                 >
-                  <div className="relative h-48">
+                  {/* Property Image */}
+                  <div className="relative h-72 overflow-hidden">
                     <img
                       src={`${process.env.NEXT_PUBLIC_API_URL}${property.images[0]}`}
                       alt={property.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    
+                    {/* Selection Badge */}
                     {selectedPropertyId === property.id && (
-                      <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        ✓ Selected
+                      <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
+                        ✓ SELECTED
                       </div>
                     )}
-                    <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full shadow-lg">
-                      <div className="flex items-center space-x-1">
-                        <span className="text-yellow-500">⭐</span>
-                        <span className="font-semibold text-gray-900">{property.rating}</span>
-                        <span className="text-gray-500 text-xs">({property.totalRatings})</span>
+                    
+                    {/* Rating Badge */}
+                    <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-full shadow-lg">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-yellow-500 text-lg">⭐</span>
+                        <span className="font-bold text-gray-900 text-lg">{property.rating}</span>
+                        <span className="text-gray-600 text-sm">/5</span>
+                      </div>
+                      <div className="text-xs text-gray-500 text-center mt-1">
+                        {property.totalRatings} reviews
+                      </div>
+                    </div>
+
+                    {/* Property Name Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                      <h3 className="text-2xl font-bold mb-2">{property.name}</h3>
+                      <div className="flex items-center text-white/90 text-sm">
+                        <span className="mr-2">📍</span>
+                        <span>{property.location}, {property.city}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white p-5">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">{property.name}</h3>
-                    <p className="text-sm text-gray-600 mb-3 flex items-center">
-                      <span className="mr-1">📍</span>
-                      {property.location}, {property.city}
+
+                  {/* Property Details */}
+                  <div className="bg-white p-6">
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {property.description}
                     </p>
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {property.features.slice(0, 2).map((feature: string, idx: number) => (
-                        <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {feature}
+
+                    {/* Quick Info */}
+                    <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                      <div className="flex items-center text-gray-700">
+                        <span className="mr-2 text-blue-600">🏨</span>
+                        <span className="font-semibold">{property._count.rooms} Room Types</span>
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <span className="mr-2 text-blue-600">🎯</span>
+                        <span className="font-semibold">{property.features[0]}</span>
+                      </div>
+                    </div>
+
+                    {/* Amenities */}
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {property.amenities.slice(0, 3).map((amenity: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                        >
+                          ✓ {amenity}
                         </span>
                       ))}
+                      {property.amenities.length > 3 && (
+                        <span className="text-xs text-gray-500 px-2 py-1">
+                          +{property.amenities.length - 3} more
+                        </span>
+                      )}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {property._count.rooms} rooms available
-                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      className={`w-full py-3 rounded-lg font-bold text-base transition-all duration-300 ${
+                        selectedPropertyId === property.id
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'bg-gray-100 text-gray-700 hover:bg-blue-600 hover:text-white'
+                      }`}
+                    >
+                      {selectedPropertyId === property.id ? 'View Rooms Below ↓' : 'Select & Book'}
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="text-center mt-8">
+            {/* Call to Action */}
+            <div className="text-center bg-blue-600 text-white rounded-2xl p-8 shadow-xl">
+              <h3 className="text-2xl font-bold mb-3">Can't Decide?</h3>
+              <p className="text-blue-100 mb-5">View detailed comparison of all our properties</p>
               <a
                 href="/properties"
-                className="inline-block text-blue-600 hover:text-blue-700 font-semibold"
+                className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition-colors shadow-lg"
               >
-                View All Properties & Details →
+                Compare All Properties →
               </a>
             </div>
           </div>
