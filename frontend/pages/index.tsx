@@ -329,12 +329,7 @@ export default function HomePage() {
     fetchPropertyRooms();
   }, [selectedPropertyId]);
 
-  // Fetch available rooms when dates change
-  useEffect(() => {
-    if (formData.checkIn && formData.checkOut) {
-      fetchAvailableRooms();
-    }
-  }, [formData.checkIn, formData.checkOut, formData.guests, selectedPropertyId]);
+  // User must click "Search" button to fetch available rooms (no auto-search)
 
   const fetchAvailableRooms = async () => {
     if (!formData.checkIn || !formData.checkOut) return;
@@ -913,21 +908,32 @@ export default function HomePage() {
         <section id="available-rooms" className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Available Rooms</h2>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                {isLoadingRooms ? 'Searching...' : 'Available Rooms'}
+              </h2>
               <p className="text-xl text-gray-600">
-                {availableRooms.length > 0 
-                  ? `${availableRooms.length} rooms available for your dates`
-                  : formData.checkIn && formData.checkOut
-                    ? 'No rooms available for selected criteria'
-                    : 'Select dates above to see available rooms'
+                {isLoadingRooms 
+                  ? 'Finding available rooms for your dates...'
+                  : availableRooms.length > 0 
+                    ? `${availableRooms.length} room${availableRooms.length > 1 ? 's' : ''} available${selectedPropertyId ? ` at ${selectedProperty?.name}` : ' across all properties'}`
+                    : formData.checkIn && formData.checkOut
+                      ? '❌ No rooms available for selected dates. Try different dates or location.'
+                      : '👆 Select dates above and click "Search" to see available rooms'
                 }
               </p>
             </div>
             
-            {/* Rooms Grid - Show ALL available rooms with property info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {(availableRooms.length > 0 ? availableRooms : (apiRooms.length > 0 ? apiRooms : rooms))
-                .map((room) => {
+            {/* Loading Indicator */}
+            {isLoadingRooms && (
+              <div className="flex justify-center items-center py-20">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+              </div>
+            )}
+            
+            {/* Rooms Grid - ONLY show search results */}
+            {!isLoadingRooms && availableRooms.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {availableRooms.map((room) => {
                 console.log('Rendering room:', room.name, '- Price:', room.pricePerNight || room.price);
                 const roomPrice = room.pricePerNight || room.price;
                 const roomImages = room.images || [`${process.env.NEXT_PUBLIC_API_URL}/uploads/podnbeyond-gallery-${(room.id % 9) + 1}.jpg`];
@@ -993,7 +999,8 @@ export default function HomePage() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+            )}
           </div>
         </section>
 
