@@ -1102,6 +1102,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Gallery Section - Images from podnbeyond.com */}
         <section className="py-20 bg-gray-50">
