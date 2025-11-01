@@ -592,45 +592,6 @@ export default function HomePage() {
         </section>
 
 
-        {/* About Section with Image Gallery */}
-        {aboutContent && (
-          <section className="py-20 bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
-                <div>
-                  <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                    {aboutContent.title}
-                  </h2>
-                  <p className="text-xl text-gray-600 mb-6">
-                    {aboutContent.subtitle}
-                  </p>
-                  <p className="text-gray-600 leading-relaxed">
-                    {aboutContent.description}
-                  </p>
-                </div>
-                <div className="relative">
-                  <img 
-                    src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=600&fit=crop" 
-                    alt="Hotel Interior"
-                    className="rounded-lg shadow-2xl"
-                  />
-                  <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-lg shadow-lg">
-                    <div className="text-3xl font-bold text-blue-600">5★</div>
-                    <div className="text-sm text-gray-600">Rated by Guests</div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Image Gallery */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <img src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=400&h=300&fit=crop" alt="Hotel Interior" className="rounded-lg shadow-lg hover:scale-105 transition-transform duration-300" />
-                <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop" alt="Hotel Interior" className="rounded-lg shadow-lg hover:scale-105 transition-transform duration-300" />
-                <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop" alt="Hotel Interior" className="rounded-lg shadow-lg hover:scale-105 transition-transform duration-300" />
-                <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&h=300&fit=crop" alt="Hotel Interior" className="rounded-lg shadow-lg hover:scale-105 transition-transform duration-300" />
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Read More Section (replaces amenities) */}
         <section className="py-20 bg-white">
