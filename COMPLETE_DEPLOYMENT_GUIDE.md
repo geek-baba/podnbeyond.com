@@ -147,51 +147,77 @@ Click **"New repository secret"** for each of these:
 | Secret Name | Description | Example Value |
 |-------------|-------------|---------------|
 | `DEPLOY_HOST` | Your server IP address | `123.45.67.89` |
-| `DEPLOY_USER` | SSH username (CloudPanel site user) | `capsulepodhotel` |
-| `DEPLOY_SSH_KEY` | Private SSH key (see below) | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `DEPLOY_USER` | SSH username (use 'deploy' user) | `deploy` |
+| `DEPLOY_SSH_KEY` | Private SSH key (see Step 3) | `-----BEGIN RSA PRIVATE KEY-----...` |
 | `DEPLOY_PORT` | SSH port (usually 22) | `22` |
 | `PROJECT_PATH` | Project directory on server | `/home/capsulepodhotel/htdocs/capsulepodhotel.com` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hotel` |
-| `RAZORPAY_KEY_ID` | Razorpay production key ID | `rzp_live_xxxxxxxxxxxxx` |
-| `RAZORPAY_KEY_SECRET` | Razorpay production secret | `your_production_secret_key` |
+| `RAZORPAY_KEY_ID` | Razorpay key (placeholder OK) | `rzp_test_placeholder123456` |
+| `RAZORPAY_KEY_SECRET` | Razorpay secret (placeholder OK) | `placeholder_secret_change_later` |
 | `NEXT_PUBLIC_API_URL` | API URL for frontend | `https://api.capsulepodhotel.com` |
-| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Same as RAZORPAY_KEY_ID | `rzp_live_xxxxxxxxxxxxx` |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Same as RAZORPAY_KEY_ID | `rzp_test_placeholder123456` |
 | `HEALTH_CHECK_URL` | Health check endpoint | `https://api.capsulepodhotel.com/api/health` |
 
 #### 🔑 Important Notes:
 
+- **DEPLOY_USER**: Use `deploy` if you created a dedicated deploy user (recommended), or use the site user like `capsulepodhotel`
 - **DEPLOY_SSH_KEY**: Must include the full private key with BEGIN and END markers (see Step 3 below)
-- **DATABASE_URL**: Replace `password` with your actual database password from Step 5
-- **RAZORPAY_KEY_ID**: Starts with `rzp_live_` for production (or `rzp_test_` for testing)
-- **PROJECT_PATH**: Match the document root from CloudPanel site configuration
+- **DATABASE_URL**: Replace `password` with your actual database password from Step 5 (Create Database)
+- **RAZORPAY Keys**: You can use placeholder values like `rzp_test_placeholder123456` for now and update them later before going live
+  - Production keys start with `rzp_live_`
+  - Test keys start with `rzp_test_`
+  - **IMPORTANT**: Update these to real production keys before accepting real payments!
+- **PROJECT_PATH**: Must match the document root from CloudPanel site configuration
+- **DEPLOY_USER Permissions**: The deploy user needs read/write access to the PROJECT_PATH
 
 ### Step 3: Generate SSH Key for GitHub Actions
 
 This SSH key allows GitHub Actions to connect to your server and deploy automatically.
 
+**⚠️ IMPORTANT: Run these commands on YOUR LOCAL MACHINE** (your laptop/desktop), NOT on GitHub or the server.
+
+#### Step 3a: Generate the SSH Key Pair
+
 ```bash
-# Generate a new SSH key pair specifically for GitHub Actions
-ssh-keygen -t rsa -b 4096 -C "github-actions" -f ~/.ssh/github_actions
+# Run this on YOUR LOCAL MACHINE (laptop/desktop)
+ssh-keygen -t rsa -b 4096 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy
 
 # When prompted:
 # - Press Enter to accept the default location
 # - Press Enter twice to skip passphrase (required for automated deployments)
 ```
 
-```bash
-# Copy the public key to your server (enables passwordless SSH)
-ssh-copy-id -i ~/.ssh/github_actions.pub capsulepodhotel@your-server-ip
+This creates TWO files:
+- `~/.ssh/github_actions_deploy` (private key - goes to GitHub)
+- `~/.ssh/github_actions_deploy.pub` (public key - goes to server)
 
-# Test the connection
-ssh -i ~/.ssh/github_actions capsulepodhotel@your-server-ip
-# If successful, you should connect without a password. Type 'exit' to return.
+#### Step 3b: Copy Public Key to Server
+
+```bash
+# Option 1: If you have a 'deploy' user on your server (RECOMMENDED)
+ssh-copy-id -i ~/.ssh/github_actions_deploy.pub deploy@your-server-ip
+
+# Option 2: If using the site user
+# ssh-copy-id -i ~/.ssh/github_actions_deploy.pub capsulepodhotel@your-server-ip
 ```
 
-#### 📋 Copy Private Key for GitHub Secret
+**Note**: If you created a `deploy` user on CloudPanel, use Option 1. The `deploy` user is better for security and separation of concerns.
+
+#### Step 3c: Test the Connection
 
 ```bash
-# Display the private key
-cat ~/.ssh/github_actions
+# Test with your deploy user
+ssh -i ~/.ssh/github_actions_deploy deploy@your-server-ip
+
+# If successful, you should connect without a password
+# Type 'exit' to return to your local machine
+```
+
+#### Step 3d: Copy Private Key for GitHub Secret
+
+```bash
+# Display the private key (still on YOUR LOCAL MACHINE)
+cat ~/.ssh/github_actions_deploy
 
 # Copy the ENTIRE output including the BEGIN and END lines:
 # -----BEGIN RSA PRIVATE KEY-----
@@ -202,7 +228,34 @@ cat ~/.ssh/github_actions
 **Important**: 
 - Copy the **entire** private key including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----` markers
 - Paste this complete content into the `DEPLOY_SSH_KEY` secret in GitHub
-- Don't share this private key anywhere else
+- Keep this private key secure - don't share it anywhere else
+- The public key (`.pub` file) is on your server and is safe to share
+
+#### Step 3e: Grant Deploy User Access to Project Directory
+
+Since you're using a `deploy` user, it needs permissions to access and modify the project files:
+
+```bash
+# SSH into your server
+ssh deploy@your-server-ip
+
+# Add deploy user to the site user's group (if needed)
+sudo usermod -a -G capsulepodhotel deploy
+
+# Set proper permissions on project directory
+sudo chown -R capsulepodhotel:capsulepodhotel /home/capsulepodhotel/htdocs/capsulepodhotel.com
+sudo chmod -R 775 /home/capsulepodhotel/htdocs/capsulepodhotel.com
+
+# Verify access
+ls -la /home/capsulepodhotel/htdocs/capsulepodhotel.com
+```
+
+**Alternatively**, you can give the deploy user ownership:
+
+```bash
+# Give deploy user full ownership (if they're the primary deployment user)
+sudo chown -R deploy:deploy /home/capsulepodhotel/htdocs/capsulepodhotel.com
+```
 
 ---
 
