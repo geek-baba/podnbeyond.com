@@ -447,17 +447,24 @@ module.exports = {
 # Navigate to project root
 cd /home/capsulepodhotel/htdocs/capsulepodhotel.com
 
-# Create logs directory
-mkdir -p logs
-
-# Start services with PM2
+# Start services with PM2 (it will auto-create log directories)
 pm2 start ecosystem.config.js --env production
 
 # Save PM2 configuration
 pm2 save
 
-# Setup PM2 startup script
+# Setup PM2 startup script (generates a command you need to run)
 pm2 startup
+```
+
+**Important**: The `pm2 startup` command will output a `sudo` command that you need to run. It will look like:
+
+```bash
+sudo env PATH=$PATH:/home/capsulepodhotel/.nvm/versions/node/v18.x.x/bin ... pm2 startup systemd -u capsulepodhotel --hp /home/capsulepodhotel
+```
+
+**Copy and run that entire command** to enable PM2 auto-start on server reboot. You'll need sudo access or root to run it.
+
 ```
 
 ### Step 9: Verify Deployment
