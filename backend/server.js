@@ -15,12 +15,16 @@ const cronService = require('./services/cronService');
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
 app.use('/api/booking', bookingRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/cms', cmsRoutes);
+app.use('/api/gallery', require('./routes/gallery'));
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {

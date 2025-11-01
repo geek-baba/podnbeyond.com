@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
 import { RAZORPAY_CONFIG } from '../config/razorpay';
+import Gallery from '../components/Gallery';
 
 // Types for CMS data
 interface Content {
@@ -982,6 +983,11 @@ export default function HomePage() {
               </form>
             </div>
           </div>
+        </section>
+
+        {/* Gallery Section - Images from podnbeyond.com */}
+        <section className="py-20 bg-gray-50">
+          <Gallery />
         </section>
 
         {/* Contact Section */}
