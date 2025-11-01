@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Head from 'next/head';
 
 // Types
 interface Booking {
@@ -390,24 +391,63 @@ const AdminPage: React.FC = () => {
   const cmsLink = { id: 'cms', name: 'CMS', icon: '🎨', href: '/admin/cms' };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="mt-2 text-gray-600">Manage bookings, rooms, and loyalty accounts</p>
+    <>
+      <Head>
+        <title>Admin Dashboard - POD N BEYOND</title>
+        <meta name="description" content="POD N BEYOND Admin Panel - Manage bookings, rooms, properties, and more" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/logo-podnbeyond.png" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-50">
+        {/* Top Navigation Bar */}
+        <div className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Logo */}
+              <div className="flex items-center">
+                <img 
+                  src="/logo-podnbeyond.png" 
+                  alt="POD N BEYOND" 
+                  className="h-10 w-auto mr-3"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">POD N BEYOND</h1>
+                  <p className="text-xs text-gray-500">Admin Dashboard</p>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <div className="flex items-center space-x-4">
+                <a
+                  href={cmsLink.href}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <span className="mr-2">{cmsLink.icon}</span>
+                  {cmsLink.name}
+                </a>
+                <a
+                  href="/"
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <span className="mr-2">🏠</span>
+                  Back to Website
+                </a>
+              </div>
             </div>
-            <a
-              href={cmsLink.href}
-              className="inline-flex items-center px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              <span className="mr-2">{cmsLink.icon}</span>
-              {cmsLink.name}
-            </a>
           </div>
         </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Page Header */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+            <p className="mt-1 text-gray-600">Manage bookings, rooms, properties, and more</p>
+          </div>
 
         {/* Message Display */}
         {message && (
@@ -432,9 +472,9 @@ const AdminPage: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -1417,7 +1457,9 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+        </div>
+      </div>
+    </>
   );
 };
 
