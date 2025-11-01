@@ -284,14 +284,16 @@ export default function HomePage() {
         }
 
         // Fetch properties
+        console.log('🔍 Fetching properties from:', `${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
         const propertiesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
+        console.log('📦 Properties response:', propertiesResponse.data);
         if (propertiesResponse.data.success) {
-          console.log('✅ Loaded', propertiesResponse.data.count, 'properties');
+          console.log('✅ Loaded', propertiesResponse.data.count, 'properties:', propertiesResponse.data.properties.map((p: any) => p.name));
           setProperties(propertiesResponse.data.properties);
-          // Auto-select first property (flagship Sakchi)
-          const flagship = propertiesResponse.data.properties.find((p: any) => p.slug.includes('sakchi')) || propertiesResponse.data.properties[0];
-          setSelectedProperty(flagship);
-          setSelectedPropertyId(flagship?.id || null);
+          // Don't auto-select - let user choose via "All Locations" or specific property
+          console.log('✅ Properties state updated');
+        } else {
+          console.error('❌ Properties fetch unsuccessful:', propertiesResponse.data);
         }
 
         // Fetch rooms from API (legacy fallback)
@@ -332,46 +334,69 @@ export default function HomePage() {
   // User must click "Search" button to fetch available rooms (no auto-search)
 
   const fetchAvailableRooms = async () => {
-    if (!formData.checkIn || !formData.checkOut) return;
+    if (!formData.checkIn || !formData.checkOut) {
+      console.warn('⚠️  Missing dates:', { checkIn: formData.checkIn, checkOut: formData.checkOut });
+      return;
+    }
+
+    console.log('🔍 Starting search:', {
+      checkIn: formData.checkIn,
+      checkOut: formData.checkOut,
+      selectedPropertyId,
+      propertiesCount: properties.length,
+      apiUrl: process.env.NEXT_PUBLIC_API_URL
+    });
 
     setIsLoadingRooms(true);
+    setAvailableRooms([]); // Clear previous results
+    
     try {
       if (selectedPropertyId) {
         // Search specific property
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${selectedPropertyId}/availability`, {
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/api/properties/${selectedPropertyId}/availability`;
+        console.log('📡 Fetching from:', url);
+        const response = await axios.get(url, {
           params: {
             checkIn: formData.checkIn,
             checkOut: formData.checkOut
           }
         });
 
+        console.log('📦 Response:', response.data);
         if (response.data.success && Array.isArray(response.data.rooms)) {
           setAvailableRooms(response.data.rooms);
           console.log(`✅ Found ${response.data.rooms.length} rooms at ${selectedProperty?.name}`);
+        } else {
+          console.warn('⚠️  Unexpected response format:', response.data);
         }
       } else {
         // Search ALL properties
+        console.log(`🌍 Searching across ${properties.length} properties...`);
         const allRooms = [];
         for (const property of properties) {
           try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${property.id}/availability`, {
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/api/properties/${property.id}/availability`;
+            console.log(`  📡 Checking ${property.name} (ID: ${property.id})...`);
+            const response = await axios.get(url, {
               params: {
                 checkIn: formData.checkIn,
                 checkOut: formData.checkOut
               }
             });
+            console.log(`  📦 ${property.name} response:`, response.data);
             if (response.data.success && response.data.rooms) {
               allRooms.push(...response.data.rooms);
+              console.log(`  ✅ ${property.name}: ${response.data.rooms.length} rooms`);
             }
           } catch (err) {
-            console.error(`Error checking ${property.name}:`, err);
+            console.error(`❌ Error checking ${property.name}:`, err);
           }
         }
         setAvailableRooms(allRooms);
-        console.log(`✅ Found ${allRooms.length} rooms across all ${properties.length} properties`);
+        console.log(`✅ Total found: ${allRooms.length} rooms across ${properties.length} properties`);
       }
     } catch (error) {
-      console.error('Error fetching available rooms:', error);
+      console.error('❌ Error fetching available rooms:', error);
       setAvailableRooms([]);
     } finally {
       setIsLoadingRooms(false);
