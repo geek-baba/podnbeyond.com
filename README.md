@@ -1,341 +1,225 @@
-# POD N BEYOND - Smart Hotel Booking System
+# POD N BEYOND - Modern Capsule Hotel Website & Booking Platform
 
-A comprehensive full-stack hotel booking application for India's first pod hotel in Jamshedpur. Built with modern technologies and advanced features including payment integration, loyalty programs, and channel management.
+> Experience the future of affordable luxury accommodation in Mumbai
 
-## 🌟 Features
-
-### 🏨 Core Booking System
-- **Double-booking Prevention**: Intelligent room availability checking
-- **Real-time Pricing**: Dynamic pricing with seasonal rate plans
-- **Guest Management**: Complete guest information and preferences tracking
-- **Booking Status Tracking**: PENDING → CONFIRMED → COMPLETED workflow
-
-### 💳 Payment Integration
-- **Razorpay Integration**: Secure online payment processing
-- **Payment Verification**: Webhook-based payment confirmation
-- **Transaction History**: Complete payment and booking records
-
-### 🎯 Loyalty Program
-- **Points System**: Earn 1 point per ₹100 spent
-- **Tier System**: Silver, Gold, Platinum tiers with benefits
-- **Redemption**: Point-based discounts and rewards
-- **Account Management**: Complete loyalty account dashboard
-
-### 📊 Admin Dashboard
-- **Booking Management**: View, edit, and cancel bookings
-- **Room Management**: CRUD operations for room inventory
-- **Loyalty Management**: Monitor and manage loyalty accounts
-- **Search & Filter**: Advanced search capabilities across all data
-
-### 🖼️ Content Management System (CMS)
-- **Dynamic Content**: Manage website content without code changes
-- **Image Management**: Upload and organize hotel images
-- **Gallery System**: Curated image galleries with metadata
-- **Testimonials**: Guest review management system
-
-### 🔗 Channel Manager
-- **OTA Integration**: Connect with MakeMyTrip, Yatra, and other platforms
-- **Availability Sync**: Automated room availability updates
-- **External Booking Sync**: Import bookings from external channels
-- **Cron Jobs**: Automated synchronization every 15 minutes
-
-### 🎨 Modern UI/UX
-- **Responsive Design**: Mobile-first approach
-- **Indian Rupee (INR)**: Localized currency display
-- **POD N BEYOND Branding**: Custom hotel theme and branding
-- **Interactive Elements**: Hover effects, animations, and smooth transitions
-
-## 🏗️ Project Structure
-
-```
-podnbeyond.com/
-├── backend/                    # Express.js API server
-│   ├── controllers/           # Business logic controllers
-│   ├── models/                # Data models and interfaces
-│   ├── modules/               # Business modules (Channel Manager, etc.)
-│   ├── prisma/                # Database schema and migrations
-│   │   ├── schema.prisma      # Database schema definition
-│   │   ├── seed_cms.js        # CMS initial data seeding
-│   │   └── migrations/        # Database migration files
-│   ├── routes/                # API route handlers
-│   │   ├── booking.js         # Booking and room management
-│   │   ├── loyalty.js         # Loyalty program endpoints
-│   │   ├── payment.js         # Razorpay payment processing
-│   │   ├── cms.js             # Content management system
-│   │   ├── channels.js        # Channel manager API
-│   │   └── cron.js            # Scheduled task management
-│   ├── services/              # Background services
-│   │   └── cronService.js     # Automated OTA synchronization
-│   ├── uploads/               # File uploads (images, etc.)
-│   ├── scripts/               # Utility scripts
-│   │   ├── import_gallery_images.js
-│   │   └── add_remaining_gallery_images.js
-│   └── server.js              # Main server file
-├── frontend/                   # Next.js React application
-│   ├── components/            # Reusable React components
-│   ├── pages/                 # Next.js pages and routing
-│   │   ├── index.tsx          # Main hotel booking page
-│   │   ├── admin.tsx          # Admin dashboard
-│   │   ├── admin/cms.tsx      # CMS management interface
-│   │   ├── loyalty.tsx        # Loyalty program page
-│   │   ├── _app.tsx           # Global app wrapper
-│   │   └── _document.tsx      # Custom document structure
-│   ├── config/                # Configuration files
-│   │   └── razorpay.ts        # Razorpay configuration
-│   └── styles/                # CSS and styling
-│       └── globals.css        # Global Tailwind CSS
-├── scripts/                    # Deployment and setup scripts
-│   ├── deploy.sh              # Generic deployment script
-│   ├── deploy-cloudpanel.sh   # CloudPanel-specific deployment
-│   └── setup-cloudpanel-server.sh
-├── ecosystem.config.js         # PM2 process management
-├── package.json               # Root package.json
-└── README.md                  # This file
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js (v18 or higher)
-- npm (comes with Node.js)
-- PostgreSQL database
-- Razorpay account (for payments)
-
-### Installation
-
-1. **Clone the repository:**
-```bash
-git clone https://github.com/geek-baba/podnbeyond.com.git
-cd podnbeyond.com
-```
-
-2. **Install dependencies:**
-```bash
-npm run install:all
-```
-
-3. **Set up environment variables:**
-```bash
-# Backend (.env)
-DATABASE_URL="postgresql://username:password@localhost:5432/podnbeyond"
-RAZORPAY_KEY_ID="your_razorpay_key_id"
-RAZORPAY_KEY_SECRET="your_razorpay_secret"
-JWT_SECRET="your_jwt_secret"
-
-# Frontend (.env.local)
-NEXT_PUBLIC_API_URL="http://localhost:4000"
-NEXT_PUBLIC_RAZORPAY_KEY_ID="your_razorpay_key_id"
-```
-
-4. **Set up the database:**
-```bash
-cd backend
-npx prisma generate
-npx prisma db push
-npx prisma db seed
-```
-
-5. **Import gallery images:**
-```bash
-node scripts/import_gallery_images.js
-```
-
-### Development
-
-**Start both servers:**
-```bash
-npm run dev
-```
-
-**Or start separately:**
-```bash
-# Backend only
-npm run dev:backend
-
-# Frontend only  
-npm run dev:frontend
-```
-
-### Production Deployment
-
-**Using PM2:**
-```bash
-npm run build
-pm2 start ecosystem.config.js
-```
-
-**Using CloudPanel:**
-```bash
-./scripts/deploy-cloudpanel.sh
-```
-
-## 📡 API Endpoints
-
-### Booking Management
-- `GET /api/booking/availability` - Check room availability
-- `POST /api/booking/book` - Create new booking
-- `POST /api/booking/confirm/:id` - Confirm booking after payment
-- `GET /api/booking/bookings` - List all bookings
-- `PUT /api/booking/bookings/:id` - Update booking
-- `DELETE /api/booking/bookings/:id` - Cancel booking
-
-### Room Management
-- `GET /api/booking/rooms` - List active rooms
-- `GET /api/booking/rooms/all` - List all rooms (admin)
-- `POST /api/booking/rooms` - Create new room
-- `PUT /api/booking/rooms/:id` - Update room
-- `DELETE /api/booking/rooms/:id` - Delete room
-
-### Payment Processing
-- `POST /api/payment/create-order` - Create Razorpay order
-- `POST /api/payment/verify-payment` - Verify payment signature
-
-### Loyalty Program
-- `GET /api/loyalty/:userId` - Get loyalty account
-- `GET /api/loyalty/accounts` - List all accounts (admin)
-- `PUT /api/loyalty/accounts/:id` - Update loyalty account
-- `POST /api/loyalty/redeem` - Redeem points for discount
-
-### Content Management
-- `GET /api/cms/content/all` - Get all content
-- `POST /api/cms/content` - Create/update content
-- `GET /api/cms/images/all` - Get all images
-- `POST /api/cms/images/upload` - Upload new image
-- `GET /api/cms/images/:type` - Get images by type
-
-### Channel Management
-- `POST /api/channels/:channelId/push-availability` - Push availability to OTA
-- `GET /api/channels/:channelId/fetch-bookings` - Fetch external bookings
-- `GET /api/channels/sync-logs` - View sync activity logs
-
-## 🛠️ Technologies Used
-
-### Backend
-- **Express.js** - Web framework
-- **Prisma** - Database ORM with PostgreSQL
-- **Node-cron** - Scheduled task management
-- **Multer** - File upload handling
-- **Razorpay** - Payment gateway integration
-- **CORS** - Cross-origin resource sharing
-
-### Frontend
-- **Next.js 14** - React framework with SSR
-- **TypeScript** - Type safety and better DX
-- **Tailwind CSS** - Utility-first CSS framework
-- **Axios** - HTTP client for API calls
-- **Razorpay Checkout** - Payment integration
-
-### Database
-- **PostgreSQL** - Primary database
-- **Prisma** - Type-safe database client
-- **Migrations** - Version-controlled schema changes
-
-### Deployment & DevOps
-- **PM2** - Process management
-- **GitHub Actions** - CI/CD pipeline
-- **CloudPanel** - Server management
-- **Docker** - Containerization (optional)
-
-## 🎨 UI Components
-
-### Main Pages
-- **Homepage** - Hero section, gallery, booking form
-- **Admin Dashboard** - Booking, room, and loyalty management
-- **CMS Interface** - Content and image management
-- **Loyalty Portal** - Points, tiers, and redemption history
-
-### Key Features
-- **Responsive Design** - Works on all devices
-- **Dark/Light Mode** - User preference support
-- **Loading States** - Smooth user experience
-- **Error Handling** - Comprehensive error messages
-- **Form Validation** - Client and server-side validation
-
-## 🔧 Configuration
-
-### Environment Variables
-
-**Backend (.env):**
-```env
-DATABASE_URL="postgresql://..."
-RAZORPAY_KEY_ID="rzp_test_..."
-RAZORPAY_KEY_SECRET="..."
-JWT_SECRET="your-secret-key"
-NODE_ENV="development"
-PORT=4000
-```
-
-**Frontend (.env.local):**
-```env
-NEXT_PUBLIC_API_URL="http://localhost:4000"
-NEXT_PUBLIC_RAZORPAY_KEY_ID="rzp_test_..."
-NEXT_PUBLIC_LOGO_URL="https://podnbeyond.com/logo.png"
-```
-
-### Database Schema
-
-The application uses a comprehensive database schema with the following main entities:
-- **Rooms** - Hotel room inventory
-- **Bookings** - Guest reservations
-- **Payments** - Transaction records
-- **LoyaltyAccounts** - Customer loyalty data
-- **Content** - CMS content management
-- **Images** - File management
-- **OTASyncLog** - Channel manager logs
-
-## 🚀 Deployment
-
-### CloudPanel Deployment
-1. Set up CloudPanel server
-2. Configure domain and SSL
-3. Set up PostgreSQL database
-4. Configure environment variables
-5. Deploy using provided scripts
-
-### Manual Deployment
-1. Build frontend: `npm run build`
-2. Start backend: `npm start`
-3. Configure reverse proxy (nginx)
-4. Set up SSL certificates
-5. Configure PM2 for process management
-
-## 📊 Monitoring & Maintenance
-
-### Health Checks
-- `GET /api/health` - Backend health status
-- Database connection monitoring
-- External service status checks
-
-### Logs
-- Application logs via PM2
-- Database query logs
-- Payment transaction logs
-- OTA sync activity logs
-
-### Backup
-- Database backups (daily)
-- File uploads backup
-- Configuration backup
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is proprietary software for POD N BEYOND hotel.
-
-## 🆘 Support
-
-For support and questions:
-- Email: info@podnbeyond.com
-- Phone: (91) 82350 71333
-- Website: https://podnbeyond.com
+**Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)  
+**Location**: Mumbai, India  
+**Contact**: info@podnbeyond.com | +91 82350 71333
 
 ---
 
-**Built with ❤️ for POD N BEYOND - India's First Pod Hotel in Jamshedpur** 
+## 🏨 About POD N BEYOND
+
+POD N BEYOND is Mumbai's premier capsule hotel, offering modern, comfortable, and affordable accommodation for travelers, professionals, and urban explorers. Our state-of-the-art facility combines Japanese capsule hotel efficiency with contemporary Indian hospitality.
+
+### Why Choose POD N BEYOND?
+
+- ✨ **Modern Capsule Design** - Private, secure, and climate-controlled sleeping pods
+- 💰 **Affordable Luxury** - Premium amenities at budget-friendly prices
+- 📍 **Prime Location** - Easy access to Mumbai's business and entertainment districts
+- 🔒 **Smart Booking** - Real-time availability and instant confirmation
+- 💳 **Flexible Payments** - Multiple payment options including Razorpay integration
+- 🎁 **Loyalty Rewards** - Earn points with every stay
+
+---
+
+## 🌟 Key Features
+
+### For Guests
+
+- **Instant Online Booking** - Book your pod in seconds with real-time availability
+- **Secure Payments** - Razorpay-powered payment gateway for safe transactions
+- **Loyalty Program** - Earn 10% cashback on every booking, redeemable on future stays
+- **Multiple Pod Types** - Choose from Standard, Deluxe, and Premium capsules
+- **24/7 Support** - Round-the-clock customer service
+- **Mobile Friendly** - Book from any device, anywhere
+
+### For Hotel Management
+
+- **Admin Dashboard** - Comprehensive control panel for all operations
+- **Real-time Inventory** - Manage pod availability and pricing
+- **Booking Management** - Track, modify, and manage reservations
+- **Revenue Analytics** - Insights into bookings, revenue, and occupancy
+- **CMS Integration** - Update website content without coding
+- **Channel Manager** - Connect to multiple OTAs (coming soon)
+
+---
+
+## 🛠️ Technology Stack
+
+This platform is built with modern, scalable technologies:
+
+### Frontend
+- **Next.js** - React framework for production-ready applications
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Modern, responsive design
+- **Razorpay SDK** - Secure payment processing
+
+### Backend
+- **Node.js & Express** - High-performance server
+- **PostgreSQL** - Reliable, scalable database
+- **Prisma ORM** - Modern database toolkit
+- **PM2** - Production process management
+
+### Infrastructure
+- **CloudPanel** - Streamlined server management
+- **GitHub Actions** - Automated deployments
+- **SSL/HTTPS** - Secure communications
+
+---
+
+## 📸 Gallery
+
+Visit our [website](https://capsulepodhotel.com) to explore:
+- Modern capsule interiors
+- Common area facilities
+- Location and accessibility
+- Amenities and services
+
+---
+
+## 💼 Business Model
+
+### Revenue Streams
+1. **Direct Bookings** - Commission-free reservations through our website
+2. **Loyalty Program** - Increased customer retention and repeat bookings
+3. **Premium Services** - Upgrades, extended stays, and add-ons
+4. **OTA Partnerships** - Strategic distribution (coming soon)
+
+### Competitive Advantages
+- **No Commission Fees** - Unlike OTA bookings, direct bookings are 100% profit
+- **Loyalty Integration** - Built-in rewards system encourages repeat business
+- **Smart Pricing** - Dynamic pricing based on demand and seasonality
+- **Data Ownership** - Direct customer relationships and insights
+
+---
+
+## 🎯 Target Market
+
+- **Budget Travelers** - Backpackers, solo travelers seeking affordable accommodation
+- **Business Professionals** - Short-term stays for meetings and conferences
+- **Transit Passengers** - Airport proximity for layovers and early/late flights
+- **Urban Explorers** - Young professionals exploring Mumbai
+- **International Tourists** - Unique capsule hotel experience
+
+---
+
+## 📊 System Features
+
+### Booking System
+- Real-time availability checking
+- Multiple pod type selection
+- Date range selection with pricing
+- Guest information management
+- Booking confirmation and receipts
+- Email notifications
+
+### Payment Processing
+- Razorpay integration for secure payments
+- Multiple payment methods (cards, UPI, wallets, net banking)
+- Automated payment reconciliation
+- Refund management
+- Transaction history
+
+### Loyalty Program
+- Automatic point accrual (10% of booking value)
+- Point redemption on future bookings
+- Loyalty account dashboard
+- Balance tracking
+- Expiration management
+
+### Content Management
+- Dynamic website content updates
+- Gallery image management
+- Service and amenity listings
+- Announcement system
+- SEO optimization
+
+### Analytics & Reporting
+- Booking trends and patterns
+- Revenue analysis
+- Occupancy rates
+- Customer demographics
+- Loyalty program performance
+
+---
+
+## 🚀 Deployment
+
+This platform is production-ready and deployed on CloudPanel. For technical deployment information, developers can refer to:
+- **[Complete Deployment Guide](COMPLETE_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
+- **[Deployment Improvements](DEPLOYMENT_IMPROVEMENTS.md)** - Recent enhancements and optimizations
+
+---
+
+## 📞 Contact & Support
+
+### For Guests
+- **Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)
+- **Email**: info@podnbeyond.com
+- **Phone**: +91 82350 71333
+- **Address**: Mumbai, India
+
+### For Developers
+- **Repository**: [github.com/geek-baba/podnbeyond.com](https://github.com/geek-baba/podnbeyond.com)
+- **Documentation**: See `/docs` folder
+- **Issues**: GitHub Issues
+
+---
+
+## 🏆 Awards & Recognition
+
+- Modern capsule hotel concept in Mumbai
+- Innovative booking and loyalty system
+- Technology-driven hospitality
+
+---
+
+## 🔒 Security & Privacy
+
+- **PCI DSS Compliant** - Razorpay handles all payment processing
+- **Data Encryption** - SSL/HTTPS for all communications
+- **Secure Hosting** - CloudPanel with regular security updates
+- **Privacy Policy** - GDPR-compliant data handling
+- **Regular Backups** - Automated daily backups
+
+---
+
+## 📈 Roadmap
+
+### Current Features ✅
+- Online booking system
+- Razorpay payment integration
+- Loyalty rewards program
+- Admin dashboard
+- CMS for content management
+
+### Coming Soon 🚧
+- **Channel Manager** - Integration with Booking.com, Airbnb, MakeMyTrip
+- **Mobile App** - iOS and Android native apps
+- **Automated Check-in** - Self-service kiosks
+- **Smart Pod Controls** - IoT-enabled climate and lighting
+- **Multi-language Support** - Hindi, Marathi, and other regional languages
+
+---
+
+## 📜 License
+
+Copyright © 2025 POD N BEYOND. All rights reserved.
+
+This is a proprietary commercial application. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
+
+---
+
+## 🙏 Acknowledgments
+
+Built with passion for modern hospitality and powered by cutting-edge technology.
+
+**Special Thanks**:
+- Our guests for their trust and feedback
+- Technology partners (Razorpay, Vercel, CloudPanel)
+- Open-source community for amazing tools
+
+---
+
+**Visit us at [capsulepodhotel.com](https://capsulepodhotel.com) - Experience affordable luxury in Mumbai!** 🏨✨
