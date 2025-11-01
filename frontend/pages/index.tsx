@@ -881,25 +881,35 @@ export default function HomePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-white text-sm font-semibold mb-2">Location</label>
+                    <label className="block text-white text-sm font-semibold mb-2">
+                      Location {properties.length > 0 && <span className="text-blue-200">({properties.length} properties)</span>}
+                    </label>
                     <select
                       value={selectedPropertyId || 'all'}
                       onChange={(e) => {
+                        console.log('Location changed to:', e.target.value);
                         if (e.target.value === 'all') {
                           setSelectedPropertyId(null);
                           setSelectedProperty(null);
+                          console.log('Selected: All Locations');
                         } else {
                           const propId = parseInt(e.target.value);
                           setSelectedPropertyId(propId);
                           const prop = properties.find(p => p.id === propId);
                           setSelectedProperty(prop || null);
+                          console.log('Selected property:', prop);
                         }
                       }}
                       className="w-full px-4 py-3 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 font-medium"
                     >
-                      <option value="all">All Locations</option>
+                      <option value="all">All Locations ({properties.length} properties)</option>
+                      {properties.length === 0 && (
+                        <option disabled>Loading properties...</option>
+                      )}
                       {properties.map(prop => (
-                        <option key={prop.id} value={prop.id}>{prop.location}</option>
+                        <option key={prop.id} value={prop.id}>
+                          {prop.location} - {prop.name}
+                        </option>
                       ))}
                     </select>
                   </div>
