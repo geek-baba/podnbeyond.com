@@ -185,6 +185,7 @@ export default function HomePage() {
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&h=900&fit=crop&auto=format&q=80';
   const DEFAULT_LOGO_URL = '/logo-podnbeyond.png';
   const [galleryImages, setGalleryImages] = useState<Array<{id: number, url: string, title?: string, altText?: string}>>([]);
+  const [apiRooms, setApiRooms] = useState<any[]>([]);
 
   // CMS Data State
   const [heroContent, setHeroContent] = useState<Content | null>(null);
@@ -270,6 +271,12 @@ export default function HomePage() {
         const galleryResponse = await axios.get('/api/cms/images/GALLERY_IMAGE');
         if (galleryResponse.data.success) {
           setGalleryImages(galleryResponse.data.images);
+        }
+
+        // Fetch rooms from API
+        const roomsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/rooms`);
+        if (Array.isArray(roomsResponse.data)) {
+          setApiRooms(roomsResponse.data);
         }
 
       } catch (error) {
@@ -736,58 +743,66 @@ export default function HomePage() {
             
             {/* Rooms Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {rooms.map((room) => (
-                <div key={room.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                  {/* Room Images */}
-                  <div className="relative h-64 overflow-hidden">
-                    <img 
-                      src={room.images[0]} 
-                      alt={room.name}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                    />
-                    {room.badge && (
-                      <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        {room.badge}
+              {(apiRooms.length > 0 ? apiRooms : rooms).map((room) => {
+                const roomPrice = room.pricePerNight || room.price;
+                const roomImages = room.images || [`${process.env.NEXT_PUBLIC_API_URL}/uploads/podnbeyond-gallery-${(room.id % 9) + 1}.jpg`];
+                const roomFeatures = room.features || room.type ? [room.type, `${room.capacity} Guest${room.capacity > 1 ? 's' : ''}`] : [];
+                
+                return (
+                  <div key={room.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                    {/* Room Images */}
+                    <div className="relative h-64 overflow-hidden">
+                      <img 
+                        src={Array.isArray(roomImages) ? roomImages[0] : roomImages} 
+                        alt={room.name}
+                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                      />
+                      {room.badge && (
+                        <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          {room.badge}
+                        </div>
+                      )}
+                      <div className="absolute top-4 right-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        {formatCurrency(roomPrice)}
                       </div>
-                    )}
-                    <div className="absolute top-4 right-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">
-                      {formatCurrency(room.price)}
+                    </div>
+                    
+                    {/* Room Details */}
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{room.name}</h3>
+                      <p className="text-gray-600 mb-4">{room.description}</p>
+                      
+                      {/* Features */}
+                      {roomFeatures.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {roomFeatures.map((feature, index) => (
+                            <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Capacity */}
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-gray-600">Capacity: {room.capacity} guest{room.capacity > 1 ? 's' : ''}</span>
+                        <span className="text-2xl font-bold text-blue-600">{formatCurrency(roomPrice)}</span>
+                      </div>
+                      
+                      {/* Book Now Button */}
+                      <button 
+                        onClick={() => {
+                          document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
+                          setFormData(prev => ({ ...prev, roomType: room.name }));
+                        }}
+                        className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        Book Now
+                      </button>
                     </div>
                   </div>
-                  
-                  {/* Room Details */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{room.name}</h3>
-                    <p className="text-gray-600 mb-4">{room.description}</p>
-                    
-                    {/* Features */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {room.features.map((feature, index) => (
-                        <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                    
-                    {/* Capacity */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-gray-600">Capacity: {room.capacity} guests</span>
-                      <span className="text-2xl font-bold text-blue-600">{formatCurrency(room.price)}</span>
-                    </div>
-                    
-                    {/* Book Now Button */}
-                    <button 
-                      onClick={() => {
-                        document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
-                        setFormData(prev => ({ ...prev, roomType: room.name }));
-                      }}
-                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
