@@ -338,25 +338,42 @@ export default function HomePage() {
 
   const fetchAvailableRooms = async () => {
     if (!formData.checkIn || !formData.checkOut) return;
-    if (!selectedPropertyId) {
-      console.warn('No property selected');
-      return;
-    }
 
     setIsLoadingRooms(true);
     try {
-      // Use property-specific availability endpoint
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${selectedPropertyId}/availability`, {
-        params: {
-          checkIn: formData.checkIn,
-          checkOut: formData.checkOut
-        }
-      });
+      if (selectedPropertyId) {
+        // Search specific property
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${selectedPropertyId}/availability`, {
+          params: {
+            checkIn: formData.checkIn,
+            checkOut: formData.checkOut
+          }
+        });
 
-      // API returns {success, rooms: [...]}
-      if (response.data.success && Array.isArray(response.data.rooms)) {
-        setAvailableRooms(response.data.rooms);
-        console.log(`✅ Found ${response.data.rooms.length} available rooms at ${selectedProperty?.name}`);
+        if (response.data.success && Array.isArray(response.data.rooms)) {
+          setAvailableRooms(response.data.rooms);
+          console.log(`✅ Found ${response.data.rooms.length} rooms at ${selectedProperty?.name}`);
+        }
+      } else {
+        // Search ALL properties
+        const allRooms = [];
+        for (const property of properties) {
+          try {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/${property.id}/availability`, {
+              params: {
+                checkIn: formData.checkIn,
+                checkOut: formData.checkOut
+              }
+            });
+            if (response.data.success && response.data.rooms) {
+              allRooms.push(...response.data.rooms);
+            }
+          } catch (err) {
+            console.error(`Error checking ${property.name}:`, err);
+          }
+        }
+        setAvailableRooms(allRooms);
+        console.log(`✅ Found ${allRooms.length} rooms across all ${properties.length} properties`);
       }
     } catch (error) {
       console.error('Error fetching available rooms:', error);
@@ -660,136 +677,83 @@ export default function HomePage() {
         </section>
 
         {/* Our Properties - Prominent Section */}
-        <section id="location-selector" className="py-24 bg-gradient-to-b from-white via-blue-50 to-white">
+        <section id="location-selector" className="py-20 bg-gradient-to-b from-white to-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Section Header */}
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <div className="inline-block mb-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                POD N BEYOND LOCATIONS
+                POD N BEYOND - 3 LOCATIONS IN JAMSHEDPUR
               </div>
-              <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-                Choose Your Perfect Location
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Our Properties
               </h2>
-              <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
-                India's First Pod Hotel Chain - {properties.length} Premium Properties in Jamshedpur
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                India's First Pod Hotel Chain across Jamshedpur
               </p>
             </div>
 
             {/* Properties Grid - Large Prominent Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {properties.map((property) => (
                 <div
                   key={property.id}
-                  onClick={() => {
-                    setSelectedProperty(property);
-                    setSelectedPropertyId(property.id);
-                    setAvailableRooms([]);
-                    setFormData({...formData, roomId: ''});
-                    document.getElementById('rooms')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className={`group cursor-pointer rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 ${
-                    selectedPropertyId === property.id ? 'ring-4 ring-blue-600 shadow-2xl scale-105' : ''
-                  }`}
+                  className="group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   {/* Property Image */}
-                  <div className="relative h-72 overflow-hidden">
+                  <div className="relative h-56 overflow-hidden">
                     <img
                       src={`${process.env.NEXT_PUBLIC_API_URL}${property.images[0]}`}
                       alt={property.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                    
-                    {/* Selection Badge */}
-                    {selectedPropertyId === property.id && (
-                      <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
-                        ✓ SELECTED
-                      </div>
-                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     
                     {/* Rating Badge */}
-                    <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-full shadow-lg">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-yellow-500 text-lg">⭐</span>
-                        <span className="font-bold text-gray-900 text-lg">{property.rating}</span>
-                        <span className="text-gray-600 text-sm">/5</span>
-                      </div>
-                      <div className="text-xs text-gray-500 text-center mt-1">
-                        {property.totalRatings} reviews
+                    <div className="absolute top-3 right-3 bg-white px-3 py-1.5 rounded-full shadow-lg">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-yellow-500">⭐</span>
+                        <span className="font-bold text-gray-900">{property.rating}</span>
+                        <span className="text-gray-500 text-xs">({property.totalRatings})</span>
                       </div>
                     </div>
 
                     {/* Property Name Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                      <h3 className="text-2xl font-bold mb-2">{property.name}</h3>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                      <h3 className="text-xl font-bold mb-1">{property.name}</h3>
                       <div className="flex items-center text-white/90 text-sm">
-                        <span className="mr-2">📍</span>
-                        <span>{property.location}, {property.city}</span>
+                        <span className="mr-1">📍</span>
+                        <span>{property.location}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Property Details */}
-                  <div className="bg-white p-6">
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {property.description}
-                    </p>
-
+                  <div className="bg-white p-5">
                     {/* Quick Info */}
-                    <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                    <div className="flex items-center justify-between mb-3 text-sm">
                       <div className="flex items-center text-gray-700">
-                        <span className="mr-2 text-blue-600">🏨</span>
-                        <span className="font-semibold">{property._count.rooms} Room Types</span>
+                        <span className="mr-1.5 text-blue-600">🏨</span>
+                        <span className="font-medium">{property._count.rooms} Room Types</span>
                       </div>
-                      <div className="flex items-center text-gray-700">
-                        <span className="mr-2 text-blue-600">🎯</span>
-                        <span className="font-semibold">{property.features[0]}</span>
-                      </div>
+                      <div className="text-gray-500 text-xs">{property.location}</div>
                     </div>
 
                     {/* Amenities */}
-                    <div className="flex flex-wrap gap-2 mb-5">
+                    <div className="flex flex-wrap gap-1.5 mb-4">
                       {property.amenities.slice(0, 3).map((amenity: string, idx: number) => (
                         <span
                           key={idx}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"
                         >
                           ✓ {amenity}
                         </span>
                       ))}
-                      {property.amenities.length > 3 && (
-                        <span className="text-xs text-gray-500 px-2 py-1">
-                          +{property.amenities.length - 3} more
-                        </span>
-                      )}
                     </div>
-
-                    {/* Action Button */}
-                    <button
-                      className={`w-full py-3 rounded-lg font-bold text-base transition-all duration-300 ${
-                        selectedPropertyId === property.id
-                          ? 'bg-blue-600 text-white shadow-lg'
-                          : 'bg-gray-100 text-gray-700 hover:bg-blue-600 hover:text-white'
-                      }`}
-                    >
-                      {selectedPropertyId === property.id ? 'View Rooms Below ↓' : 'Select & Book'}
-                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Call to Action */}
-            <div className="text-center bg-blue-600 text-white rounded-2xl p-8 shadow-xl">
-              <h3 className="text-2xl font-bold mb-3">Can't Decide?</h3>
-              <p className="text-blue-100 mb-5">View detailed comparison of all our properties</p>
-              <a
-                href="/properties"
-                className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-bold hover:bg-gray-100 transition-colors shadow-lg"
-              >
-                Compare All Properties →
-              </a>
-            </div>
           </div>
         </section>
 
@@ -842,39 +806,130 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Rooms Section - Enhanced like WordPress site */}
-        <section id="rooms" className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">ROOMS & SUITES</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                {selectedProperty ? `${selectedProperty.name} - ${selectedProperty.location}` : 'Choose from a variety of sizes and styles.'}
+        {/* Search & Booking Section - Prominent */}
+        <section id="booking" className="py-20 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Find Your Perfect Pod</h2>
+              <p className="text-xl text-gray-600">
+                Search across all our properties in Jamshedpur
               </p>
-              {selectedProperty && (
-                <p className="text-sm text-gray-500 mt-2">
-                  {selectedProperty._count.rooms} room types available at this location
-                </p>
-              )}
+            </div>
+
+            {/* Search Form */}
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 shadow-2xl mb-12">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Search Criteria */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-white text-sm font-semibold mb-2">Check-in Date *</label>
+                    <input
+                      type="date"
+                      name="checkIn"
+                      required
+                      value={formData.checkIn}
+                      onChange={handleInputChange}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-3 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white text-sm font-semibold mb-2">Check-out Date *</label>
+                    <input
+                      type="date"
+                      name="checkOut"
+                      required
+                      value={formData.checkOut}
+                      onChange={handleInputChange}
+                      min={formData.checkIn || new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-3 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white text-sm font-semibold mb-2">Guests *</label>
+                    <select
+                      name="guests"
+                      required
+                      value={formData.guests}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 font-medium"
+                    >
+                      <option value="1">1 Guest</option>
+                      <option value="2">2 Guests</option>
+                      <option value="3">3 Guests</option>
+                      <option value="4">4+ Guests</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-white text-sm font-semibold mb-2">Location</label>
+                    <select
+                      value={selectedPropertyId || 'all'}
+                      onChange={(e) => {
+                        if (e.target.value === 'all') {
+                          setSelectedPropertyId(null);
+                          setSelectedProperty(null);
+                        } else {
+                          const propId = parseInt(e.target.value);
+                          setSelectedPropertyId(propId);
+                          const prop = properties.find(p => p.id === propId);
+                          setSelectedProperty(prop || null);
+                        }
+                      }}
+                      className="w-full px-4 py-3 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 font-medium"
+                    >
+                      <option value="all">All Locations</option>
+                      {properties.map(prop => (
+                        <option key={prop.id} value={prop.id}>{prop.location}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Search Button */}
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (formData.checkIn && formData.checkOut) {
+                        document.getElementById('available-rooms')?.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="bg-white text-blue-600 px-12 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg"
+                  >
+                    🔍 Search Available Rooms
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        {/* Available Rooms Section */}
+        <section id="available-rooms" className="py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Available Rooms</h2>
+              <p className="text-xl text-gray-600">
+                {availableRooms.length > 0 
+                  ? `${availableRooms.length} rooms available for your dates`
+                  : formData.checkIn && formData.checkOut
+                    ? 'No rooms available for selected criteria'
+                    : 'Select dates above to see available rooms'
+                }
+              </p>
             </div>
             
-            {/* Filter Buttons */}
-            <div className="flex flex-wrap justify-center gap-4 mb-12">
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">All</button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">En suite</button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">King</button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Queen</button>
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors">Under ₹3,000</button>
-            </div>
-            
-            {/* Rooms Grid */}
+            {/* Rooms Grid - Show ALL available rooms with property info */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {(apiRooms.length > 0 ? apiRooms : rooms)
-                .filter(room => !selectedPropertyId || room.propertyId === selectedPropertyId || !room.propertyId)
+              {(availableRooms.length > 0 ? availableRooms : (apiRooms.length > 0 ? apiRooms : rooms))
                 .map((room) => {
                 console.log('Rendering room:', room.name, '- Price:', room.pricePerNight || room.price);
                 const roomPrice = room.pricePerNight || room.price;
                 const roomImages = room.images || [`${process.env.NEXT_PUBLIC_API_URL}/uploads/podnbeyond-gallery-${(room.id % 9) + 1}.jpg`];
                 const roomFeatures = room.features || room.type ? [room.type, `${room.capacity} Guest${room.capacity > 1 ? 's' : ''}`] : [];
+                
+                // Find property for this room
+                const roomProperty = properties.find(p => p.id === room.propertyId);
                 
                 return (
                   <div key={room.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
@@ -885,12 +940,13 @@ export default function HomePage() {
                         alt={room.name}
                         className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                       />
-                      {room.badge && (
-                        <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                          {room.badge}
+                      {/* Property Badge */}
+                      {roomProperty && (
+                        <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
+                          📍 {roomProperty.location}
                         </div>
                       )}
-                      <div className="absolute top-4 right-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-semibold">
+                      <div className="absolute top-4 right-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-semibold shadow">
                         {formatCurrency(roomPrice)}
                       </div>
                     </div>
@@ -920,8 +976,9 @@ export default function HomePage() {
                       {/* Book Now Button */}
                       <button 
                         onClick={() => {
-                          document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth' });
-                          setFormData(prev => ({ ...prev, roomType: room.name }));
+                          setSelectedRoom(room);
+                          setFormData(prev => ({ ...prev, roomId: room.id.toString() }));
+                          document.getElementById('guest-details')?.scrollIntoView({ behavior: 'smooth' });
                         }}
                         className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                       >
@@ -935,75 +992,84 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Booking Form Section */}
-        <section id="booking" className="py-20 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Book Your Stay</h2>
-              <p className="text-xl text-gray-600">
-                Reserve your perfect room and experience luxury at its finest
-              </p>
-              {selectedProperty && (
-                <div className="mt-4 inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
-                  <span className="mr-2">📍</span>
-                  <span className="font-semibold">{selectedProperty.name}</span>
-                  <button
-                    onClick={() => document.getElementById('location-selector')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="ml-3 text-blue-600 hover:text-blue-700 text-sm underline"
-                  >
-                    Change Location
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-8 shadow-lg">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Guest Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Guest Details Section - Shows after room selection */}
+        {selectedRoom && formData.roomId && (
+          <section id="guest-details" className="py-20 bg-white">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">Complete Your Booking</h2>
+                <p className="text-xl text-gray-600">
+                  You're almost done! Just enter your details below.
+                </p>
+                {selectedRoom && (
+                  <div className="mt-6 bg-blue-50 rounded-lg p-6 inline-block">
+                    <div className="text-left">
+                      <div className="font-semibold text-gray-900 mb-2">{selectedRoom.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {properties.find(p => p.id === selectedRoom.propertyId)?.name || 'POD N BEYOND'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        📍 {properties.find(p => p.id === selectedRoom.propertyId)?.location || 'Jamshedpur'}
+                      </div>
+                      {selectedRoom.calculatedPrice && (
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">{selectedRoom.calculatedPrice.nights} nights × ₹{selectedRoom.calculatedPrice.pricePerNight}</span>
+                            <span className="font-bold text-gray-900">₹{selectedRoom.calculatedPrice.totalPrice}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-8 shadow-lg">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Guest Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="guestName" className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                      <input
+                        type="text"
+                        id="guestName"
+                        name="guestName"
+                        required
+                        value={formData.guestName}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your email"
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label htmlFor="guestName" className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                     <input
-                      type="text"
-                      id="guestName"
-                      name="guestName"
-                      required
-                      value={formData.guestName}
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter your full name"
+                      placeholder="Enter your phone number"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
-                {/* Stay Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Special Requests */}
                   <div>
                     <label htmlFor="checkIn" className="block text-sm font-medium text-gray-700 mb-2">Check-in Date *</label>
                     <input
