@@ -183,8 +183,7 @@ const amenities = [
 export default function HomePage() {
   const DEFAULT_HERO_IMAGE =
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1600&h=900&fit=crop&auto=format&q=80';
-  const DEFAULT_LOGO_URL =
-    process.env.NEXT_PUBLIC_LOGO_URL || 'https://podnbeyond.com/wp-content/uploads/2024/01/logo.png';
+  const DEFAULT_LOGO_URL = '/logo-podnbeyond.png';
   const [galleryImages, setGalleryImages] = useState<Array<{id: number, url: string, title?: string, altText?: string}>>([]);
 
   // CMS Data State
@@ -484,6 +483,8 @@ export default function HomePage() {
         <title>POD N BEYOND | Smart Hotel – Jamshedpur</title>
         <meta name="description" content="India's first pod hotel in Jamshedpur. Stay in the heart of the Steel City and experience a world-class ambiance at POD N BEYOND." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/logo-podnbeyond.png" />
       </Head>
 
       <div className="min-h-screen bg-white" style={{ backgroundColor: 'white', minHeight: '100vh' }}>
@@ -670,22 +671,34 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">NEW GENERATION “BUDGET SMART HOTEL”</h2>
-                <p className="text-lg text-gray-700 mb-6">
-                  POD N BEYOND is India’s first pod hotel launched in Jamshedpur. Stay in the heart of the STEEL CITY and experience a world-class ambiance with smart, comfortable, and affordable pods.
-                </p>
-                <ul className="space-y-3 text-gray-700 mb-8">
-                  <li className="flex items-start"><span className="mr-2">⏰</span> 24 HOURS Check-in / Check Out</li>
-                  <li className="flex items-start"><span className="mr-2">🕒</span> SHORT STAYS: 4 hrs, 8 hrs, 12 hrs (facilities without Breakfast)</li>
-                  <li className="flex items-start"><span className="mr-2">🧳</span> LONG STAYS: Don’t forget to ask for long term special deals!</li>
-                </ul>
+                <h2 className="text-4xl font-bold text-gray-900 mb-6">WHO WE ARE</h2>
+                <div className="space-y-4 text-lg text-gray-700 mb-8">
+                  <p>
+                    The Pod N Beyond Smart Hotel, Jamshedpur is <strong>India's 1st Pod Hotel</strong>. It is not only non-conventional budget hotel, we have built this from the scratch for smart travelers just like you, who wants to see and explore, with all the world class facilities at a very affordable rate.
+                  </p>
+                  <p>
+                    Stay in the heart of <strong>STEEL CITY</strong> (Kalimati Road, Sakchi) and experience a world class ambiance with 10 different options to choose from: <strong>Capsule, Single, Double, Bunk, Tri, Quadra, Queen and King Pods</strong>.
+                  </p>
+                  <p>
+                    This is not all, you also get <strong>complementary Hot Breakfast, Self-Service Laundry, Wi-Fi, Local Calls</strong>!
+                  </p>
+                  <p>
+                    We also help professionals and travelers to network and connect by using our innovative business center which offers <strong>E-Library, Magazine Stand, Music Corner and Game Zones</strong>.
+                  </p>
+                </div>
+                <div className="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-lg mb-6">
+                  <h3 className="font-bold text-gray-900 mb-3 text-xl">Flexible Check-in Options:</h3>
+                  <ul className="space-y-2 text-gray-700">
+                    <li className="flex items-start"><span className="mr-2">⏰</span> 24 HOURS Check-in / Check Out</li>
+                    <li className="flex items-start"><span className="mr-2">🕒</span> SHORT STAYS: 4 hrs, 8 hrs, 12 hrs</li>
+                    <li className="flex items-start"><span className="mr-2">🧳</span> LONG STAYS: Ask for special deals!</li>
+                  </ul>
+                </div>
                 <a
-                  href="https://podnbeyond.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  href="#booking"
+                  className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg"
                 >
-                  READ MORE
+                  BOOK YOUR POD NOW
                 </a>
               </div>
               <div className="relative">
