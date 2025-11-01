@@ -14,7 +14,7 @@ const razorpay = new Razorpay({
 // Create a new payment order
 router.post('/create-order', async (req, res) => {
   try {
-    const { amount, guestName, bookingId, currency = 'INR' } = req.body;
+    const { amount, guestName, bookingId, currency = 'INR', testMode = false } = req.body;
 
     // Validate required fields
     if (!amount || !guestName || !bookingId) {
@@ -28,6 +28,38 @@ router.post('/create-order', async (req, res) => {
     if (amountInPaise < 100) { // Minimum amount is 1 INR (100 paise)
       return res.status(400).json({ 
         error: 'Amount must be at least 1 INR' 
+      });
+    }
+
+    // TEST MODE: For development/testing without Razorpay
+    const isTestMode = testMode || process.env.NODE_ENV === 'development' && 
+                       (!process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID.includes('placeholder'));
+    
+    if (isTestMode) {
+      console.log('⚠️  TEST MODE: Bypassing Razorpay payment');
+      
+      // Verify booking exists
+      const booking = await prisma.booking.findUnique({
+        where: { id: parseInt(bookingId) },
+        include: { room: true }
+      });
+
+      if (!booking) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+
+      return res.json({
+        success: true,
+        testMode: true,
+        message: 'Test mode - payment bypassed for development',
+        order: {
+          id: `test_order_${bookingId}_${Date.now()}`,
+          amount: amountInPaise,
+          currency: currency,
+          receipt: `test_booking_${bookingId}`
+        },
+        bookingId: bookingId,
+        instructions: 'Use test payment confirmation endpoint: POST /api/payment/test-confirm'
       });
     }
 
@@ -476,5 +508,90 @@ function getTierMultiplier(tier) {
 function getPointsMultiplier(tier) {
   return getTierMultiplier(tier);
 }
+
+// Test mode payment confirmation (for development without Razorpay)
+router.post('/test-confirm', async (req, res) => {
+  try {
+    const { bookingId, orderId } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ error: 'Booking ID is required' });
+    }
+
+    console.log('⚠️  TEST MODE: Confirming payment for booking', bookingId);
+
+    // Find the booking
+    const booking = await prisma.booking.findUnique({
+      where: { id: parseInt(bookingId) },
+      include: { 
+        room: true,
+        loyaltyAccount: true
+      }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    if (booking.status !== 'PENDING') {
+      return res.status(400).json({ 
+        error: `Booking is not in pending status. Current status: ${booking.status}` 
+      });
+    }
+
+    // Create a test payment record
+    const payment = await prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        amount: booking.totalPrice,
+        currency: 'INR',
+        status: 'SUCCESS',
+        paymentMethod: 'TEST',
+        razorpayOrderId: orderId || `test_order_${Date.now()}`,
+        razorpayPaymentId: `test_payment_${Date.now()}`,
+        razorpaySignature: 'test_signature'
+      }
+    });
+
+    // Update booking to CONFIRMED
+    const confirmedBooking = await prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: 'CONFIRMED' },
+      include: {
+        room: true,
+        loyaltyAccount: true,
+        payments: true
+      }
+    });
+
+    // Calculate and add loyalty points (10% cashback)
+    const loyaltyPoints = Math.floor(booking.totalPrice * 0.10); // 10% as points
+    
+    if (booking.loyaltyAccountId) {
+      const updatedLoyalty = await prisma.loyaltyAccount.update({
+        where: { id: booking.loyaltyAccountId },
+        data: {
+          points: { increment: loyaltyPoints },
+          lastUpdated: new Date()
+        }
+      });
+
+      console.log(`✅ TEST MODE: Added ${loyaltyPoints} loyalty points`);
+    }
+
+    res.json({
+      success: true,
+      testMode: true,
+      message: 'Test payment confirmed successfully',
+      booking: confirmedBooking,
+      payment: payment,
+      loyaltyPoints: loyaltyPoints
+    });
+
+  } catch (error) {
+    console.error('Error in test payment confirmation:', error);
+    res.status(500).json({ error: 'Failed to confirm test payment' });
+  }
+});
 
 module.exports = router; 

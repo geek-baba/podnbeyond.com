@@ -367,45 +367,76 @@ export default function HomePage() {
       };
 
       // Create booking (PENDING status)
-      const bookingResponse = await axios.post('/api/booking/book', bookingData);
+      const bookingResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/book`, bookingData);
       const bookingId = bookingResponse.data.booking.id;
       const bookingTotalPrice = bookingResponse.data.booking.totalPrice;
 
       // Create payment order
-      const orderResponse = await axios.post('/api/payment/create-order', {
+      const orderResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/create-order`, {
         amount: bookingTotalPrice,
         guestName: formData.guestName,
-        bookingId: bookingId
+        bookingId: bookingId,
+        testMode: true // Enable test mode for development
       });
 
       if (orderResponse.data.success) {
-        setIsPaymentProcessing(true);
-        
-        // Initialize Razorpay with centralized config
-        const options = {
-          key: RAZORPAY_CONFIG.KEY_ID,
-          amount: orderResponse.data.amount,
-          currency: 'INR',
-          name: RAZORPAY_CONFIG.HOTEL_NAME,
-          description: `${RAZORPAY_CONFIG.HOTEL_DESCRIPTION} - ${selectedRoom?.name || 'Room'}`,
-          order_id: orderResponse.data.orderId,
-          handler: (response: any) => handlePaymentSuccess(response, bookingId),
-          prefill: {
-            name: formData.guestName,
-            email: formData.email,
-            contact: formData.phone
-          },
-          theme: RAZORPAY_CONFIG.THEME,
-          modal: {
-            ondismiss: () => {
-              setIsPaymentProcessing(false);
-              setSubmitMessage('Payment cancelled. You can try again.');
-            }
-          }
-        };
+        // Check if we're in test mode
+        if (orderResponse.data.testMode) {
+          console.log('⚠️  TEST MODE: Skipping Razorpay, auto-confirming payment');
+          
+          // Automatically confirm the test payment
+          const confirmResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/test-confirm`, {
+            bookingId: bookingId,
+            orderId: orderResponse.data.order.id
+          });
 
-        const razorpay = new (window as any).Razorpay(options);
-        razorpay.open();
+          if (confirmResponse.data.success) {
+            setSubmitMessage(`✅ TEST MODE: Booking confirmed! Booking ID: ${bookingId}. You earned ${confirmResponse.data.loyaltyPoints} loyalty points!`);
+            // Reset form
+            setFormData({
+              guestName: '',
+              email: '',
+              phone: '',
+              checkIn: '',
+              checkOut: '',
+              guests: '1',
+              roomId: '',
+              specialRequests: ''
+            });
+            setAvailableRooms([]);
+            setSelectedRoom(null);
+            setTotalPrice(0);
+          }
+        } else {
+          // Real Razorpay payment mode
+          setIsPaymentProcessing(true);
+          
+          // Initialize Razorpay with centralized config
+          const options = {
+            key: RAZORPAY_CONFIG.KEY_ID,
+            amount: orderResponse.data.amount,
+            currency: 'INR',
+            name: RAZORPAY_CONFIG.HOTEL_NAME,
+            description: `${RAZORPAY_CONFIG.HOTEL_DESCRIPTION} - ${selectedRoom?.name || 'Room'}`,
+            order_id: orderResponse.data.orderId,
+            handler: (response: any) => handlePaymentSuccess(response, bookingId),
+            prefill: {
+              name: formData.guestName,
+              email: formData.email,
+              contact: formData.phone
+            },
+            theme: RAZORPAY_CONFIG.THEME,
+            modal: {
+              ondismiss: () => {
+                setIsPaymentProcessing(false);
+                setSubmitMessage('Payment cancelled. You can try again.');
+              }
+            }
+          };
+
+          const razorpay = new (window as any).Razorpay(options);
+          razorpay.open();
+        }
       } else {
         setSubmitMessage('Failed to create payment order');
       }
