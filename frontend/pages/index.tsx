@@ -276,6 +276,7 @@ export default function HomePage() {
         // Fetch rooms from API
         const roomsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/booking/rooms`);
         if (Array.isArray(roomsResponse.data)) {
+          console.log('✅ Loaded', roomsResponse.data.length, 'rooms from API:', roomsResponse.data.map(r => r.name));
           setApiRooms(roomsResponse.data);
         }
 
@@ -747,6 +748,7 @@ export default function HomePage() {
             {/* Rooms Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {(apiRooms.length > 0 ? apiRooms : rooms).map((room) => {
+                console.log('Rendering room:', room.name, '- Price:', room.pricePerNight || room.price);
                 const roomPrice = room.pricePerNight || room.price;
                 const roomImages = room.images || [`${process.env.NEXT_PUBLIC_API_URL}/uploads/podnbeyond-gallery-${(room.id % 9) + 1}.jpg`];
                 const roomFeatures = room.features || room.type ? [room.type, `${room.capacity} Guest${room.capacity > 1 ? 's' : ''}`] : [];
