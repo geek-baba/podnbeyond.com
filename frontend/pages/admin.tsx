@@ -85,8 +85,17 @@ const AdminPage: React.FC = () => {
     autoCapture: true
   });
 
-  // OTA Integration State  
-  const [otaChannels, setOtaChannels] = useState([
+  // OTA Integration State
+  type OTAChannel = {
+    id: number;
+    name: string;
+    enabled: boolean;
+    connected: boolean;
+    apiKey: string;
+    lastSync: string | null;
+  };
+  
+  const [otaChannels, setOtaChannels] = useState<OTAChannel[]>([
     { id: 1, name: 'Booking.com', enabled: false, connected: false, apiKey: '', lastSync: null },
     { id: 2, name: 'Airbnb', enabled: false, connected: false, apiKey: '', lastSync: null },
     { id: 3, name: 'MakeMyTrip', enabled: false, connected: false, apiKey: '', lastSync: null },

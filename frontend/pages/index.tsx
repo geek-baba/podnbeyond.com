@@ -64,10 +64,20 @@ interface Room {
   description: string | null;
   pricePerNight: number;
   status: string;
+  propertyId?: number;
   availableRooms?: number;
   totalPrice?: number;
   nights?: number;
   hasSeasonalRate?: boolean;
+  calculatedPrice?: {
+    pricePerNight: number;
+    totalPrice: number;
+    nights: number;
+  };
+  images?: string[];
+  features?: string[];
+  badge?: string;
+  price?: number;
 }
 
 // Booking form data interface
@@ -967,7 +977,7 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {availableRooms.map((room) => {
                 console.log('Rendering room:', room.name, '- Price:', room.pricePerNight || room.price);
-                const roomPrice = room.pricePerNight || room.price;
+                const roomPrice = room.pricePerNight || room.price || 0;
                 const roomImages = room.images || [`${process.env.NEXT_PUBLIC_API_URL}/uploads/podnbeyond-gallery-${(room.id % 9) + 1}.jpg`];
                 const roomFeatures = room.features || room.type ? [room.type, `${room.capacity} Guest${room.capacity > 1 ? 's' : ''}`] : [];
                 
