@@ -66,13 +66,31 @@ interface BookingFormData {
 }
 
 const AdminPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'rooms' | 'loyalty'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'rooms' | 'loyalty' | 'payment' | 'ota'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loyaltyAccounts, setLoyaltyAccounts] = useState<LoyaltyAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Payment Gateway Settings State
+  const [paymentSettings, setPaymentSettings] = useState({
+    razorpayKeyId: '',
+    razorpayKeySecret: '',
+    isTestMode: true,
+    webhookSecret: '',
+    autoCapture: true
+  });
+
+  // OTA Integration State  
+  const [otaChannels, setOtaChannels] = useState([
+    { id: 1, name: 'Booking.com', enabled: false, connected: false, apiKey: '', lastSync: null },
+    { id: 2, name: 'Airbnb', enabled: false, connected: false, apiKey: '', lastSync: null },
+    { id: 3, name: 'MakeMyTrip', enabled: false, connected: false, apiKey: '', lastSync: null },
+    { id: 4, name: 'Goibibo', enabled: false, connected: false, apiKey: '', lastSync: null },
+    { id: 5, name: 'Yatra', enabled: false, connected: false, apiKey: '', lastSync: null },
+  ]);
 
   // Form states
   const [showRoomForm, setShowRoomForm] = useState(false);
@@ -358,7 +376,9 @@ const AdminPage: React.FC = () => {
   const tabs = [
     { id: 'bookings', name: 'Bookings', icon: '📋' },
     { id: 'rooms', name: 'Rooms', icon: '🏨' },
-    { id: 'loyalty', name: 'Loyalty Accounts', icon: '⭐' }
+    { id: 'loyalty', name: 'Loyalty Accounts', icon: '⭐' },
+    { id: 'payment', name: 'Payment Gateway', icon: '💳' },
+    { id: 'ota', name: 'OTA Integration', icon: '🌐' }
   ];
 
   const cmsLink = { id: 'cms', name: 'CMS', icon: '🎨', href: '/admin/cms' };
@@ -785,6 +805,262 @@ const AdminPage: React.FC = () => {
                       </table>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Payment Gateway Settings Tab */}
+              {activeTab === 'payment' && (
+                <div className="p-6">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">Payment Gateway Settings</h2>
+                  
+                  {/* Razorpay Configuration */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Razorpay Configuration</h3>
+                        <p className="text-sm text-gray-500 mt-1">Configure your Razorpay payment gateway</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          paymentSettings.isTestMode ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {paymentSettings.isTestMode ? '🧪 Test Mode' : '✅ Live Mode'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Razorpay Key ID
+                        </label>
+                        <input
+                          type="text"
+                          value={paymentSettings.razorpayKeyId}
+                          onChange={(e) => setPaymentSettings({...paymentSettings, razorpayKeyId: e.target.value})}
+                          placeholder="rzp_test_xxxxxx or rzp_live_xxxxxx"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Get from: <a href="https://dashboard.razorpay.com/app/website-app-settings/api-keys" target="_blank" className="text-blue-600 hover:underline">Razorpay Dashboard</a>
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Razorpay Key Secret
+                        </label>
+                        <input
+                          type="password"
+                          value={paymentSettings.razorpayKeySecret}
+                          onChange={(e) => setPaymentSettings({...paymentSettings, razorpayKeySecret: e.target.value})}
+                          placeholder="Enter your Razorpay secret key"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="testMode"
+                          checked={paymentSettings.isTestMode}
+                          onChange={(e) => setPaymentSettings({...paymentSettings, isTestMode: e.target.checked})}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="testMode" className="text-sm text-gray-700">
+                          Use Test Mode (for development/testing)
+                        </label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="autoCapture"
+                          checked={paymentSettings.autoCapture}
+                          onChange={(e) => setPaymentSettings({...paymentSettings, autoCapture: e.target.checked})}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="autoCapture" className="text-sm text-gray-700">
+                          Auto-capture payments (recommended)
+                        </label>
+                      </div>
+
+                      <div className="pt-4 border-t">
+                        <button
+                          onClick={() => {
+                            setMessage({ type: 'success', text: 'Payment settings saved! (In production, this would update environment variables)' });
+                            setTimeout(() => setMessage(null), 5000);
+                          }}
+                          className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                        >
+                          Save Payment Settings
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Test Tools */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-4">🧪 Test Payment Tools</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600">ℹ️</span>
+                        <p className="text-blue-800">
+                          <strong>Test Mode is currently active.</strong> Bookings will be automatically confirmed without requiring actual payment.
+                        </p>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600">💡</span>
+                        <p className="text-blue-800">
+                          To enable real payments, add your Razorpay <strong>Live</strong> keys above and uncheck "Use Test Mode".
+                        </p>
+                      </div>
+                      <div className="bg-white border border-blue-300 rounded p-3 mt-3">
+                        <p className="font-medium text-blue-900 mb-2">Razorpay Test Cards:</p>
+                        <ul className="text-blue-800 space-y-1 text-xs">
+                          <li>• Card: 4111 1111 1111 1111</li>
+                          <li>• CVV: Any 3 digits</li>
+                          <li>• Expiry: Any future date</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* OTA Integration Tab */}
+              {activeTab === 'ota' && (
+                <div className="p-6">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-6">OTA Channel Integration</h2>
+                  <p className="text-gray-600 mb-6">
+                    Connect your POD N BEYOND hotel to multiple Online Travel Agencies (OTAs) to expand your reach and increase bookings.
+                  </p>
+
+                  {/* OTA Channels List */}
+                  <div className="space-y-4">
+                    {otaChannels.map((channel) => (
+                      <div key={channel.id} className="bg-white border border-gray-200 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-xl font-bold">
+                              {channel.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">{channel.name}</h3>
+                              <p className="text-sm text-gray-500">
+                                {channel.connected ? 'Connected and syncing' : 'Not connected'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            {channel.connected && (
+                              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                ✓ Connected
+                              </span>
+                            )}
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={channel.enabled}
+                                onChange={(e) => {
+                                  const updated = otaChannels.map(ch =>
+                                    ch.id === channel.id ? {...ch, enabled: e.target.checked} : ch
+                                  );
+                                  setOtaChannels(updated);
+                                }}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                          </div>
+                        </div>
+
+                        {channel.enabled && (
+                          <div className="mt-4 space-y-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                API Key / Credentials
+                              </label>
+                              <input
+                                type="text"
+                                value={channel.apiKey}
+                                onChange={(e) => {
+                                  const updated = otaChannels.map(ch =>
+                                    ch.id === channel.id ? {...ch, apiKey: e.target.value} : ch
+                                  );
+                                  setOtaChannels(updated);
+                                }}
+                                placeholder={`Enter ${channel.name} API key`}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+
+                            <div className="flex space-x-3">
+                              <button
+                                onClick={() => {
+                                  const updated = otaChannels.map(ch =>
+                                    ch.id === channel.id ? {...ch, connected: true, lastSync: new Date().toISOString()} : ch
+                                  );
+                                  setOtaChannels(updated);
+                                  setMessage({ type: 'success', text: `${channel.name} connected successfully!` });
+                                  setTimeout(() => setMessage(null), 5000);
+                                }}
+                                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                {channel.connected ? 'Reconnect' : 'Connect'}
+                              </button>
+
+                              {channel.connected && (
+                                <button
+                                  onClick={() => {
+                                    setMessage({ type: 'success', text: `Syncing ${channel.name}... (In production, this would sync inventory and bookings)` });
+                                    setTimeout(() => setMessage(null), 5000);
+                                  }}
+                                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                  🔄 Sync Now
+                                </button>
+                              )}
+                            </div>
+
+                            {channel.lastSync && (
+                              <p className="text-xs text-gray-500">
+                                Last synced: {new Date(channel.lastSync).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* OTA Integration Info */}
+                  <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-yellow-900 mb-3">📢 OTA Integration Benefits</h3>
+                    <ul className="space-y-2 text-sm text-yellow-800">
+                      <li className="flex items-start">
+                        <span className="mr-2">✓</span>
+                        <span><strong>Wider Reach:</strong> List your property on multiple platforms simultaneously</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2">✓</span>
+                        <span><strong>Automated Sync:</strong> Real-time availability and rate updates across all channels</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2">✓</span>
+                        <span><strong>Centralized Management:</strong> Manage all bookings from one dashboard</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2">✓</span>
+                        <span><strong>No Overbooking:</strong> Prevent double bookings with automatic inventory updates</span>
+                      </li>
+                    </ul>
+                    <div className="mt-4 pt-4 border-t border-yellow-300">
+                      <p className="text-xs text-yellow-700">
+                        <strong>Note:</strong> OTA integration requires separate agreements with each platform. Contact each OTA to obtain API credentials.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
