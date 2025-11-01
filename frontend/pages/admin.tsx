@@ -66,10 +66,11 @@ interface BookingFormData {
 }
 
 const AdminPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'rooms' | 'loyalty' | 'payment' | 'ota'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'rooms' | 'loyalty' | 'payment' | 'ota' | 'properties'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loyaltyAccounts, setLoyaltyAccounts] = useState<LoyaltyAccount[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -142,6 +143,10 @@ const AdminPage: React.FC = () => {
     
     try {
       switch (activeTab) {
+        case 'properties':
+          const propertiesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`);
+          setProperties(propertiesResponse.data.properties || []);
+          break;
         case 'bookings':
           const bookingsResponse = await axios.get('/api/booking/bookings');
           setBookings(bookingsResponse.data || []);
@@ -374,6 +379,7 @@ const AdminPage: React.FC = () => {
   };
 
   const tabs = [
+    { id: 'properties', name: 'Properties', icon: '🏢' },
     { id: 'bookings', name: 'Bookings', icon: '📋' },
     { id: 'rooms', name: 'Rooms', icon: '🏨' },
     { id: 'loyalty', name: 'Loyalty Accounts', icon: '⭐' },
@@ -460,6 +466,123 @@ const AdminPage: React.FC = () => {
             </div>
           ) : (
             <div className="p-6">
+              {/* Properties Tab */}
+              {activeTab === 'properties' && (
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">Property Management</h2>
+                    <div className="text-sm text-gray-500">
+                      {properties.length} propert{properties.length !== 1 ? 'ies' : 'y'}
+                    </div>
+                  </div>
+
+                  {properties.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-2">🏢</div>
+                      <p>No properties found</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {properties.map((property: any) => (
+                        <div key={property.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                          {/* Property Image */}
+                          <div className="relative h-48">
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_API_URL}${property.images[0]}`}
+                              alt={property.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-3 right-3 bg-white px-3 py-1 rounded-full shadow-lg">
+                              <div className="flex items-center space-x-1">
+                                <span className="text-yellow-500">⭐</span>
+                                <span className="font-semibold text-gray-900">{property.rating}</span>
+                                <span className="text-gray-500 text-xs">({property.totalRatings})</span>
+                              </div>
+                            </div>
+                            <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${
+                              property.status === 'ACTIVE' ? 'bg-green-500 text-white' :
+                              property.status === 'COMING_SOON' ? 'bg-yellow-500 text-white' :
+                              'bg-gray-500 text-white'
+                            }`}>
+                              {property.status}
+                            </div>
+                          </div>
+
+                          {/* Property Details */}
+                          <div className="p-5">
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">{property.name}</h3>
+                            
+                            <div className="space-y-2 text-sm mb-4">
+                              <div className="flex items-center text-gray-600">
+                                <span className="mr-2">📍</span>
+                                <span>{property.location}, {property.city}</span>
+                              </div>
+                              <div className="flex items-center text-gray-600">
+                                <span className="mr-2">🏨</span>
+                                <span>{property._count?.rooms || 0} rooms</span>
+                              </div>
+                              {property.phone && (
+                                <div className="flex items-center text-gray-600">
+                                  <span className="mr-2">📞</span>
+                                  <span>{property.phone}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Features */}
+                            <div className="flex flex-wrap gap-1 mb-4">
+                              {property.features?.slice(0, 3).map((feature: string, idx: number) => (
+                                <span key={idx} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  {feature}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Amenities Count */}
+                            <div className="text-xs text-gray-500 mb-4">
+                              {property.amenities?.length || 0} amenities
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex space-x-2">
+                              <a
+                                href={`/property/${property.slug}`}
+                                target="_blank"
+                                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-center text-sm"
+                              >
+                                View Property →
+                              </a>
+                              <button
+                                onClick={() => {
+                                  setMessage({ type: 'success', text: `Viewing ${property.name} (Edit feature coming soon)` });
+                                  setTimeout(() => setMessage(null), 3000);
+                                }}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Property Button */}
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => {
+                        setMessage({ type: 'success', text: 'Add Property form coming soon!' });
+                        setTimeout(() => setMessage(null), 3000);
+                      }}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                      + Add New Property
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Bookings Tab */}
               {activeTab === 'bookings' && (
                 <div>
