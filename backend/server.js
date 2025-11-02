@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -13,11 +14,22 @@ const cmsRoutes = require('./routes/cms');
 // Import cron service
 const cronService = require('./services/cronService');
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
+
+// Auth routes (RBAC)
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/account', require('./routes/account'));
+app.use('/api/admin/invites', require('./routes/invites'));
+
+// Business routes
 app.use('/api/booking', bookingRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/payment', paymentRoutes);
