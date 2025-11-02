@@ -7,7 +7,20 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 
-export default function AdminDashboard({ brands, properties, bookings, loyalty, stats }) {
+interface AdminDashboardProps {
+  brands: any[];
+  properties: any[];
+  bookings: any[];
+  loyalty: any[];
+  stats: {
+    brands: number;
+    properties: number;
+    bookings: number;
+    loyalty: number;
+  };
+}
+
+export default function AdminDashboard({ brands, properties, bookings, loyalty, stats }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
   

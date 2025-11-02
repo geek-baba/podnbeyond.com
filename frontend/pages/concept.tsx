@@ -137,7 +137,7 @@ export default function ConceptPage() {
                 description: 'Constantly evolving with new concepts and technologies'
               }
             ].map((value, index) => (
-              <Card key={index} variant="default" padding="lg" className="text-center animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+              <Card key={index} variant="default" padding="lg" className="text-center animate-slide-up">
                 <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {value.icon}

@@ -6,7 +6,12 @@ import PropertyCard from '../../components/brand/PropertyCard';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
-export default function BrandDetailPage({ brand, error }) {
+interface BrandDetailPageProps {
+  brand?: any;
+  error?: string;
+}
+
+export default function BrandDetailPage({ brand, error }: BrandDetailPageProps) {
   if (error || !brand) {
     return (
       <div>
@@ -105,7 +110,7 @@ export default function BrandDetailPage({ brand, error }) {
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900 mb-6">Features</h3>
                 <ul className="space-y-3">
-                  {brand.features.map((feature, idx) => (
+                  {brand.features.map((feature: string, idx: number) => (
                     <li key={idx} className="flex items-start">
                       <span className="mr-3 text-green-600 text-xl">✓</span>
                       <span className="text-neutral-700">{feature}</span>
@@ -120,7 +125,7 @@ export default function BrandDetailPage({ brand, error }) {
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900 mb-6">Amenities</h3>
                 <ul className="space-y-3">
-                  {brand.amenities.map((amenity, idx) => (
+                  {brand.amenities.map((amenity: string, idx: number) => (
                     <li key={idx} className="flex items-start">
                       <span className="mr-3 text-neutral-500 text-xl">✓</span>
                       <span className="text-neutral-700">{amenity}</span>
@@ -147,7 +152,7 @@ export default function BrandDetailPage({ brand, error }) {
           <Container>
             <h2 className="text-3xl font-bold text-neutral-900 mb-8 text-center">Our Locations</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {brand.properties.map((property) => (
+              {brand.properties.map((property: any) => (
                 <PropertyCard key={property.id} property={property} />
               ))}
             </div>
@@ -183,7 +188,7 @@ export default function BrandDetailPage({ brand, error }) {
 }
 
 // Server-side data fetching
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context: any) {
   const { slug } = context.params;
 
   try {
@@ -205,11 +210,11 @@ export async function getServerSideProps(context) {
         error: 'Brand not found'
       }
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       props: {
         brand: null,
-        error: error.message
+        error: error?.message || 'Failed to load brand'
       }
     };
   }

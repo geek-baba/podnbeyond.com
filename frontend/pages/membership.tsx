@@ -115,7 +115,7 @@ export default function MembershipPage() {
                 description: 'Redeem points for free stays, get discounts, and access exclusive member perks.'
               }
             ].map((item, index) => (
-              <Card key={index} variant="default" padding="lg" className="text-center animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+              <Card key={index} variant="default" padding="lg" className="text-center animate-slide-up">
                 <div className="w-20 h-20 bg-gradient-to-br from-neutral-900 to-neutral-700 rounded-full flex items-center justify-center mx-auto mb-6">
                   <span className="text-3xl font-bold text-white">{item.step}</span>
                 </div>
@@ -140,7 +140,7 @@ export default function MembershipPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {Object.entries(tiers).map(([key, tier]) => (
+            {Object.entries(tiers).map(([key, tier]: [string, any]) => (
               <Card
                 key={key}
                 variant={tier.popular ? 'elevated' : 'default'}
@@ -171,7 +171,7 @@ export default function MembershipPage() {
                 </div>
 
                 <ul className="space-y-3 mb-8">
-                  {tier.benefits.map((benefit, index) => (
+                  {tier.benefits.map((benefit: string, index: number) => (
                     <li key={index} className="flex items-start">
                       <svg className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" style={{ color: tier.color }} fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

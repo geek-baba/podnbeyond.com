@@ -5,7 +5,12 @@ import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 
-export default function LocationDetailPage({ property, error }) {
+interface LocationDetailPageProps {
+  property?: any;
+  error?: string;
+}
+
+export default function LocationDetailPage({ property, error }: LocationDetailPageProps) {
   if (error || !property) {
     return (
       <div>
@@ -117,7 +122,7 @@ export default function LocationDetailPage({ property, error }) {
                 <div>
                   <h3 className="text-xl font-bold mb-4">Features</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {property.features.map((feature, idx) => (
+                    {property.features.map((feature: string, idx: number) => (
                       <div key={idx} className="flex items-start">
                         <span className="mr-2 text-green-600">✓</span>
                         <span>{feature}</span>
@@ -132,7 +137,7 @@ export default function LocationDetailPage({ property, error }) {
                 <div>
                   <h3 className="text-xl font-bold mb-4">Amenities</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {property.amenities.map((amenity, idx) => (
+                    {property.amenities.map((amenity: string, idx: number) => (
                       <div key={idx} className="flex items-center">
                         <span className="mr-2">✓</span>
                         <span>{amenity}</span>
@@ -194,7 +199,7 @@ export default function LocationDetailPage({ property, error }) {
             <h2 className="text-3xl font-bold text-neutral-900 mb-8">Available Pods</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {property.rooms.map((room) => (
+              {property.rooms.map((room: any) => (
                 <Card key={room.id} variant="default" padding="lg">
                   <h3 className="text-xl font-bold mb-2">{room.name}</h3>
                   <p className="text-sm text-neutral-600 mb-4">{room.type}</p>
@@ -233,7 +238,7 @@ export default function LocationDetailPage({ property, error }) {
 }
 
 // Server-side data fetching
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context: any) {
   const { slug } = context.params;
 
   try {
@@ -255,11 +260,11 @@ export async function getServerSideProps(context) {
         error: 'Property not found'
       }
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       props: {
         property: null,
-        error: error.message
+        error: error?.message || 'Failed to load property'
       }
     };
   }

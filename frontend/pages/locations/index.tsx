@@ -6,7 +6,12 @@ import Container from '../../components/layout/Container';
 import PropertyCard from '../../components/brand/PropertyCard';
 import Button from '../../components/ui/Button';
 
-export default function LocationsPage({ properties, error }) {
+interface LocationsPageProps {
+  properties?: any[];
+  error?: string;
+}
+
+export default function LocationsPage({ properties, error }: LocationsPageProps) {
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
 
@@ -166,11 +171,11 @@ export async function getServerSideProps() {
         error: 'Failed to load properties'
       }
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       props: {
         properties: [],
-        error: error.message
+        error: error?.message || 'Failed to load properties'
       }
     };
   }
