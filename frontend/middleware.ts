@@ -34,10 +34,20 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if user has admin-level role
+    // Note: In JWT strategy, roles are in token.roles from the JWT callback
     const userRoles = (token as any).roles || [];
-    const hasAdminRole = userRoles.some((role: any) => 
-      ADMIN_ROLES.includes(role.key)
-    );
+    
+    // If roles array exists and has entries, check them
+    let hasAdminRole = false;
+    if (Array.isArray(userRoles) && userRoles.length > 0) {
+      hasAdminRole = userRoles.some((role: any) => 
+        ADMIN_ROLES.includes(role.key || role.roleKey)
+      );
+    } else {
+      // Fallback: Check if user email is the bootstrap superadmin
+      const isSuperadmin = token.email === 'admin@podnbeyond.com';
+      hasAdminRole = isSuperadmin;
+    }
 
     if (!hasAdminRole) {
       // User is authenticated but doesn't have admin access

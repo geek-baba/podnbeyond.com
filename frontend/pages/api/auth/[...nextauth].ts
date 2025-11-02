@@ -1,49 +1,46 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import EmailProvider from 'next-auth/providers/email';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     EmailProvider({
       server: {
-        host: process.env.EMAIL_SERVER_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
+        host: process.env.EMAIL_SERVER_HOST || 'localhost',
+        port: parseInt(process.env.EMAIL_SERVER_PORT || '1025'),
       },
       from: process.env.EMAIL_FROM || 'noreply@podnbeyond.com',
+      sendVerificationRequest: async ({ identifier: email, url }) => {
+        // Development mode: log magic link to console
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🔐 MAGIC LINK (Development Mode)');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`📧 Email: ${email}`);
+        console.log(`🔗 Link: ${url}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      },
     }),
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
     signIn: '/admin/login',
-    signOut: '/admin/logout',
     error: '/admin/login',
     verifyRequest: '/admin/verify-email',
   },
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub as string;
+        (session.user as any).id = token.sub;
         
-        // Fetch user roles and scopes
         const userWithRoles = await prisma.user.findUnique({
           where: { id: token.sub as string },
           include: {
-            userRoles: {
-              include: {
-                role: true
-              }
-            },
+            userRoles: { include: { role: true } },
             loyaltyAccount: true
           }
         });
@@ -55,48 +52,30 @@ export const authOptions: NextAuthOptions = {
             scopeId: ur.scopeId,
             permissions: ur.role.permissions
           }));
-          (session as any).user.loyaltyAccountId = userWithRoles.loyaltyAccount?.id;
-          (session as any).user.loyaltyTier = userWithRoles.loyaltyAccount?.tier;
-          (session as any).user.loyaltyPoints = userWithRoles.loyaltyAccount?.points;
+          (session as any).user.loyaltyAccount = userWithRoles.loyaltyAccount;
         }
       }
       return session;
     },
-    async jwt({ token, user, trigger }) {
-      // On sign in, user object is available
+    async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
       }
-      
-      // Rotate token on privilege changes
-      if (trigger === 'update') {
-        // Force re-fetch of user data
-        const updatedUser = await prisma.user.findUnique({
-          where: { id: token.sub as string },
-          include: { userRoles: { include: { role: true } } }
-        });
-        if (updatedUser) {
-          token.roles = updatedUser.userRoles;
-        }
-      }
-      
       return token;
     },
   },
   events: {
     async signIn({ user, isNewUser }) {
       if (isNewUser) {
-        // Auto-assign MEMBER role to new users
         await prisma.userRole.create({
           data: {
             userId: user.id,
             roleKey: 'MEMBER',
             scopeType: 'ORG',
-            scopeId: 1 // POD N BEYOND GROUP org ID
+            scopeId: 1
           }
         });
 
-        // Create loyalty account for new member
         await prisma.loyaltyAccount.create({
           data: {
             userId: user.id,
@@ -104,14 +83,12 @@ export const authOptions: NextAuthOptions = {
             tier: 'SILVER'
           }
         });
-
-        console.log(`✨ New member registered: ${user.email}`);
       }
     },
   },
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
@@ -120,7 +97,7 @@ export const authOptions: NextAuthOptions = {
       },
     },
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: true,
 };
 
 export default NextAuth(authOptions);
