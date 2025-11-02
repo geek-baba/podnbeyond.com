@@ -26,6 +26,7 @@ app.use('/api/cron', cronRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/gallery', require('./routes/gallery'));
 app.use('/api/properties', require('./routes/properties'));
+app.use('/api/brands', require('./routes/brands'));
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {
@@ -40,6 +41,8 @@ app.get('/api/health', (req, res) => {
 app.listen(port, () => {
   console.log(`Backend running at http://localhost:${port}`);
   
-  // Start the cron service for external bookings
-  cronService.start();
+  // Start the cron service for external bookings (disabled for local development)
+  // Uncomment the line below to enable external booking sync on production
+  // cronService.start();
+  console.log('ℹ️  Cron service disabled for local development');
 });

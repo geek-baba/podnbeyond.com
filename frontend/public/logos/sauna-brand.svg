@@ -1,0 +1,13 @@
+<svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- POD N BEYOND | Sauna+Sleep - Wellness -->
+  <text x="10" y="28" font-family="Inter, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#1a1a1a">
+    POD N BEYOND
+  </text>
+  <text x="10" y="48" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="400" fill="#10b981">
+    sauna+sleep
+  </text>
+  <!-- Sauna icon - minimal steam waves -->
+  <path d="M150 35 Q152 30 154 35 Q156 30 158 35" stroke="#10b981" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M150 28 Q152 23 154 28 Q156 23 158 28" stroke="#10b981" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
+

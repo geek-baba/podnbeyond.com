@@ -43,6 +43,12 @@ enum PropertyStatus {
   COMING_SOON
 }
 
+enum BrandStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
 enum ContentType {
   HERO_SECTION
   ABOUT_SECTION
@@ -61,6 +67,32 @@ enum ImageType {
   GALLERY_IMAGE
   LOGO
   FAVICON
+}
+
+// Brand model for multi-brand architecture (inspired by 9h nine hours)
+model Brand {
+  id            Int          @id @default(autoincrement())
+  name          String       @unique // e.g., "POD N BEYOND | Capsule", "POD N BEYOND | Smart"
+  slug          String       @unique
+  description   String?
+  tagline       String?      // e.g., "Budget-friendly capsule experience"
+  concept       String?      // Detailed brand philosophy
+  logoUrl       String?
+  primaryColor  String?      @default("#1e3a8a") // Brand color in hex
+  accentColor   String?      @default("#f59e0b")
+  targetAudience String?     // e.g., "Budget travelers", "Business professionals", "Women only"
+  features      String[]     @default([])
+  amenities     String[]     @default([])
+  images        String[]     @default([])
+  status        BrandStatus  @default(ACTIVE)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relationships
+  properties    Property[]
+
+  @@map("brands")
 }
 
 // Property/Hotel model for multi-property support
@@ -84,6 +116,11 @@ model Property {
   latitude      Float?
   longitude     Float?
   status        PropertyStatus @default(ACTIVE)
+  
+  // Brand relationship
+  brandId       Int?
+  brand         Brand?         @relation(fields: [brandId], references: [id])
+  
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
