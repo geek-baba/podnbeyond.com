@@ -1,246 +1,364 @@
-# POD N BEYOND - Modern Capsule Hotel Website & Booking Platform
+# POD N BEYOND GROUP - Multi-Brand Capsule Hotel Network
 
-> Experience the future of affordable luxury accommodation in Jamshedpur
+> India's First Multi-Brand Pod Hotel Group - Experience the Future of Hospitality
+
+[![Website](https://img.shields.io/badge/Website-capsulepodhotel.com-blue)](https://capsulepodhotel.com)
+[![Status](https://img.shields.io/badge/Status-Live-success)](https://capsulepodhotel.com)
+[![License](https://img.shields.io/badge/License-Proprietary-red)]()
 
 **Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)  
-**Locations**: 3 Properties in Jamshedpur (Kasidih, Bistupur, Sakchi)  
+**Locations**: 3 Properties Across Jamshedpur  
 **Contact**: info@podnbeyond.com | +91-90310 00931
 
 ---
 
-## 🏨 About POD N BEYOND
+## 🏢 About POD N BEYOND GROUP
 
-**India's First Pod Hotel Chain** - POD N BEYOND is revolutionizing affordable luxury accommodation in Jamshedpur with **3 premium properties** across the city. Our state-of-the-art facilities combine Japanese capsule hotel efficiency with contemporary Indian hospitality, offering travelers a unique, modern stay experience.
+**POD N BEYOND GROUP** is India's pioneering multi-brand pod hotel network, bringing Japanese-inspired minimalist hospitality to Jamshedpur. Our innovative brand architecture features **4 distinct sub-brands**, each designed for different traveler needs, all managed under one unified platform.
 
-### 🏢 Our Properties
+### 🎯 Our Brand Philosophy
 
-1. **Capsule Pod Hotel, Kasidih** - Budget-friendly pods near the bus stand (3 pod types)
-2. **Pod n Beyond Smart Hotel @Bistupur** - Premium location with business amenities (4 pod types)  
-3. **Pod n Beyond Smart Hotel @Sakchi** - Flagship property with 8 different pod options
-
-### Why Choose POD N BEYOND?
-
-- 🌐 **Multi-Property Network** - Search and book across all 3 locations from one platform
-- ✨ **Modern Capsule Design** - Private, secure, and climate-controlled sleeping pods
-- 💰 **Affordable Luxury** - Pods from ₹999 to ₹3,699/night
-- 📍 **Strategic Locations** - Properties in Kasidih, Bistupur, and Sakchi
-- 🔒 **Unified Booking** - One search, all properties, real-time availability
-- 💳 **Secure Payments** - Razorpay integration with test mode for development
-- 🎁 **Loyalty Rewards** - Earn points across all properties
-- 🤖 **AI Assistant** - Intelligent chatbot for instant customer support
+Inspired by the revolutionary design principles of **9h (ninehours)** in Japan, we've created a hospitality ecosystem that values:
+- **Simplicity** - Clean, minimalist design that enhances comfort
+- **Efficiency** - Streamlined experiences from booking to checkout
+- **Innovation** - Technology-driven solutions for modern travelers
+- **Accessibility** - Affordable luxury for everyone
 
 ---
 
-## 🌟 Key Features
+## 🏨 Our Sub-Brands
 
-### 🌐 Multi-Property Management (NEW!)
+### 1. **POD N BEYOND | Capsule** 🔵
+*Budget-Conscious Travelers*
+- Ultra-compact, efficient capsule pods
+- Essential amenities at competitive prices
+- Perfect for solo travelers and backpackers
+- **Status**: Active | **Location**: Kasidih
 
-- **Unified Platform** - Manage 3 properties from a single dashboard
-- **Cross-Property Search** - Guests can search across all locations simultaneously
-- **Property-Specific Pages** - Each location has detailed information and room listings
-- **Centralized Inventory** - Real-time availability tracking for all 15+ room types
-- **Location-Based Filtering** - Guests can filter by specific property or view all
-- **Property Analytics** - Track performance across all locations
+### 2. **POD N BEYOND | Smart** 🟠
+*Business & Tech-Savvy Professionals*
+- Premium amenities with smart technology
+- Work-friendly spaces and high-speed connectivity
+- Modern design with business facilities
+- **Status**: Active | **Locations**: Bistupur, Sakchi
 
-### For Guests
+### 3. **POD N BEYOND | Sanctuary** 🩷
+*Women-Only Safe Haven*
+- Exclusively for women travelers
+- Enhanced security and privacy features
+- Wellness-focused amenities
+- **Status**: Coming Soon
 
-- **Multi-Property Search** - Find available pods across all 3 Jamshedpur locations
-- **Real-Time Availability** - See live pod availability for your selected dates
-- **Secure Payments** - Razorpay integration with test mode for development
-- **Intelligent Chatbot** - 24/7 AI assistant for instant answers
-- **Loyalty Program** - Earn points across all properties, redeem anywhere
-- **Pod Variety** - 8 different pod types: Capsule, Single, Double, Bunk, Tri, Quadra, Queen, King
-- **Transparent Pricing** - From ₹999 (Capsule) to ₹3,699 (King) per night
-- **Mobile Optimized** - Book from any device, anywhere
+### 4. **POD N BEYOND | Sauna+Sleep** 🟢
+*Wellness & Relaxation Seekers*
+- Integrated sauna and spa facilities
+- Wellness programs and relaxation spaces
+- Premium sleep experience
+- **Status**: Coming Soon
 
-### For Hotel Management
+---
 
-- **Multi-Property Dashboard** - Control all 3 locations from one admin panel
-- **Property Management** - Add, edit, and manage multiple hotel locations
-- **Room Management** - Assign rooms to properties, set pricing, manage availability
-- **Booking Management** - View and manage bookings across all properties
-- **Payment Gateway** - Configure Razorpay for live/test modes
-- **OTA Integration** - Connect to Booking.com, Airbnb, MakeMyTrip, and more
-- **Loyalty System** - Track guest rewards across all properties
-- **CMS Integration** - Update website content without coding
+## ✨ Complete Website Redesign (2025)
+
+### 🎨 9h-Inspired Design System
+
+We've completely reimagined our platform with a **Japanese minimalist aesthetic** inspired by 9h:
+
+- **Minimalist UI** - Clean typography, generous white space
+- **Neutral Color Palette** - Sophisticated grays with brand accent colors
+- **Modern Components** - Consistent UI library across all pages
+- **Mobile-First** - Responsive design optimized for all devices
+- **Smooth Animations** - Subtle transitions and micro-interactions
+
+### 📱 New Pages
+
+1. **Homepage** - Hero section, brand grid, search widget, philosophy
+2. **Our Brands** - Showcase all 4 sub-brands with unique identities
+3. **Locations** - Interactive property listings with filtering
+4. **Concept Page** - Brand philosophy and multi-brand strategy
+5. **Membership** - 3-tier loyalty program (Silver, Gold, Platinum)
+6. **Search Results** - Advanced filtering and sorting
+7. **Booking Flow** - 3-step seamless reservation process
+8. **Admin Dashboard** - Comprehensive 8-tab management console
 
 ---
 
 ## 🛠️ Technology Stack
 
-This platform is built with modern, scalable technologies:
-
-### Frontend
-- **Next.js** - React framework for production-ready applications
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Modern, responsive design
-- **Razorpay SDK** - Secure payment processing
+### Frontend (Complete Rewrite 2025)
+- **Next.js 14** - React framework with SSR
+- **TypeScript** - Full type safety
+- **Tailwind CSS** - Custom design system
+- **Framer Motion** - Smooth animations
+- **Component Library** - Reusable UI, layout, brand, and section components
 
 ### Backend
-- **Node.js & Express** - High-performance server
-- **PostgreSQL** - Reliable, scalable database
-- **Prisma ORM** - Modern database toolkit
-- **PM2** - Production process management
+- **Node.js & Express** - RESTful API server
+- **PostgreSQL** - Relational database
+- **Prisma ORM** - Type-safe database client
+- **Multi-Brand Architecture** - Brands, Properties, Rooms hierarchy
 
 ### Infrastructure
-- **CloudPanel** - Streamlined server management
-- **GitHub Actions** - Automated deployments
+- **CloudPanel** - Server management
+- **GitHub Actions** - CI/CD pipeline
+- **PM2** - Process management
 - **SSL/HTTPS** - Secure communications
 
 ---
 
-## 📸 Gallery
+## 🎯 Key Features
 
-Visit our [website](https://capsulepodhotel.com) to explore:
-- Modern capsule interiors
-- Common area facilities
-- Location and accessibility
-- Amenities and services
+### For Guests 👥
 
----
+- ✅ **Multi-Brand Search** - Search across all brands and locations
+- ✅ **Real-Time Availability** - Live booking calendar
+- ✅ **Secure Payments** - Razorpay integration (UPI, cards, wallets)
+- ✅ **Loyalty Program** - Earn points, redeem rewards
+- ✅ **Responsive Design** - Seamless experience on any device
+- ✅ **Brand Filtering** - Find properties by brand identity
 
-## 💼 Business Model
+### For Management 🔧
 
-### Revenue Streams
-1. **Direct Bookings** - Commission-free reservations through our website
-2. **Loyalty Program** - Increased customer retention and repeat bookings
-3. **Premium Services** - Upgrades, extended stays, and add-ons
-4. **OTA Partnerships** - Strategic distribution (coming soon)
+#### **Enhanced Admin Dashboard (8 Tabs)**
 
-### Competitive Advantages
-- **No Commission Fees** - Unlike OTA bookings, direct bookings are 100% profit
-- **Loyalty Integration** - Built-in rewards system encourages repeat business
-- **Smart Pricing** - Dynamic pricing based on demand and seasonality
-- **Data Ownership** - Direct customer relationships and insights
-
----
-
-## 🎯 Target Market
-
-- **Budget Travelers** - Backpackers, solo travelers seeking affordable accommodation
-- **Business Professionals** - Short-term stays for meetings and conferences
-- **Transit Passengers** - Airport proximity for layovers and early/late flights
-- **Urban Explorers** - Young professionals exploring Jamshedpur
-- **International Tourists** - Unique capsule hotel experience
+1. **Overview** - Dashboard stats, recent bookings, analytics
+2. **Brands** - Manage all 4 sub-brands and their identities
+3. **Properties** - Manage locations, rooms, and amenities
+4. **Bookings** - View and manage all reservations
+5. **Loyalty** - Track member rewards and tiers
+6. **CMS** - Upload images, manage content sections
+7. **Payment Gateway** - Configure Razorpay settings
+8. **OTA Integration** - Connect Booking.com, MakeMyTrip, Airbnb, Goibibo
 
 ---
 
-## 📊 System Features
+## 📁 Project Structure
 
-### Booking System
-- Real-time availability checking
-- Multiple pod type selection
-- Date range selection with pricing
-- Guest information management
-- Booking confirmation and receipts
-- Email notifications
-
-### Payment Processing
-- Razorpay integration for secure payments
-- Multiple payment methods (cards, UPI, wallets, net banking)
-- Automated payment reconciliation
-- Refund management
-- Transaction history
-
-### Loyalty Program
-- Automatic point accrual (10% of booking value)
-- Point redemption on future bookings
-- Loyalty account dashboard
-- Balance tracking
-- Expiration management
-
-### Content Management
-- Dynamic website content updates
-- Gallery image management
-- Service and amenity listings
-- Announcement system
-- SEO optimization
-
-### Analytics & Reporting
-- Booking trends and patterns
-- Revenue analysis
-- Occupancy rates
-- Customer demographics
-- Loyalty program performance
+```
+podnbeyond.com/
+├── frontend/
+│   ├── components/
+│   │   ├── ui/           # Buttons, Cards, Badges, Inputs
+│   │   ├── layout/       # Header, Footer, Container
+│   │   ├── brand/        # BrandCard, PropertyCard
+│   │   └── sections/     # Hero, SearchWidget, BrandGrid
+│   ├── pages/
+│   │   ├── index.tsx     # New 9h-inspired homepage
+│   │   ├── brands/       # Brand detail pages
+│   │   ├── locations/    # Location detail & listing
+│   │   ├── admin.tsx     # 8-tab dashboard
+│   │   ├── concept.tsx   # Philosophy page
+│   │   ├── membership.tsx # Loyalty program
+│   │   ├── search.tsx    # Search results
+│   │   └── book.tsx      # Booking flow
+│   ├── public/logos/     # Brand logos (SVG)
+│   └── tailwind.config.js # Custom design system
+├── backend/
+│   ├── routes/
+│   │   ├── brands.js     # Brand API endpoints
+│   │   ├── properties.js # Property endpoints
+│   │   ├── booking.js    # Booking management
+│   │   ├── loyalty.js    # Loyalty system
+│   │   ├── payment.js    # Razorpay integration
+│   │   ├── cms.js        # Content management
+│   │   └── channels.js   # OTA integration
+│   ├── prisma/
+│   │   └── schema.prisma # Database schema with Brand model
+│   ├── seed_brands.js    # Brand data seeding
+│   └── server.js         # Express server
+└── docs/
+    ├── DESIGN_SYSTEM.md     # 9h-inspired design reference
+    ├── LOCAL_DEV_GUIDE.md   # Local development setup
+    ├── DEPLOYMENT_GUIDE.md  # Production deployment
+    ├── REQUIREMENTS.md      # Original requirements
+    └── CHANGELOG.md         # Version history
+```
 
 ---
 
-## 🚀 Deployment
+## 🚀 Getting Started
 
-This platform is production-ready and deployed on CloudPanel. For technical deployment information, developers can refer to:
-- **[Complete Deployment Guide](COMPLETE_DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
-- **[Deployment Improvements](DEPLOYMENT_IMPROVEMENTS.md)** - Recent enhancements and optimizations
+### Prerequisites
+
+- Node.js 18+ and npm
+- PostgreSQL 14+
+- Git
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/geek-baba/podnbeyond.com.git
+cd podnbeyond.com
+
+# Setup backend
+cd backend
+npm install
+cp .env.example .env  # Configure your environment
+npx prisma migrate deploy
+node seed_properties.js
+node seed_brands.js
+npm start
+
+# Setup frontend (in new terminal)
+cd ../frontend
+npm install
+cp .env.local.example .env.local
+npm run dev
+
+# Visit http://localhost:3000
+```
+
+For detailed instructions, see [docs/LOCAL_DEV_GUIDE.md](docs/LOCAL_DEV_GUIDE.md)
+
+---
+
+## 📚 Documentation
+
+- **[Design System](docs/DESIGN_SYSTEM.md)** - 9h-inspired design principles and components
+- **[Local Development](docs/LOCAL_DEV_GUIDE.md)** - Setup and development guide
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[Requirements](docs/REQUIREMENTS.md)** - Original project requirements
+- **[Changelog](docs/CHANGELOG.md)** - Version history and updates
+
+---
+
+## 🎨 Design Philosophy
+
+Our redesign draws inspiration from **9h (ninehours.co.jp)**, the iconic Japanese capsule hotel chain:
+
+### Core Principles
+
+1. **Minimalism** - Every element serves a purpose
+2. **Clarity** - Clear hierarchy and intuitive navigation
+3. **Consistency** - Unified design language across all touchpoints
+4. **Scalability** - Architecture supports multiple brands and locations
+5. **Accessibility** - Inclusive design for all users
+
+### Brand Architecture
+
+```
+POD N BEYOND GROUP (Parent)
+├── Capsule (Budget - Blue)
+├── Smart (Business - Orange)
+├── Sanctuary (Women - Pink)
+└── Sauna+Sleep (Wellness - Green)
+```
+
+---
+
+## 💳 Integrations
+
+### Payment Gateway
+- **Razorpay** - Full payment integration
+  - Credit/Debit cards
+  - UPI
+  - Net banking
+  - Wallets
+  - Test mode for development
+
+### OTA Channels (Coming Soon)
+- **Booking.com** - Global distribution
+- **MakeMyTrip** - Domestic travelers
+- **Airbnb** - Alternative accommodation seekers
+- **Goibibo** - Indian travel market
+
+---
+
+## 📊 Multi-Brand System Benefits
+
+### For Guests
+- **Choice** - Select brand that matches travel style
+- **Consistency** - Quality standards across all brands
+- **Flexibility** - Switch brands based on needs
+- **Loyalty** - Earn/redeem points across all brands
+
+### For Business
+- **Market Segmentation** - Target different customer personas
+- **Premium Positioning** - Differentiated pricing strategies
+- **Scalability** - Easy to add new brands/locations
+- **Brand Equity** - Strong group identity + unique sub-brands
+
+---
+
+## 🎯 Target Markets
+
+### By Brand
+
+| Brand | Target Audience | Price Range | Key Features |
+|-------|----------------|-------------|--------------|
+| **Capsule** | Budget travelers, backpackers | ₹999-₹1,499 | Essential amenities, compact |
+| **Smart** | Business professionals, tech-savvy | ₹1,499-₹2,999 | Premium tech, work facilities |
+| **Sanctuary** | Women travelers | ₹1,999-₹3,499 | Safety, privacy, wellness |
+| **Sauna+Sleep** | Wellness seekers | ₹2,499-₹3,699 | Spa, sauna, premium comfort |
 
 ---
 
 ## 📞 Contact & Support
 
 ### For Guests
-- **Website**: [https://capsulepodhotel.com](https://capsulepodhotel.com)
+- **Website**: [capsulepodhotel.com](https://capsulepodhotel.com)
 - **Email**: info@podnbeyond.com
-- **Phone**: +91 82350 71333
-- **Address**: Jamshedpur, India
+- **Phone**: +91-90310 00931
+- **Location**: Jamshedpur, Jharkhand, India
 
 ### For Developers
 - **Repository**: [github.com/geek-baba/podnbeyond.com](https://github.com/geek-baba/podnbeyond.com)
-- **Documentation**: See `/docs` folder
+- **Documentation**: `/docs` folder
 - **Issues**: GitHub Issues
 
 ---
 
-## 🏆 Awards & Recognition
+## 🔒 Security
 
-- Modern capsule hotel concept in Jamshedpur
-- Innovative booking and loyalty system
-- Technology-driven hospitality
-
----
-
-## 🔒 Security & Privacy
-
-- **PCI DSS Compliant** - Razorpay handles all payment processing
-- **Data Encryption** - SSL/HTTPS for all communications
-- **Secure Hosting** - CloudPanel with regular security updates
-- **Privacy Policy** - GDPR-compliant data handling
-- **Regular Backups** - Automated daily backups
+- PCI DSS compliant payment processing (via Razorpay)
+- SSL/HTTPS encryption on all pages
+- Secure session management
+- Regular security audits
+- GDPR-compliant data handling
 
 ---
 
 ## 📈 Roadmap
 
-### Current Features ✅
-- Online booking system
-- Razorpay payment integration
-- Loyalty rewards program
-- Admin dashboard
-- CMS for content management
+### ✅ Completed (2025)
+- Complete frontend redesign (9h-inspired)
+- Multi-brand architecture implementation
+- Enhanced admin dashboard (8 tabs)
+- Membership tier system
+- Modern booking flow
 
-### Coming Soon 🚧
-- **Channel Manager** - Integration with Booking.com, Airbnb, MakeMyTrip
-- **Mobile App** - iOS and Android native apps
-- **Automated Check-in** - Self-service kiosks
-- **Smart Pod Controls** - IoT-enabled climate and lighting
-- **Multi-language Support** - Hindi, Marathi, and other regional languages
+### 🚧 In Progress
+- OTA channel integration
+- Mobile app development
+- Women-only brand launch (Sanctuary)
+- Wellness brand launch (Sauna+Sleep)
+
+### 🔮 Future
+- Multi-city expansion
+- Smart pod IoT controls
+- AI-powered pricing
+- Biometric check-in
+- Multi-language support
 
 ---
 
 ## 📜 License
 
-Copyright © 2025 POD N BEYOND. All rights reserved.
+Copyright © 2025 POD N BEYOND GROUP. All rights reserved.
 
-This is a proprietary commercial application. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
+This is proprietary commercial software. Unauthorized copying, modification, distribution, or use is strictly prohibited.
 
 ---
 
 ## 🙏 Acknowledgments
 
-Built with passion for modern hospitality and powered by cutting-edge technology.
+**Inspired by**: 9h (ninehours.co.jp) - Revolutionary capsule hotel design  
+**Built with**: Next.js, PostgreSQL, Prisma, Tailwind CSS  
+**Deployed on**: CloudPanel with GitHub Actions CI/CD
 
-**Special Thanks**:
-- Our guests for their trust and feedback
-- Technology partners (Razorpay, Vercel, CloudPanel)
-- Open-source community for amazing tools
+Special thanks to our guests, technology partners, and the open-source community.
 
 ---
 
-**Visit us at [capsulepodhotel.com](https://capsulepodhotel.com) - Experience affordable luxury in Jamshedpur!** 🏨✨
+**Experience the Future of Hospitality** - [Visit POD N BEYOND →](https://capsulepodhotel.com) 🏨✨
