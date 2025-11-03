@@ -128,13 +128,20 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                 </p>
               </div>
               
-              {/* Sign Out Button */}
-              <button
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="px-6 py-2 bg-white/10 border-2 border-white text-white rounded-button font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-              >
-                Sign Out
-              </button>
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <a href="/admin/email">
+                  <button className="px-6 py-2 bg-white text-neutral-900 rounded-button font-semibold hover:bg-neutral-100 transition-all">
+                    📧 Email Center
+                  </button>
+                </a>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="px-6 py-2 bg-white/10 border-2 border-white text-white rounded-button font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </Container>

@@ -57,6 +57,12 @@ app.use('/api/account', apiLimiter, require('./routes/account'));
 // Admin routes - Higher limit
 app.use('/api/admin/invites', adminLimiter, require('./routes/invites'));
 
+// Email routes (Postmark integration)
+app.use('/api/email/send', apiLimiter, require('./routes/email').router || require('./routes/email'));
+app.use('/api/email/inbound', require('./routes/emailInbound')); // No rate limit for webhooks
+app.use('/api/email/events', require('./routes/emailEvents')); // No rate limit for webhooks
+app.use('/api/email', apiLimiter, require('./routes/email')); // Other email endpoints
+
 // Business routes - General API limiting
 app.use('/api/booking', apiLimiter, bookingRoutes);
 app.use('/api/loyalty', apiLimiter, loyaltyRoutes);

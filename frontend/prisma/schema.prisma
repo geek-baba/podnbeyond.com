@@ -126,6 +126,7 @@ model User {
   sentInvites    Invite[]        @relation("InvitedBy")
   auditLogs      AuditLog[]
   pointsLedger   PointsLedger[]
+  emailThreads   Thread[]        // Email conversations
 
   @@map("users")
 }
@@ -350,7 +351,8 @@ model Property {
   updatedAt DateTime @updatedAt
 
   // Relationships
-  rooms Room[]
+  rooms        Room[]
+  emailThreads Thread[] // Email conversations about this property
 
   @@map("properties")
 }
@@ -422,6 +424,9 @@ model Booking {
   // External booking fields
   externalBookingId String? // External booking ID from channel
   externalChannel   String? // Channel name (makemytrip, yatra, etc.)
+  
+  // Email threads related to this booking
+  emailThreads Thread[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -572,4 +577,165 @@ model Setting {
   updatedAt   DateTime @updatedAt
 
   @@map("settings")
+}
+
+// ============================================================================
+// EMAIL SYSTEM MODELS (Postmark Integration)
+// ============================================================================
+
+enum EmailStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
+}
+
+enum EmailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum EmailEventType {
+  DELIVERY
+  BOUNCE
+  SPAM_COMPLAINT
+  OPEN
+  CLICK
+  LINK_CLICK
+}
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  SPAM_COMPLAINT
+  MANUAL_SUPPRESSION
+  UNSUBSCRIBE
+}
+
+model Thread {
+  id              Int       @id @default(autoincrement())
+  subject         String
+  participants    String[]  @default([]) // Array of email addresses
+  lastMessageAt   DateTime  @default(now())
+  isArchived      Boolean   @default(false)
+  
+  // Relations
+  userId          String?   // User who owns this thread (if applicable)
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  bookingId       Int?      // Link to booking if email is booking-related
+  booking         Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  
+  propertyId      Int?      // Link to property if email is property-related
+  property        Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  
+  emails          Email[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([propertyId])
+  @@index([lastMessageAt])
+  @@map("email_threads")
+}
+
+model Email {
+  id              Int             @id @default(autoincrement())
+  threadId        Int
+  thread          Thread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  // Email metadata
+  messageId       String          @unique // Postmark MessageID or custom ID
+  direction       EmailDirection
+  status          EmailStatus     @default(QUEUED)
+  
+  // Sender/Recipients
+  fromEmail       String
+  fromName        String?
+  toEmails        String[]        @default([])
+  ccEmails        String[]        @default([])
+  bccEmails       String[]        @default([])
+  replyTo         String?
+  
+  // Content
+  subject         String
+  htmlBody        String?         @db.Text
+  textBody        String?         @db.Text
+  
+  // Postmark specific
+  postmarkId      String?         @unique // Postmark MessageID for sent emails
+  tag             String?         // Postmark tag for categorization
+  metadata        Json?           // Additional metadata
+  
+  // Relations
+  attachments     Attachment[]
+  events          EmailEvent[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([threadId])
+  @@index([fromEmail])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@map("emails")
+}
+
+model Attachment {
+  id              Int      @id @default(autoincrement())
+  emailId         Int
+  email           Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  
+  filename        String
+  contentType     String
+  size            Int      // bytes
+  
+  // Storage
+  storageUrl      String?  // S3/local path
+  postmarkUrl     String?  // Postmark URL for inbound attachments
+  
+  createdAt       DateTime @default(now())
+
+  @@index([emailId])
+  @@map("email_attachments")
+}
+
+model EmailEvent {
+  id              Int            @id @default(autoincrement())
+  emailId         Int
+  email           Email          @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  
+  eventType       EmailEventType
+  timestamp       DateTime       @default(now())
+  
+  // Event details
+  recipient       String?
+  details         Json?          // Bounce reason, spam details, etc.
+  userAgent       String?        // For opens/clicks
+  ip              String?
+  
+  createdAt       DateTime       @default(now())
+
+  @@index([emailId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("email_events")
+}
+
+model Suppression {
+  id              Int                @id @default(autoincrement())
+  email           String             @unique
+  reason          SuppressionReason
+  origin          String?            // Which email triggered the suppression
+  suppressedAt    DateTime           @default(now())
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([email])
+  @@map("email_suppressions")
 }
