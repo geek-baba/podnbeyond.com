@@ -39,6 +39,16 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
     { id: 4, name: 'Goibibo', enabled: false, connected: false, apiKey: '' },
   ]);
 
+  // User Management - Invite Form
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    roleKey: 'STAFF_FRONTDESK',
+    scopeType: 'PROPERTY',
+    scopeId: 1
+  });
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
   // Update time on client side only to avoid hydration mismatch
   useEffect(() => {
     setCurrentTime(new Date().toLocaleString());
@@ -58,6 +68,34 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
       stats
     });
   }, [brands, properties, bookings, loyalty, stats]);
+
+  // Handle Invite Submission
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteLoading(true);
+    setInviteMessage(null);
+
+    try {
+      const response = await fetch('http://localhost:4000/api/admin/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inviteForm)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setInviteMessage({ type: 'success', text: `Invite sent to ${inviteForm.email}! Token: ${data.invite.token}` });
+        setInviteForm({ email: '', roleKey: 'STAFF_FRONTDESK', scopeType: 'PROPERTY', scopeId: 1 });
+      } else {
+        setInviteMessage({ type: 'error', text: data.error || 'Failed to send invite' });
+      }
+    } catch (error) {
+      setInviteMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setInviteLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -90,7 +128,7 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
       <section className="bg-white border-b border-neutral-200 sticky top-0 z-20">
         <Container>
           <div className="flex space-x-8 overflow-x-auto py-4">
-            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'cms', 'payment', 'ota'].map((tab) => (
+            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms', 'payment', 'ota'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -469,16 +507,200 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                 ))}
               </div>
 
-              {loyalty.length === 0 && (
-                <div className="text-center py-12 text-neutral-500">
-                  No loyalty members yet.
-                </div>
-              )}
+          {loyalty.length === 0 && (
+            <div className="text-center py-12 text-neutral-500">
+              No loyalty members yet.
             </div>
           )}
+        </div>
+      )}
 
-          {/* CMS Tab */}
-          {activeTab === 'cms' && (
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-neutral-900">User Management</h2>
+            <p className="text-neutral-600 mt-1">Invite staff members and manage user roles</p>
+          </div>
+
+          {/* Invite Form */}
+          <Card variant="default" padding="lg">
+            <h3 className="text-xl font-bold text-neutral-900 mb-4">👥 Invite Staff Member</h3>
+            <p className="text-neutral-600 mb-6">Send an invitation to a new team member</p>
+
+            <form onSubmit={handleInvite} className="space-y-5">
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={inviteForm.email}
+                  onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})}
+                  placeholder="staff@podnbeyond.com"
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Role *
+                </label>
+                <select
+                  value={inviteForm.roleKey}
+                  onChange={(e) => setInviteForm({...inviteForm, roleKey: e.target.value})}
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                >
+                  <option value="STAFF_FRONTDESK">Front Desk Staff</option>
+                  <option value="STAFF_OPS">Operations Staff</option>
+                  <option value="MANAGER">Property Manager</option>
+                  <option value="ADMIN">Group Administrator</option>
+                  <option value="SUPERADMIN">Super Administrator</option>
+                </select>
+              </div>
+
+              {/* Scope Type */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Access Scope *
+                </label>
+                <select
+                  value={inviteForm.scopeType}
+                  onChange={(e) => setInviteForm({...inviteForm, scopeType: e.target.value})}
+                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                >
+                  <option value="PROPERTY">Single Property</option>
+                  <option value="BRAND">Brand-Wide</option>
+                  <option value="ORG">Organization-Wide</option>
+                </select>
+              </div>
+
+              {/* Scope ID (for property/brand) */}
+              {inviteForm.scopeType !== 'ORG' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    {inviteForm.scopeType === 'PROPERTY' ? 'Property ID' : 'Brand ID'} *
+                  </label>
+                  <select
+                    value={inviteForm.scopeId}
+                    onChange={(e) => setInviteForm({...inviteForm, scopeId: parseInt(e.target.value)})}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    {inviteForm.scopeType === 'PROPERTY' ? (
+                      properties.map(prop => (
+                        <option key={prop.id} value={prop.id}>{prop.name}</option>
+                      ))
+                    ) : (
+                      brands.map(brand => (
+                        <option key={brand.id} value={brand.id}>{brand.name}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {/* Success/Error Message */}
+              {inviteMessage && (
+                <div className={`p-4 rounded-lg ${
+                  inviteMessage.type === 'success' 
+                    ? 'bg-green-50 text-green-800 border border-green-200' 
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}>
+                  {inviteMessage.text}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button 
+                type="submit" 
+                variant="primary" 
+                size="lg" 
+                fullWidth
+                disabled={inviteLoading}
+              >
+                {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
+              </Button>
+            </form>
+          </Card>
+
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card variant="bordered" padding="lg">
+              <h4 className="font-bold text-sm text-neutral-700 mb-2">📧 Invite Process</h4>
+              <p className="text-sm text-neutral-600">
+                Users receive an email with a secure link valid for 7 days
+              </p>
+            </Card>
+            
+            <Card variant="bordered" padding="lg">
+              <h4 className="font-bold text-sm text-neutral-700 mb-2">🔒 Security</h4>
+              <p className="text-sm text-neutral-600">
+                Magic links for authentication - no passwords required
+              </p>
+            </Card>
+            
+            <Card variant="bordered" padding="lg">
+              <h4 className="font-bold text-sm text-neutral-700 mb-2">⚡ Instant Access</h4>
+              <p className="text-sm text-neutral-600">
+                Staff can log in immediately after accepting the invite
+              </p>
+            </Card>
+          </div>
+
+          {/* Role Descriptions */}
+          <Card variant="default" padding="lg">
+            <h3 className="text-xl font-bold text-neutral-900 mb-4">Role Permissions</h3>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="bg-neutral-100 px-3 py-1 rounded-lg font-mono text-sm font-semibold text-neutral-900 mt-0.5">
+                  STAFF_FRONTDESK
+                </div>
+                <p className="text-sm text-neutral-600 flex-1">
+                  Check-in/out guests, view bookings, basic room status (property-scoped)
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="bg-neutral-100 px-3 py-1 rounded-lg font-mono text-sm font-semibold text-neutral-900 mt-0.5">
+                  STAFF_OPS
+                </div>
+                <p className="text-sm text-neutral-600 flex-1">
+                  Manage inventory, update pricing, room availability (property-scoped)
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="bg-neutral-100 px-3 py-1 rounded-lg font-mono text-sm font-semibold text-neutral-900 mt-0.5">
+                  MANAGER
+                </div>
+                <p className="text-sm text-neutral-600 flex-1">
+                  Full property management, staff management, revenue reports, refunds
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="bg-neutral-100 px-3 py-1 rounded-lg font-mono text-sm font-semibold text-neutral-900 mt-0.5">
+                  ADMIN
+                </div>
+                <p className="text-sm text-neutral-600 flex-1">
+                  Group-wide access: all properties, OTA management, payment settings
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="bg-neutral-100 px-3 py-1 rounded-lg font-mono text-sm font-semibold text-neutral-900 mt-0.5">
+                  SUPERADMIN
+                </div>
+                <p className="text-sm text-neutral-600 flex-1">
+                  Platform owner: full system access, feature flags, user impersonation
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* CMS Tab */}
+      {activeTab === 'cms' && (
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">Content Management System</h2>
               
