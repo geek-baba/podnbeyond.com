@@ -44,8 +44,9 @@ export async function middleware(request: NextRequest) {
         ADMIN_ROLES.includes(role.key || role.roleKey)
       );
     } else {
-      // Fallback: Check if user email is the bootstrap superadmin
-      const isSuperadmin = token.email === 'admin@podnbeyond.com';
+      // Fallback: Check if user email is a known superadmin
+      const superadminEmails = ['admin@podnbeyond.com', 'shwet@thedesi.email'];
+      const isSuperadmin = superadminEmails.includes(token.email as string);
       hasAdminRole = isSuperadmin;
     }
 
