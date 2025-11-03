@@ -13,8 +13,8 @@ export default function MemberAccount() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
-  const [bookings, setBookings] = useState([]);
-  const [pointsLedger, setPointsLedger] = useState([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [pointsLedger, setPointsLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
