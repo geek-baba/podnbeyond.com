@@ -35,7 +35,7 @@ async function sendEmail({
       Metadata: metadata,
       Attachments: attachments,
       TrackOpens: true,
-      TrackLinks: 'HtmlAndText',
+      TrackLinks: 'None', // Disable click tracking for magic links
     });
 
     return {
