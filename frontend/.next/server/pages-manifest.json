@@ -4,7 +4,6 @@
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
   "/admin/login": "pages/admin/login.js",
-  "/account": "pages/account.js",
   "/admin": "pages/admin.js",
   "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js"
 }

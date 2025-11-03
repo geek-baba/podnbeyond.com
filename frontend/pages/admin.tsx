@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -21,6 +22,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ brands, properties, bookings, loyalty, stats }: AdminDashboardProps) {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
   
@@ -111,14 +113,28 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
       {/* Admin Header */}
       <section className="pt-24 pb-8 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
         <Container>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
               <p className="text-neutral-300">POD N BEYOND Group Management</p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-neutral-400">Last updated</p>
-              <p className="text-white font-semibold">{currentTime || 'Loading...'}</p>
+            <div className="flex items-center space-x-6">
+              {/* User Info */}
+              <div className="text-right">
+                <p className="text-sm text-neutral-400">Signed in as</p>
+                <p className="text-white font-semibold">{session?.user?.email || 'Loading...'}</p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
+                </p>
+              </div>
+              
+              {/* Sign Out Button */}
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="px-6 py-2 bg-white/10 border-2 border-white text-white rounded-button font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+              >
+                Sign Out
+              </button>
             </div>
           </div>
         </Container>
