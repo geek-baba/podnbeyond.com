@@ -1,8 +1,34 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
 const app = express();
 const port = process.env.PORT || 4000;
+
+// Rate limiting configurations
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs (strict for auth)
+  message: 'Too many authentication attempts, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many API requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Higher limit for admin operations
+  message: 'Too many admin requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const bookingRoutes = require('./routes/booking');
 const loyaltyRoutes = require('./routes/loyalty');
@@ -24,21 +50,23 @@ app.use(cookieParser());
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
-// Auth routes (RBAC)
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/account', require('./routes/account'));
-app.use('/api/admin/invites', require('./routes/invites'));
+// Auth routes (RBAC) - Strict rate limiting
+app.use('/api/auth', authLimiter, require('./routes/auth'));
+app.use('/api/account', apiLimiter, require('./routes/account'));
 
-// Business routes
-app.use('/api/booking', bookingRoutes);
-app.use('/api/loyalty', loyaltyRoutes);
-app.use('/api/payment', paymentRoutes);
-app.use('/api/channels', channelRoutes);
-app.use('/api/cron', cronRoutes);
-app.use('/api/cms', cmsRoutes);
-app.use('/api/gallery', require('./routes/gallery'));
-app.use('/api/properties', require('./routes/properties'));
-app.use('/api/brands', require('./routes/brands'));
+// Admin routes - Higher limit
+app.use('/api/admin/invites', adminLimiter, require('./routes/invites'));
+
+// Business routes - General API limiting
+app.use('/api/booking', apiLimiter, bookingRoutes);
+app.use('/api/loyalty', apiLimiter, loyaltyRoutes);
+app.use('/api/payment', apiLimiter, paymentRoutes);
+app.use('/api/channels', apiLimiter, channelRoutes);
+app.use('/api/cron', apiLimiter, cronRoutes);
+app.use('/api/cms', apiLimiter, cmsRoutes);
+app.use('/api/gallery', apiLimiter, require('./routes/gallery'));
+app.use('/api/properties', apiLimiter, require('./routes/properties'));
+app.use('/api/brands', apiLimiter, require('./routes/brands'));
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {
