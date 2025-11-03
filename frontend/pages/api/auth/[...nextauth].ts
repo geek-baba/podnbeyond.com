@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (userWithRoles) {
-          (session as any).user.roles = userWithRoles.userRoles.map(ur => ({
+          (session as any).user.roles = userWithRoles.userRoles.map((ur: any) => ({
             key: ur.roleKey,
             scopeType: ur.scopeType,
             scopeId: ur.scopeId,
