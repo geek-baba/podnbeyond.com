@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Container from './Container';
 
 interface HeaderProps {
@@ -8,6 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
 
   const bgStyle = transparent
     ? 'bg-transparent absolute top-0 left-0 right-0 z-50'
@@ -26,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-6">
             <Link href="/brands" className={`${textStyle} hover:opacity-70 transition-opacity font-medium`}>
               Our Brands
             </Link>
@@ -39,6 +41,34 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             <Link href="/membership" className={`${textStyle} hover:opacity-70 transition-opacity font-medium`}>
               Membership
             </Link>
+            
+            {/* Login/Account Button */}
+            {status === 'loading' ? (
+              <div className={`px-5 py-2 ${textStyle} opacity-50`}>...</div>
+            ) : session ? (
+              <Link
+                href="/account"
+                className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
+                  transparent
+                    ? 'border-white text-white hover:bg-white hover:text-neutral-900'
+                    : 'border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white'
+                }`}
+              >
+                My Account
+              </Link>
+            ) : (
+              <Link
+                href="/admin/login"
+                className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
+                  transparent
+                    ? 'border-white text-white hover:bg-white hover:text-neutral-900'
+                    : 'border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white'
+                }`}
+              >
+                Login
+              </Link>
+            )}
+            
             <Link
               href="/book"
               className={`px-6 py-2 rounded-button font-semibold transition-all ${
@@ -109,6 +139,34 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             >
               Membership
             </Link>
+            
+            {/* Login/Account Button (Mobile) */}
+            {status !== 'loading' && (
+              session ? (
+                <Link
+                  href="/account"
+                  className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                    transparent
+                      ? 'border-white text-white'
+                      : 'border-neutral-900 text-neutral-900'
+                  }`}
+                >
+                  My Account
+                </Link>
+              ) : (
+                <Link
+                  href="/admin/login"
+                  className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                    transparent
+                      ? 'border-white text-white'
+                      : 'border-neutral-900 text-neutral-900'
+                  }`}
+                >
+                  Login
+                </Link>
+              )
+            )}
+            
             <Link
               href="/book"
               className={`block px-6 py-2 rounded-button font-semibold text-center ${
