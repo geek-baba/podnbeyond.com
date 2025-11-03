@@ -4,6 +4,8 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '../../../lib/prisma';
 
 export const authOptions: NextAuthOptions = {
+  // Secret for JWT encryption (required in production)
+  secret: process.env.NEXTAUTH_SECRET || '5439AKLCh2OOUOxIAm8RaicN1EpR/qME1mCKbo3vhMM=',
   // Use adapter ONLY for creating users, but let JWT handle sessions
   adapter: PrismaAdapter(prisma),
   providers: [
