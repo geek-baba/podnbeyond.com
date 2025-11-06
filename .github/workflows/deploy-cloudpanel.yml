@@ -27,6 +27,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+        
+      - name: Generate Prisma Client (frontend)
+        working-directory: frontend
+        run: npx prisma generate
 
       - name: Build frontend
         working-directory: frontend
