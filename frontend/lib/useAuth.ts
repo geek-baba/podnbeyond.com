@@ -89,7 +89,8 @@ export function useAuth() {
       }
 
       // Fetch from backend
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      // Use relative URL for production (Next.js rewrites), full URL for local dev
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const response = await fetch(`${apiUrl}/api/auth/session`, {
         credentials: 'include',
         headers: {
@@ -138,7 +139,8 @@ export function useAuth() {
       const sessionToken = localStorage.getItem('pod-session-token');
       
       if (sessionToken) {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        // Use relative URL for production (Next.js rewrites), full URL for local dev
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
         await fetch(`${apiUrl}/api/auth/signout`, {
           method: 'POST',
           credentials: 'include',

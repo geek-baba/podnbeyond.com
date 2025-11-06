@@ -39,7 +39,8 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      // Use relative URL for production (Next.js rewrites), full URL for local dev
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const response = await fetch(`${apiUrl}/api/otp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +123,8 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      // Use relative URL for production (Next.js rewrites), full URL for local dev
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const response = await fetch(`${apiUrl}/api/otp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
