@@ -62,7 +62,7 @@ router.post('/send', async (req, res) => {
     });
 
     // Send email via Postmark
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: email,
       subject: 'Your POD N BEYOND Admin Login Code',
       htmlBody: `
@@ -93,7 +93,13 @@ router.post('/send', async (req, res) => {
       tag: 'otp-login',
     });
 
-    console.log(`✅ OTP sent to: ${email}`);
+    // Check if email was sent successfully
+    if (!emailResult.success) {
+      console.error('❌ Failed to send OTP email:', emailResult.error);
+      throw new Error(`Email delivery failed: ${emailResult.error}`);
+    }
+
+    console.log(`✅ OTP sent successfully to: ${email} (MessageID: ${emailResult.messageId})`);
 
     res.json({
       success: true,
