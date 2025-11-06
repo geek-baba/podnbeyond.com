@@ -69,7 +69,7 @@ DATABASE_URL=postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hot
 DATABASE_URL=postgresql://podnbeyond_staging:password@localhost:5432/podnbeyond_staging
 
 # Postmark (use same or test credentials)
-POSTMARK_SERVER_TOKEN="c169e5e4-3296-4057-85ed-c51a2cbeca89"
+POSTMARK_SERVER_TOKEN="your-postmark-token-here"
 EMAIL_FROM="staging@capsulepodhotel.com"  # Optional: different sender
 
 # Port (use different port)
