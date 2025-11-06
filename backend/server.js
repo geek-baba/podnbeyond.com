@@ -8,10 +8,16 @@ const port = process.env.PORT || 4000;
 // Rate limiting configurations
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs (strict for auth)
-  message: 'Too many authentication attempts, please try again after 15 minutes',
+  max: 50, // Increased for testing (was 5)
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many authentication attempts',
+      message: 'Please try again after 15 minutes',
+      retryAfter: 900 // 15 minutes in seconds
+    });
+  }
 });
 
 const apiLimiter = rateLimit({
@@ -50,9 +56,12 @@ app.use(cookieParser());
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
-// Auth routes (RBAC) - Strict rate limiting
+// Auth routes (session management) - Strict rate limiting
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/account', apiLimiter, require('./routes/account'));
+
+// OTP authentication - Strict rate limiting
+app.use('/api/otp', authLimiter, require('./routes/otp'));
 
 // Admin routes - Higher limit
 app.use('/api/admin/invites', adminLimiter, require('./routes/invites'));

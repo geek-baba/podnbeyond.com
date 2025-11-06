@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '../../lib/useAuth';
 import Container from './Container';
 
 interface HeaderProps {
@@ -9,7 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { data: session, status } = useAuth();
 
   const bgStyle = transparent
     ? 'bg-transparent absolute top-0 left-0 right-0 z-50'

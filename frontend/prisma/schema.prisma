@@ -175,6 +175,19 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+// OTP Codes for email authentication
+model OTPCode {
+  id         String   @id @default(cuid())
+  email      String
+  codeHash   String   // SHA-256 hash of the 6-digit OTP
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_codes")
+}
+
 // Role - Predefined roles with descriptions
 model Role {
   id          Int      @id @default(autoincrement())

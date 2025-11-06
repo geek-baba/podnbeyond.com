@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Container from '../../components/layout/Container';
@@ -9,34 +8,184 @@ import Card from '../../components/ui/Card';
 export default function AdminLogin() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState('');
+  const [resendTimer, setResendTimer] = useState(60);
+  
+  const otpRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
 
   const { callbackUrl } = router.query;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Resend timer
+  useEffect(() => {
+    if (otpSent && resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpSent, resendTimer]);
+
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      const result = await signIn('email', {
-        email,
-        redirect: false,
-        callbackUrl: (callbackUrl as string) || '/admin',
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/otp/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      if (result?.error) {
-        setError('Failed to send magic link. Please try again.');
+      const data = await response.json();
+
+      if (data.success) {
+        setOtpSent(true);
+        setResendTimer(60);
+        setError('');
+        // Focus first OTP input
+        setTimeout(() => otpRefs[0].current?.focus(), 100);
       } else {
-        setEmailSent(true);
+        setError(data.error || 'Failed to send OTP. Please try again.');
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      console.error('Send OTP error:', err);
+      setError('Unable to send OTP. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOTPChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpRefs[index + 1].current?.focus();
+    }
+
+    // Auto-verify when all 6 digits entered
+    if (index === 5 && value) {
+      const fullOtp = newOtp.join('');
+      if (fullOtp.length === 6) {
+        handleVerifyOTP(fullOtp);
+      }
+    }
+  };
+
+  const handleOTPKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs[index - 1].current?.focus();
+    }
+  };
+
+  const handleOTPPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text/plain').trim();
+    
+    // Only accept 6 digits
+    if (/^\d{6}$/.test(pastedData)) {
+      const digits = pastedData.split('');
+      setOtp(digits);
+      // Focus last input
+      otpRefs[5].current?.focus();
+      // Auto-verify after paste
+      setTimeout(() => {
+        handleVerifyOTP(pastedData);
+      }, 100);
+    }
+  };
+
+  const handleVerifyOTP = async (otpCode?: string) => {
+    const code = otpCode || otp.join('');
+    
+    if (code.length !== 6) {
+      setError('Please enter all 6 digits');
+      return;
+    }
+
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, otp: code }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Verification failed');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.sessionToken) {
+        // Store session token in localStorage
+        console.log('📝 Storing session token:', data.sessionToken.substring(0, 20) + '...');
+        localStorage.setItem('pod-session-token', data.sessionToken);
+        
+        // Verify it was stored
+        const stored = localStorage.getItem('pod-session-token');
+        console.log('✅ Session token verified in localStorage:', stored ? 'YES' : 'NO');
+        console.log('🔍 Stored value:', stored?.substring(0, 20) + '...');
+        
+        // Small delay to ensure localStorage is written
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Redirect to admin
+        console.log('🚀 Redirecting to:', data.redirectTo || '/admin');
+        window.location.href = data.redirectTo || '/admin';
+      } else {
+        console.error('❌ No session token in response:', data);
+        throw new Error('No session token received');
+      }
+    } catch (err: any) {
+      console.error('Verify OTP error:', err);
+      
+      // Parse error message
+      let errorMessage = 'Verification failed. Please try again.';
+      if (err.message.includes('Invalid OTP')) {
+        errorMessage = err.message;
+      } else if (err.message.includes('expired')) {
+        errorMessage = 'OTP expired. Please request a new code.';
+      } else if (err.message.includes('attempts')) {
+        errorMessage = err.message;
+      } else if (err.message.includes('not found')) {
+        errorMessage = 'OTP not found. Please request a new code.';
+      }
+      
+      setError(errorMessage);
+      
+      // Clear OTP inputs
+      setOtp(['', '', '', '', '', '']);
+      otpRefs[0].current?.focus();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError('');
+    setResendTimer(60);
+    await handleSendOTP({ preventDefault: () => {} } as React.FormEvent);
   };
 
   return (
@@ -64,14 +213,14 @@ export default function AdminLogin() {
             </div>
 
             <Card variant="elevated" padding="lg">
-              {!emailSent ? (
+              {!otpSent ? (
                 <>
                   <h2 className="text-2xl font-bold text-neutral-900 mb-2">Sign In</h2>
                   <p className="text-neutral-600 mb-6">
-                    Enter your email to receive a magic link
+                    Enter your email to receive a login code
                   </p>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleSendOTP} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
                         Email Address
@@ -100,7 +249,7 @@ export default function AdminLogin() {
                       fullWidth
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Sending...' : 'Send Magic Link'}
+                      {isLoading ? 'Sending...' : 'Send Login Code'}
                     </Button>
                   </form>
 
@@ -113,39 +262,94 @@ export default function AdminLogin() {
                   </div>
                 </>
               ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
+                <div className="py-4">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-neutral-900 mb-2">
+                      Enter Verification Code
+                    </h3>
+                    <p className="text-neutral-600 mb-1">
+                      We sent a 6-digit code to:
+                    </p>
+                    <p className="text-lg font-semibold text-neutral-900 mb-4">
+                      {email}
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-                    Check Your Email
-                  </h3>
-                  <p className="text-neutral-600 mb-4">
-                    We've sent a magic link to:
-                  </p>
-                  <p className="text-lg font-semibold text-neutral-900 mb-6">
-                    {email}
-                  </p>
-                  <p className="text-sm text-neutral-600 mb-6">
-                    Click the link in the email to sign in. The link expires in 24 hours.
-                  </p>
+
+                  {/* 6-Digit OTP Input */}
+                  <div className="flex justify-center gap-2 mb-6">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={otpRefs[index]}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOTPChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOTPKeyDown(index, e)}
+                        onPaste={index === 0 ? handleOTPPaste : undefined}
+                        className="w-12 h-14 text-center text-2xl font-bold border-2 border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900"
+                        disabled={isLoading}
+                      />
+                    ))}
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4">
+                      {error}
+                    </div>
+                  )}
+
                   <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setEmailSent(false)}
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={() => handleVerifyOTP()}
+                    disabled={isLoading || otp.join('').length !== 6}
                   >
-                    Use Different Email
+                    {isLoading ? 'Verifying...' : 'Verify Code'}
                   </Button>
+
+                  <div className="mt-6 pt-6 border-t border-neutral-200 text-center">
+                    <p className="text-sm text-neutral-600 mb-2">
+                      Didn't receive the code?
+                    </p>
+                    {resendTimer > 0 ? (
+                      <p className="text-sm text-neutral-500">
+                        Resend in {resendTimer}s
+                      </p>
+                    ) : (
+                      <button
+                        onClick={handleResend}
+                        className="text-sm text-neutral-900 hover:underline font-semibold"
+                      >
+                        Resend Code
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp(['', '', '', '', '', '']);
+                        setError('');
+                      }}
+                      className="block mx-auto mt-4 text-sm text-neutral-600 hover:text-neutral-900"
+                    >
+                      Use Different Email
+                    </button>
+                  </div>
                 </div>
               )}
             </Card>
 
             {/* Security notice */}
             <div className="mt-6 text-center text-sm text-neutral-400">
-              <p>🔒 Secure authentication via magic link</p>
-              <p className="mt-1">No passwords required</p>
+              <p>🔒 Secure authentication via 6-digit code</p>
+              <p className="mt-1">Code expires in 10 minutes</p>
             </div>
           </div>
         </Container>
@@ -153,4 +357,3 @@ export default function AdminLogin() {
     </>
   );
 }
-

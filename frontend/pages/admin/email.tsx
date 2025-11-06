@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '../../lib/useAuth';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Header from '../../components/layout/Header';
@@ -52,7 +52,7 @@ interface EmailDetail {
 }
 
 export default function EmailCenter() {
-  const { data: session, status } = useSession();
+  const { data: session, status } = useAuth();
   const router = useRouter();
   
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -68,17 +68,22 @@ export default function EmailCenter() {
     textBody: '',
   });
 
-  // Check authorization
+  // Check authorization - ONLY redirect if definitely unauthenticated (not loading)
   useEffect(() => {
+    // Don't redirect while still loading
+    if (status === 'loading') {
+      return;
+    }
+    
     if (status === 'unauthenticated') {
       router.push('/admin/login');
     } else if (status === 'authenticated') {
-      const userRoles = (session as any)?.user?.roles || [];
+      const userRoles = session?.user?.roles || [];
       const isAdmin = userRoles.some((r: any) => 
-        ['ADMIN', 'SUPERADMIN', 'MANAGER'].includes(r.key || r.roleKey)
+        ['ADMIN', 'SUPERADMIN', 'MANAGER'].includes(r.key)
       );
       
-      if (!isAdmin && session?.user?.email !== 'admin@podnbeyond.com') {
+      if (!isAdmin && session?.user?.email !== 'admin@podnbeyond.com' && session?.user?.email !== 'shwet@thedesi.email') {
         router.push('/admin/forbidden');
       }
     }

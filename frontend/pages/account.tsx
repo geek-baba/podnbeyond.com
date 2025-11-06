@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '../lib/useAuth';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
@@ -10,14 +10,19 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 
 export default function MemberAccount() {
-  const { data: session, status } = useSession();
+  const { data: session, status, signOut } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
-  const [bookings, setBookings] = useState([]);
-  const [pointsLedger, setPointsLedger] = useState([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [pointsLedger, setPointsLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Don't redirect while still loading
+    if (status === 'loading') {
+      return;
+    }
+    
     if (status === 'unauthenticated') {
       router.push('/admin/login?callbackUrl=/account');
     } else if (status === 'authenticated') {

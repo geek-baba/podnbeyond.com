@@ -1,31 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const { getAccessibleProperties } = require('../lib/rbac');
 
 const prisma = new PrismaClient();
 
 /**
- * GET /api/auth/me
- * Returns current user's session, roles, scopes, and accessible properties
+ * GET /api/auth/session
+ * Get current user session
  */
-router.get('/me', async (req, res) => {
+router.get('/session', async (req, res) => {
   try {
-    // Get session token from cookie or header
-    const sessionToken = req.cookies['__Secure-next-auth.session-token'] || 
-                        req.cookies['next-auth.session-token'] ||
-                        req.headers['x-session-token'];
-
+    // Check for session token in Authorization header (local dev) or cookie (prod)
+    const authHeader = req.headers.authorization;
+    const sessionToken = authHeader?.replace('Bearer ', '') || req.cookies['pod-session'];
+    
     if (!sessionToken) {
-      return res.json({
-        authenticated: false,
-        user: null,
-        roles: [],
-        accessibleProperties: []
-      });
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Find session
+    // Find session in database
     const session = await prisma.session.findUnique({
       where: { sessionToken },
       include: {
@@ -43,87 +36,64 @@ router.get('/me', async (req, res) => {
     });
 
     if (!session || session.expires < new Date()) {
-      return res.json({
-        authenticated: false,
-        user: null,
-        roles: [],
-        accessibleProperties: []
-      });
+      return res.status(401).json({ error: 'Session expired' });
     }
 
-    // Get accessible properties for this user
-    const accessibleProperties = await getAccessibleProperties(session.user.id);
-
-    // Format response
-    return res.json({
-      authenticated: true,
+    // Return user data
+    res.json({
       user: {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
-        image: session.user.image,
-        phone: session.user.phone,
-        loyaltyAccount: session.user.loyaltyAccount ? {
-          id: session.user.loyaltyAccount.id,
-          points: session.user.loyaltyAccount.points,
-          tier: session.user.loyaltyAccount.tier
-        } : null
+        roles: session.user.userRoles.map(ur => ({
+          key: ur.roleKey,
+          name: ur.role?.name || ur.roleKey,
+          scopeType: ur.scopeType,
+          scopeId: ur.scopeId
+        })),
+        loyaltyTier: session.user.loyaltyAccount?.tier || 'SILVER',
+        loyaltyPoints: session.user.loyaltyAccount?.points || 0
       },
-      roles: session.user.userRoles.map(ur => ({
-        key: ur.roleKey,
-        name: ur.role.name,
-        scopeType: ur.scopeType,
-        scopeId: ur.scopeId,
-        permissions: ur.role.permissions
-      })),
-      accessibleProperties,
-      session: {
-        expires: session.expires
-      }
+      expires: session.expires
     });
 
   } catch (error) {
-    console.error('Error fetching user session:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to fetch user session'
-    });
+    console.error('Session fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch session', details: error.message });
   }
 });
 
 /**
- * POST /api/auth/logout
- * Destroy session
+ * POST /api/auth/signout
+ * Sign out and delete session
  */
-router.post('/logout', async (req, res) => {
+router.post('/signout', async (req, res) => {
   try {
-    const sessionToken = req.cookies['__Secure-next-auth.session-token'] || 
-                        req.cookies['next-auth.session-token'];
-
+    // Check for session token in Authorization header (local dev) or cookie (prod)
+    const authHeader = req.headers.authorization;
+    const sessionToken = authHeader?.replace('Bearer ', '') || req.cookies['pod-session'];
+    
     if (sessionToken) {
-      await prisma.session.delete({
+      // Delete session from database
+      await prisma.session.deleteMany({
         where: { sessionToken }
-      }).catch(() => {
-        // Session might not exist
       });
     }
 
-    // Clear cookies
-    res.clearCookie('__Secure-next-auth.session-token');
-    res.clearCookie('next-auth.session-token');
+    // Clear cookie
+    res.clearCookie('pod-session', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
 
-    return res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
+    res.json({ success: true, message: 'Signed out successfully' });
+
   } catch (error) {
-    console.error('Logout error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Logout failed'
-    });
+    console.error('Sign out error:', error);
+    res.status(500).json({ error: 'Failed to sign out', details: error.message });
   }
 });
 
 module.exports = router;
-

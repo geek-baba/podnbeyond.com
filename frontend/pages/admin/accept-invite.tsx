@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { signIn } from 'next-auth/react';
 import Head from 'next/head';
 import Container from '../../components/layout/Container';
 import Button from '../../components/ui/Button';
@@ -34,9 +33,9 @@ export default function AcceptInvite() {
 
       setSuccess(true);
       
-      // Auto-sign in after 2 seconds
+      // Redirect to login page after 2 seconds
       setTimeout(() => {
-        signIn('email', { email: data.user.email, callbackUrl: '/admin' });
+        router.push('/admin/login?message=invite-accepted');
       }, 2000);
 
     } catch (err: any) {

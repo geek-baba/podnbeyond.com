@@ -1,11 +1,13 @@
 import type { AppProps } from 'next/app'
-import { SessionProvider } from 'next-auth/react'
 import '../styles/globals.css'
 
-export default function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
-  return (
-    <SessionProvider session={session}>
-      <Component {...pageProps} />
-    </SessionProvider>
-  )
-} 
+/**
+ * Main App Component
+ * 
+ * Note: This app uses custom OTP authentication, not NextAuth
+ * Auth state is managed via the useAuth hook (lib/useAuth.ts)
+ */
+
+export default function App({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />
+}

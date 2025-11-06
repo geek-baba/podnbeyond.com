@@ -1,104 +1,35 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
-import EmailProvider from 'next-auth/providers/email';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { prisma } from '../../../lib/prisma';
+
+/**
+ * NextAuth Configuration (DEPRECATED - kept for backwards compatibility)
+ * 
+ * The application now uses custom OTP authentication via /api/otp routes
+ * This NextAuth config is minimal and not actively used for admin login
+ * 
+ * Active Authentication: Custom OTP system with pod-session cookies
+ * See: backend/routes/otp.js and backend/routes/auth.js
+ */
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST || 'localhost',
-        port: parseInt(process.env.EMAIL_SERVER_PORT || '1025'),
-      },
-      from: process.env.EMAIL_FROM || 'noreply@podnbeyond.com',
-      sendVerificationRequest: async ({ identifier: email, url }) => {
-        // Development mode: log magic link to console
-        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('🔐 MAGIC LINK (Development Mode)');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`📧 Email: ${email}`);
-        console.log(`🔗 Link: ${url}`);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-      },
-    }),
+    // No providers configured - using custom OTP auth instead
   ],
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60,
-  },
   pages: {
     signIn: '/admin/login',
     error: '/admin/login',
-    verifyRequest: '/admin/verify-email',
   },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.sub;
-        
-        const userWithRoles = await prisma.user.findUnique({
-          where: { id: token.sub as string },
-          include: {
-            userRoles: { include: { role: true } },
-            loyaltyAccount: true
-          }
-        });
-
-        if (userWithRoles) {
-          (session as any).user.roles = userWithRoles.userRoles.map(ur => ({
-            key: ur.roleKey,
-            scopeType: ur.scopeType,
-            scopeId: ur.scopeId,
-            permissions: ur.role.permissions
-          }));
-          (session as any).user.loyaltyAccount = userWithRoles.loyaltyAccount;
-        }
-      }
-      return session;
-    },
     async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
       return token;
     },
-  },
-  events: {
-    async signIn({ user, isNewUser }) {
-      if (isNewUser) {
-        await prisma.userRole.create({
-          data: {
-            userId: user.id,
-            roleKey: 'MEMBER',
-            scopeType: 'ORG',
-            scopeId: 1
-          }
-        });
-
-        await prisma.loyaltyAccount.create({
-          data: {
-            userId: user.id,
-            points: 0,
-            tier: 'SILVER'
-          }
-        });
-      }
+    async session({ session, token }) {
+      return session;
     },
   },
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
-  debug: true,
 };
 
 export default NextAuth(authOptions);
-

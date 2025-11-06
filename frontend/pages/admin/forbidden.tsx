@@ -1,11 +1,11 @@
 import Head from 'next/head';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '../../lib/useAuth';
 import Container from '../../components/layout/Container';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 
 export default function AdminForbidden() {
-  const { data: session } = useSession();
+  const { data: session, signOut } = useAuth();
 
   return (
     <>

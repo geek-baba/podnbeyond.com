@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { signOut } from 'next-auth/react';
+import { useAuth } from '../../lib/useAuth';
 import Head from 'next/head';
 
 export default function AdminLogout() {
+  const { signOut } = useAuth();
+  
   useEffect(() => {
     signOut({ callbackUrl: '/' });
   }, []);
