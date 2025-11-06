@@ -47,7 +47,8 @@ const cmsRoutes = require('./routes/cms');
 const cronService = require('./services/cronService');
 
 // Trust proxy (nginx) for rate limiting and security
-app.set('trust proxy', true);
+// Trust only the first proxy (nginx) - more secure than 'true'
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
