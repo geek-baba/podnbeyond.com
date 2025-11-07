@@ -97,24 +97,35 @@ export default function MemberAccount() {
           <section className="py-8 bg-white border-b border-neutral-200">
             <Container>
               <Card variant="elevated" padding="lg">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center md:text-left">
-                    <p className="text-sm text-neutral-600 mb-1">Membership Tier</p>
-                    <Badge 
-                      variant={loyaltyAccount.tier === 'PLATINUM' ? 'neutral' : loyaltyAccount.tier === 'GOLD' ? 'smart' : 'capsule'}
-                      size="lg"
-                    >
-                      {loyaltyAccount.tier}
-                    </Badge>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-neutral-600 mb-1">Points Balance</p>
-                    <p className="text-3xl font-bold text-neutral-900">{loyaltyAccount.points?.toLocaleString()}</p>
-                  </div>
-                  <div className="text-center md:text-right">
-                    <a href="/membership">
-                      <Button variant="primary">View Benefits</Button>
-                    </a>
+                <div className="space-y-6">
+                  {/* Member Number */}
+                  {loyaltyAccount.memberNumber && (
+                    <div className="text-center pb-4 border-b border-neutral-200">
+                      <p className="text-xs uppercase tracking-wider text-neutral-500 mb-1">Member Number</p>
+                      <p className="text-lg font-mono font-bold text-neutral-900">{loyaltyAccount.memberNumber}</p>
+                    </div>
+                  )}
+                  
+                  {/* Tier, Points, Action */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center md:text-left">
+                      <p className="text-sm text-neutral-600 mb-1">Membership Tier</p>
+                      <Badge 
+                        variant={loyaltyAccount.tier === 'PLATINUM' ? 'neutral' : loyaltyAccount.tier === 'GOLD' ? 'smart' : 'capsule'}
+                        size="lg"
+                      >
+                        {loyaltyAccount.tier}
+                      </Badge>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-neutral-600 mb-1">Points Balance</p>
+                      <p className="text-3xl font-bold text-neutral-900">{loyaltyAccount.points?.toLocaleString()}</p>
+                    </div>
+                    <div className="text-center md:text-right">
+                      <a href="/membership">
+                        <Button variant="primary">View Benefits</Button>
+                      </a>
+                    </div>
                   </div>
                 </div>
               </Card>

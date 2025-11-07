@@ -195,11 +195,18 @@ router.post('/verify', async (req, res) => {
         }
       });
 
-      // Create loyalty account
+      // Generate unique member number (simple 6-digit format)
+      const memberCount = await prisma.loyaltyAccount.count();
+      const memberNumber = String(memberCount + 1).padStart(6, '0'); // "000001", "000002", etc.
+
+      // Create loyalty account with unique member number
+      // New members start at Silver with 0 points
       await prisma.loyaltyAccount.create({
         data: {
           userId: user.id,
+          memberNumber,
           points: 0,
+          lifetimeStays: 0,
           tier: 'SILVER'
         }
       });
@@ -235,15 +242,21 @@ router.post('/verify', async (req, res) => {
       });
     }
 
+    // Determine redirect based on roles
+    const userRoles = user.userRoles.map(ur => ur.roleKey);
+    const isAdmin = userRoles.some(role => ['SUPERADMIN', 'ADMIN', 'MANAGER', 'STAFF_FRONTDESK', 'STAFF_OPS'].includes(role));
+    const redirectTo = isAdmin ? '/admin' : '/account';
+
     res.json({
       success: true,
       sessionToken: session.sessionToken, // Always return for localStorage
       user: {
         id: user.id,
         email: user.email,
-        roles: user.userRoles.map(ur => ur.roleKey),
+        roles: userRoles,
+        memberNumber: user.loyaltyAccount?.memberNumber,
       },
-      redirectTo: '/admin'
+      redirectTo
     });
 
   } catch (error) {

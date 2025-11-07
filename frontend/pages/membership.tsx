@@ -14,25 +14,29 @@ export default function MembershipPage() {
   const tiers = {
     silver: {
       name: 'Silver',
-      price: 'Free',
+      requirement: '0 points',
+      subtext: 'Automatic on signup',
       color: '#a3a3a3',
+      earnRate: '10 pts per ₹100',
       benefits: [
         'Member-only rates',
-        'Points on every booking',
+        'Earn 10 points per ₹100 spent',
         'Early access to promotions',
-        'Birthday bonus points',
+        'Birthday bonus: 500 points',
         'Email support'
       ]
     },
     gold: {
       name: 'Gold',
-      price: '₹999/year',
+      requirement: '25,000 points',
+      subtext: 'or 10 stays',
       color: '#f59e0b',
       popular: true,
+      earnRate: '12 pts per ₹100 (+20%)',
       benefits: [
         'All Silver benefits',
-        '10% discount on all bookings',
-        '2x points earning',
+        'Earn 12 points per ₹100 spent (+20% bonus)',
+        '5% discount on all bookings',
         'Free late checkout (subject to availability)',
         'Priority customer support',
         'Exclusive gold-only deals',
@@ -41,18 +45,19 @@ export default function MembershipPage() {
     },
     platinum: {
       name: 'Platinum',
-      price: '₹2,499/year',
+      requirement: '75,000 points',
+      subtext: 'or 25 stays',
       color: '#6b7280',
+      earnRate: '15 pts per ₹100 (+50%)',
       benefits: [
         'All Gold benefits',
-        '15% discount on all bookings',
-        '3x points earning',
+        'Earn 15 points per ₹100 spent (+50% bonus)',
+        '10% discount on all bookings',
         'Guaranteed late checkout till 2 PM',
-        'Free room upgrades (when available)',
+        'Complimentary room upgrades (when available)',
         'Dedicated concierge',
-        'Access to all brands',
-        'Birthday stay discount',
-        'Annual free night voucher'
+        'Birthday stay: 50% off',
+        'Annual free night certificate (₹2,000 value)'
       ]
     }
   };
@@ -132,10 +137,10 @@ export default function MembershipPage() {
         <Container>
           <div className="text-center mb-12">
             <h2 className="text-display text-neutral-900 mb-4">
-              Choose Your Tier
+              Membership Tiers
             </h2>
             <p className="text-lg text-neutral-600">
-              Select the membership level that's right for you
+              Earn your way to higher tiers with every stay and every point
             </p>
           </div>
 
@@ -165,9 +170,15 @@ export default function MembershipPage() {
                     </svg>
                   </div>
                   <h3 className="text-2xl font-bold text-neutral-900 mb-2">{tier.name}</h3>
-                  <p className="text-3xl font-bold" style={{ color: tier.color }}>
-                    {tier.price}
-                  </p>
+                  <div className="mb-2">
+                    <p className="text-2xl font-bold" style={{ color: tier.color }}>
+                      {tier.requirement}
+                    </p>
+                    <p className="text-sm text-neutral-500">{tier.subtext}</p>
+                  </div>
+                  <div className="mt-3 px-3 py-2 bg-neutral-100 rounded-lg">
+                    <p className="text-sm font-semibold text-neutral-700">{tier.earnRate}</p>
+                  </div>
                 </div>
 
                 <ul className="space-y-3 mb-8">
@@ -181,14 +192,15 @@ export default function MembershipPage() {
                   ))}
                 </ul>
 
-                <Button
-                  variant={tier.popular ? 'smart' : 'primary'}
-                  size="lg"
-                  fullWidth
-                  onClick={() => setSelectedTier(key as 'silver' | 'gold' | 'platinum')}
-                >
-                  {key === 'silver' ? 'Join Free' : 'Upgrade Now'}
-                </Button>
+                <a href={key === 'silver' ? '#join' : '/account'}>
+                  <Button
+                    variant={tier.popular ? 'smart' : 'primary'}
+                    size="lg"
+                    fullWidth
+                  >
+                    {key === 'silver' ? 'Join Free' : 'Earn This Tier'}
+                  </Button>
+                </a>
               </Card>
             ))}
           </div>
@@ -209,15 +221,18 @@ export default function MembershipPage() {
               <div className="space-y-6">
                 <div className="p-6 bg-neutral-50 rounded-lg">
                   <h4 className="font-bold text-neutral-900 mb-2">Silver Members</h4>
-                  <p className="text-neutral-700">Earn 1 point per ₹1 spent</p>
+                  <p className="text-neutral-700">Earn 10 points per ₹100 spent</p>
+                  <p className="text-sm text-neutral-500 mt-1">Base earning rate</p>
                 </div>
                 <div className="p-6 bg-smart-50 rounded-lg border-2 border-smart-200">
                   <h4 className="font-bold text-smart-900 mb-2">Gold Members</h4>
-                  <p className="text-smart-800">Earn 2 points per ₹1 spent (2x multiplier)</p>
+                  <p className="text-smart-800">Earn 12 points per ₹100 spent</p>
+                  <p className="text-sm text-smart-600 mt-1">+20% bonus earning</p>
                 </div>
                 <div className="p-6 bg-neutral-100 rounded-lg border-2 border-neutral-300">
                   <h4 className="font-bold text-neutral-900 mb-2">Platinum Members</h4>
-                  <p className="text-neutral-800">Earn 3 points per ₹1 spent (3x multiplier)</p>
+                  <p className="text-neutral-800">Earn 15 points per ₹100 spent</p>
+                  <p className="text-sm text-neutral-600 mt-1">+50% bonus earning</p>
                 </div>
               </div>
               <div className="mt-8 p-6 bg-blue-50 rounded-lg">
@@ -235,6 +250,67 @@ export default function MembershipPage() {
                 className="w-full h-full object-cover"
               />
             </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* Join Form */}
+      <section id="join" className="py-20 bg-white">
+        <Container size="sm">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-display text-neutral-900 mb-4">
+                Join POD N BEYOND Circle
+              </h2>
+              <p className="text-lg text-neutral-600">
+                Start earning points and enjoying member benefits today
+              </p>
+            </div>
+
+            <Card padding="lg">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <p className="text-neutral-700 leading-relaxed">
+                    To join POD N BEYOND Circle, simply create an account. 
+                    You'll automatically be enrolled in <strong>Silver tier (Free)</strong>. 
+                    Upgrade to Gold or Platinum anytime from your account dashboard.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <a href="/login" className="block">
+                    <Button variant="primary" size="lg" fullWidth>
+                      Create Account & Join Silver (Free)
+                    </Button>
+                  </a>
+                  <p className="text-sm text-center text-neutral-500">
+                    Already a member? <a href="/login" className="text-neutral-900 font-semibold hover:underline">Login here</a>
+                  </p>
+                </div>
+
+                <div className="pt-6 border-t border-neutral-200">
+                  <h3 className="font-semibold text-neutral-900 mb-4">What happens next?</h3>
+                  <ol className="space-y-3 text-sm text-neutral-700">
+                    <li className="flex items-start">
+                      <span className="flex-shrink-0 w-6 h-6 bg-neutral-900 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">1</span>
+                      <span>Enter your email and receive a 6-digit login code</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="flex-shrink-0 w-6 h-6 bg-neutral-900 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">2</span>
+                      <span>Verify your email with the code</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="flex-shrink-0 w-6 h-6 bg-neutral-900 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">3</span>
+                      <span>Your Silver membership is activated instantly</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="flex-shrink-0 w-6 h-6 bg-neutral-900 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3">4</span>
+                      <span>Upgrade to Gold or Platinum anytime from your dashboard</span>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </Card>
           </div>
         </Container>
       </section>
