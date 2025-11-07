@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
               </Link>
             ) : (
               <Link
-                href="/admin/login"
+                href="/login"
                 className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
                   transparent
                     ? 'border-white text-white hover:bg-white hover:text-neutral-900'
@@ -155,7 +155,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
                 </Link>
               ) : (
                 <Link
-                  href="/admin/login"
+                  href="/login"
                   className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
                     transparent
                       ? 'border-white text-white'
