@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import { apiRequest } from '../../lib/api';
 
 interface SearchWidgetProps {
   variant?: 'inline' | 'hero';
@@ -21,8 +22,7 @@ const SearchWidget: React.FC<SearchWidgetProps> = ({ variant = 'inline' }) => {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/brands?status=ACTIVE`);
-        const data = await response.json();
+        const data = await apiRequest<{ success: boolean; brands: any[] }>('/api/brands?status=ACTIVE');
         if (data.success) {
           setBrands(data.brands);
         }

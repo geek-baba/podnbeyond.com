@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Container from '../layout/Container';
 import BrandCard from '../brand/BrandCard';
+import { apiRequest } from '../../lib/api';
 
 interface Brand {
   id: number;
@@ -33,8 +34,7 @@ const BrandGrid: React.FC<BrandGridProps> = ({
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/brands`);
-        const data = await response.json();
+        const data = await apiRequest<{ success: boolean; brands: Brand[] }>('/api/brands');
         
         if (data.success) {
           // Filter based on showComingSoon
