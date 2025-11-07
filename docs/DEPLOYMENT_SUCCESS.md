@@ -256,6 +256,9 @@ cd ../frontend && npm install && npm run build && pm2 restart prod-frontend
 - ✅ Production is live and working
 
 ### **Future Enhancements**
+**See:** `docs/BACKLOG.md` for detailed post-MVP enhancement checklist
+
+**Quick Reference:**
 - [ ] Lower rate limit after monitoring usage (50 requests per 15 min)
 - [ ] Add real Razorpay credentials when ready for payments
 - [ ] Enable Redis for email queue (optional)
@@ -263,6 +266,7 @@ cd ../frontend && npm install && npm run build && pm2 restart prod-frontend
 - [ ] Configure CloudPanel SSL auto-renewal
 - [ ] Add monitoring/alerting (e.g., UptimeRobot)
 - [ ] Database backups automation
+- [ ] GitHub Actions CI/CD setup (deferred until MVP ready)
 
 ---
 
