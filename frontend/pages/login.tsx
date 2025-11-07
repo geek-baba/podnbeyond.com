@@ -156,7 +156,7 @@ export default function MemberLogin() {
       <section className="min-h-screen py-20 bg-neutral-50 flex items-center">
         <Container size="sm">
           <div className="max-w-md mx-auto">
-            <Card padding="xl">
+            <Card padding="lg">
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-neutral-900 mb-2">Member Login</h1>
                 <p className="text-neutral-600">
