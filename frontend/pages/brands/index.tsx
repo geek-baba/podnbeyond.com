@@ -4,6 +4,7 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import Container from '../../components/layout/Container';
 import BrandCard from '../../components/brand/BrandCard';
+import { apiRequest } from '../../lib/api';
 
 interface Brand {
   id: number;
@@ -28,8 +29,7 @@ export default function BrandsPage() {
     const fetchBrands = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/brands`);
-        const data = await response.json();
+        const data = await apiRequest<{ success: boolean; brands: Brand[] }>('/api/brands');
         
         if (data.success) {
           setBrands(data.brands);
