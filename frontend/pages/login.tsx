@@ -7,6 +7,7 @@ import Container from '../components/layout/Container';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { useAuth } from '../lib/useAuth';
+import { apiRequest } from '../lib/api';
 
 export default function MemberLogin() {
   const router = useRouter();
@@ -36,23 +37,15 @@ export default function MemberLogin() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      
       // In registration mode, send user details with OTP request
       const payload = isRegisterMode
         ? { email, firstName, lastName, phone }
         : { email };
       
-      const response = await fetch(`${apiUrl}/api/otp/send`, {
+      await apiRequest('/api/otp/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to send OTP');
-      }
 
       setOtpSent(true);
     } catch (err: any) {
@@ -73,26 +66,16 @@ export default function MemberLogin() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      
       // In registration mode, include user details for account creation
       const payload = isRegisterMode
         ? { email, otp: code, firstName, lastName, phone }
         : { email, otp: code };
       
-      const response = await fetch(`${apiUrl}/api/otp/verify`, {
+      const data = await apiRequest('/api/otp/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      const data = await response.json();
 
       if (data.success && data.sessionToken) {
         localStorage.setItem('pod-session-token', data.sessionToken);
