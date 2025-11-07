@@ -122,7 +122,7 @@ router.post('/send', async (req, res) => {
  */
 router.post('/verify', async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, firstName, lastName, phone } = req.body;
 
     if (!email || !otp) {
       return res.status(400).json({ error: 'Email and OTP are required' });
@@ -176,12 +176,22 @@ router.post('/verify', async (req, res) => {
     });
 
     if (!user) {
-      // Create new user
+      // Create new user with optional profile details
+      const userData = {
+        email,
+        emailVerified: new Date(),
+      };
+      
+      // Add name and phone if provided (registration mode)
+      if (firstName || lastName) {
+        userData.name = [firstName, lastName].filter(Boolean).join(' ');
+      }
+      if (phone) {
+        userData.phone = phone;
+      }
+      
       user = await prisma.user.create({
-        data: {
-          email,
-          emailVerified: new Date(),
-        },
+        data: userData,
         include: { userRoles: true, loyaltyAccount: true }
       });
 

@@ -11,7 +11,12 @@ import { useAuth } from '../lib/useAuth';
 export default function MemberLogin() {
   const router = useRouter();
   const { data: session, status } = useAuth();
+  const isRegisterMode = router.query.mode === 'register';
+  
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -32,10 +37,16 @@ export default function MemberLogin() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      
+      // In registration mode, send user details with OTP request
+      const payload = isRegisterMode
+        ? { email, firstName, lastName, phone }
+        : { email };
+      
       const response = await fetch(`${apiUrl}/api/otp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -63,11 +74,17 @@ export default function MemberLogin() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      
+      // In registration mode, include user details for account creation
+      const payload = isRegisterMode
+        ? { email, otp: code, firstName, lastName, phone }
+        : { email, otp: code };
+      
       const response = await fetch(`${apiUrl}/api/otp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, otp: code }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -158,10 +175,14 @@ export default function MemberLogin() {
           <div className="max-w-md mx-auto">
             <Card padding="lg">
               <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-neutral-900 mb-2">Member Login</h1>
+                <h1 className="text-3xl font-bold text-neutral-900 mb-2">
+                  {isRegisterMode ? 'Join POD N BEYOND Circle' : 'Member Login'}
+                </h1>
                 <p className="text-neutral-600">
                   {otpSent 
                     ? 'Enter the 6-digit code sent to your email'
+                    : isRegisterMode
+                    ? 'Create your free account and start earning points'
                     : 'Enter your email to receive a login code'
                   }
                 </p>
@@ -175,9 +196,57 @@ export default function MemberLogin() {
 
               {!otpSent ? (
                 <form onSubmit={handleSendOTP} className="space-y-6">
+                  {isRegisterMode && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                            First Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="John"
+                            required
+                            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                            Last Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="Doe"
+                            required
+                            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                          Phone Number *
+                        </label>
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+91 98765 43210"
+                          required
+                          pattern="[0-9+\s-]+"
+                          className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                        />
+                      </div>
+                    </>
+                  )}
+                  
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                      Email Address
+                      Email Address *
                     </label>
                     <input
                       type="email"
@@ -196,16 +265,25 @@ export default function MemberLogin() {
                     fullWidth
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Sending...' : 'Send Login Code'}
+                    {isLoading ? 'Sending...' : isRegisterMode ? 'Create Account' : 'Send Login Code'}
                   </Button>
 
                   <div className="text-center pt-4">
-                    <p className="text-sm text-neutral-600">
-                      Don't have an account?{' '}
-                      <a href="/membership" className="text-neutral-900 font-semibold hover:underline">
-                        Join POD N BEYOND Circle
-                      </a>
-                    </p>
+                    {isRegisterMode ? (
+                      <p className="text-sm text-neutral-600">
+                        Already have an account?{' '}
+                        <a href="/login" className="text-neutral-900 font-semibold hover:underline">
+                          Login here
+                        </a>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-neutral-600">
+                        Don't have an account?{' '}
+                        <a href="/membership#join" className="text-neutral-900 font-semibold hover:underline">
+                          Join POD N BEYOND Circle
+                        </a>
+                      </p>
+                    )}
                   </div>
                 </form>
               ) : (

@@ -192,15 +192,26 @@ export default function MembershipPage() {
                   ))}
                 </ul>
 
-                <a href={key === 'silver' ? '#join' : '/account'}>
-                  <Button
-                    variant={tier.popular ? 'smart' : 'primary'}
-                    size="lg"
-                    fullWidth
-                  >
-                    {key === 'silver' ? 'Join Free' : 'Earn This Tier'}
-                  </Button>
-                </a>
+                {key === 'silver' ? (
+                  <a href="#join">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                    >
+                      Join Free
+                    </Button>
+                  </a>
+                ) : (
+                  <div className="text-center pt-4">
+                    <p className="text-sm text-neutral-600 mb-2">
+                      Earn this tier by accumulating {tier.requirement}
+                    </p>
+                    <a href="/login" className="text-neutral-900 font-semibold text-sm hover:underline">
+                      Login to view your progress →
+                    </a>
+                  </div>
+                )}
               </Card>
             ))}
           </div>
@@ -270,17 +281,22 @@ export default function MembershipPage() {
             <Card padding="lg">
               <div className="space-y-6">
                 <div className="text-center">
-                  <p className="text-neutral-700 leading-relaxed">
-                    To join POD N BEYOND Circle, simply create an account. 
-                    You'll automatically be enrolled in <strong>Silver tier (Free)</strong>. 
-                    Upgrade to Gold or Platinum anytime from your account dashboard.
+                  <p className="text-neutral-700 leading-relaxed mb-4">
+                    Join POD N BEYOND Circle and start earning points today. 
+                    You'll automatically be enrolled in <strong>Silver tier (Free)</strong>.
                   </p>
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-neutral-700">
+                      <strong>Already have a booking?</strong> You may already be a member! 
+                      <a href="/login" className="text-neutral-900 font-semibold hover:underline ml-1">Login here</a>
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  <a href="/login" className="block">
+                  <a href="/login?mode=register" className="block">
                     <Button variant="primary" size="lg" fullWidth>
-                      Create Account & Join Silver (Free)
+                      Create Free Account & Join
                     </Button>
                   </a>
                   <p className="text-sm text-center text-neutral-500">
