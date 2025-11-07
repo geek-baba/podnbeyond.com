@@ -133,7 +133,7 @@ export default function MembershipPage() {
       </section>
 
       {/* Membership Tiers */}
-      <section id="join" className="py-20 bg-neutral-50">
+      <section id="tiers" className="py-20 bg-neutral-50">
         <Container>
           <div className="text-center mb-12">
             <h2 className="text-display text-neutral-900 mb-4">
