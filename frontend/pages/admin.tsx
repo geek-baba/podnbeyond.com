@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '../lib/useAuth';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -22,7 +22,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ brands, properties, bookings, loyalty, stats }: AdminDashboardProps) {
-  const { data: session } = useSession();
+  const { data: session, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
   

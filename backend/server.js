@@ -8,7 +8,7 @@ const port = process.env.PORT || 4000;
 // Rate limiting configurations
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Increased for testing (was 5)
+  max: 1000, // Increased for testing (was 5)
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {

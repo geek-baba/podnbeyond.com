@@ -234,3 +234,4 @@ pm2 restart hotel-booking-backend
 - **Generate Secrets:** `openssl rand -base64 32`
 - **Check .gitignore:** `git check-ignore -v .env`
 
+
