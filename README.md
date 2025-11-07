@@ -304,7 +304,8 @@ POD N BEYOND GROUP (Parent)
 
 ### For Developers
 - **Repository**: [github.com/geek-baba/podnbeyond.com](https://github.com/geek-baba/podnbeyond.com)
-- **Documentation**: `/docs` folder
+- **Documentation**: See [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) for complete documentation
+- **Deployment**: See [docs/FRESH_CLEAN_DEPLOYMENT.md](docs/FRESH_CLEAN_DEPLOYMENT.md) for current deployment process
 - **Issues**: GitHub Issues
 
 ---
@@ -355,7 +356,7 @@ This is proprietary commercial software. Unauthorized copying, modification, dis
 
 **Inspired by**: 9h (ninehours.co.jp) - Revolutionary capsule hotel design  
 **Built with**: Next.js, PostgreSQL, Prisma, Tailwind CSS  
-**Deployed on**: CloudPanel with GitHub Actions CI/CD
+**Deployed on**: CloudPanel (staging & production environments)
 
 Special thanks to our guests, technology partners, and the open-source community.
 

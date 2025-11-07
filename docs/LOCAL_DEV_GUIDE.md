@@ -1,7 +1,15 @@
 # Local Development Environment - Quick Guide
 
+> 📝 **REFERENCE DOCUMENT**  
+> This guide is for local development setup.  
+> **Current workflow:** Development → Test on Staging → Deploy to Production  
+> **See:** [FRESH_CLEAN_DEPLOYMENT.md](FRESH_CLEAN_DEPLOYMENT.md) for staging/production deployment  
+> **See:** [STAGING_SETUP.md](STAGING_SETUP.md) for staging environment setup
+
+---
+
 ## Current Status ✅
-Your local environment is running and stable!
+Your local environment is running and stable! (If you choose to use it)
 
 - **Backend**: http://localhost:4000
 - **Frontend**: http://localhost:3000

@@ -1,6 +1,13 @@
 # 🚀 Complete Deployment Guide - POD N BEYOND Hotel Booking App
 
-This is the **ONLY** deployment guide you need. It covers everything from initial CloudPanel setup to ongoing deployments.
+> ⚠️ **LEGACY/REFERENCE DOCUMENT**  
+> This guide describes automated GitHub Actions deployment setup.  
+> **Current deployment process uses manual deployment to staging and production.**  
+> **See:** [FRESH_CLEAN_DEPLOYMENT.md](FRESH_CLEAN_DEPLOYMENT.md) for the current deployment process.
+
+---
+
+**Note:** This document is kept for reference in case you want to set up automated deployment later. See [BACKLOG.md](BACKLOG.md) for GitHub Actions CI/CD setup plan.
 
 ## 📋 Table of Contents
 
