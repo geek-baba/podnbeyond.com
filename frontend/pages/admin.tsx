@@ -13,18 +13,24 @@ interface AdminDashboardProps {
   properties: any[];
   bookings: any[];
   loyalty: any[];
+  users: any[];
   stats: {
     brands: number;
     properties: number;
     bookings: number;
     loyalty: number;
+    users: number;
   };
 }
 
-export default function AdminDashboard({ brands, properties, bookings, loyalty, stats }: AdminDashboardProps) {
+export default function AdminDashboard({ brands, properties, bookings, loyalty, users, stats }: AdminDashboardProps) {
   const { data: session, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
+  const defaultPropertyId = properties?.[0]?.id || null;
+  const defaultBrandId = brands?.[0]?.id || null;
+  const defaultScopeType: 'PROPERTY' | 'BRAND' | 'ORG' = defaultPropertyId ? 'PROPERTY' : defaultBrandId ? 'BRAND' : 'ORG';
+  const defaultScopeId = defaultScopeType === 'PROPERTY' ? defaultPropertyId : defaultScopeType === 'BRAND' ? defaultBrandId : null;
   
   // Payment Gateway Settings
   const [paymentSettings, setPaymentSettings] = useState({
@@ -45,8 +51,8 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   const [inviteForm, setInviteForm] = useState({
     email: '',
     roleKey: 'STAFF_FRONTDESK',
-    scopeType: 'PROPERTY',
-    scopeId: 1
+    scopeType: defaultScopeType,
+    scopeId: defaultScopeId
   });
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -59,6 +65,25 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   const [bonusStays, setBonusStays] = useState(0);
   const [bonusReason, setBonusReason] = useState('');
 
+  // Users Management
+  const [usersList, setUsersList] = useState(users || []);
+  const [userSearch, setUserSearch] = useState('');
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [userRole, setUserRole] = useState('STAFF_FRONTDESK');
+  const [userScopeType, setUserScopeType] = useState<'PROPERTY' | 'BRAND' | 'ORG'>('ORG');
+  const [userScopeId, setUserScopeId] = useState<number | null>(null);
+  const [userPhone, setUserPhone] = useState('');
+  const [newUserForm, setNewUserForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    roleKey: 'STAFF_FRONTDESK',
+    scopeType: 'PROPERTY',
+    scopeId: properties?.[0]?.id || null,
+  });
+
   // Filter loyalty members based on search
   const filteredLoyalty = loyalty.filter(account => {
     if (!loyaltySearch) return true;
@@ -67,6 +92,17 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
       account.userName?.toLowerCase().includes(search) ||
       account.userEmail?.toLowerCase().includes(search) ||
       account.memberNumber?.includes(search)
+    );
+  });
+
+  const filteredUsers = usersList.filter(user => {
+    if (!userSearch) return true;
+    const search = userSearch.toLowerCase();
+    return (
+      (user.name && user.name.toLowerCase().includes(search)) ||
+      user.email?.toLowerCase().includes(search) ||
+      (user.phone && user.phone.toLowerCase().includes(search)) ||
+      user.roleName?.toLowerCase().includes(search)
     );
   });
 
@@ -86,9 +122,46 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
       properties: properties?.length,
       bookings: bookings?.length,
       loyalty: loyalty?.length,
+      users: users?.length,
       stats
     });
-  }, [brands, properties, bookings, loyalty, stats]);
+  }, [brands, properties, bookings, loyalty, users, stats]);
+
+  useEffect(() => {
+    setUsersList(users || []);
+  }, [users]);
+
+useEffect(() => {
+  if (inviteForm.scopeType === 'PROPERTY') {
+    if ((!inviteForm.scopeId || !properties.find(p => p.id === inviteForm.scopeId)) && properties.length > 0) {
+      setInviteForm(prev => ({ ...prev, scopeId: properties[0].id }));
+    }
+  } else if (inviteForm.scopeType === 'BRAND') {
+    if ((!inviteForm.scopeId || !brands.find(b => b.id === inviteForm.scopeId)) && brands.length > 0) {
+      setInviteForm(prev => ({ ...prev, scopeId: brands[0].id }));
+    }
+  } else {
+    if (inviteForm.scopeId !== null) {
+      setInviteForm(prev => ({ ...prev, scopeId: null }));
+    }
+  }
+}, [inviteForm.scopeType, inviteForm.scopeId, properties, brands]);
+
+useEffect(() => {
+  if (newUserForm.scopeType === 'PROPERTY') {
+    if ((!newUserForm.scopeId || !properties.find(p => p.id === newUserForm.scopeId)) && properties.length > 0) {
+      setNewUserForm(prev => ({ ...prev, scopeId: properties[0].id }));
+    }
+  } else if (newUserForm.scopeType === 'BRAND') {
+    if ((!newUserForm.scopeId || !brands.find(b => b.id === newUserForm.scopeId)) && brands.length > 0) {
+      setNewUserForm(prev => ({ ...prev, scopeId: brands[0].id }));
+    }
+  } else {
+    if (newUserForm.scopeId !== null) {
+      setNewUserForm(prev => ({ ...prev, scopeId: null }));
+    }
+  }
+}, [newUserForm.scopeType, newUserForm.scopeId, properties, brands]);
 
   // Handle Invite Submission
   const handleInvite = async (e: React.FormEvent) => {
@@ -107,7 +180,7 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
 
       if (response.ok) {
         setInviteMessage({ type: 'success', text: `Invite sent to ${inviteForm.email}! Token: ${data.invite.token}` });
-        setInviteForm({ email: '', roleKey: 'STAFF_FRONTDESK', scopeType: 'PROPERTY', scopeId: 1 });
+        setInviteForm({ email: '', roleKey: 'STAFF_FRONTDESK', scopeType: defaultScopeType, scopeId: defaultScopeId });
       } else {
         setInviteMessage({ type: 'error', text: data.error || 'Failed to send invite' });
       }
@@ -197,7 +270,7 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                 <h2 className="text-2xl font-bold text-neutral-900 mb-6">Dashboard Overview</h2>
                 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                   <Card variant="default" padding="lg">
                     <div className="text-sm font-semibold text-neutral-600 mb-2">Total Brands</div>
                     <div className="text-4xl font-bold text-capsule-500">{stats.brands}</div>
@@ -227,6 +300,14 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                     <div className="text-4xl font-bold text-sauna-500">{loyalty?.length || 0}</div>
                     <div className="text-sm text-neutral-500 mt-2">
                       {loyalty?.filter(l => l.tier === 'PLATINUM').length || 0} platinum
+                    </div>
+                  </Card>
+
+                  <Card variant="default" padding="lg">
+                    <div className="text-sm font-semibold text-neutral-600 mb-2">Staff Members</div>
+                    <div className="text-4xl font-bold text-neutral-900">{usersList?.length || 0}</div>
+                    <div className="text-sm text-neutral-500 mt-2">
+                      {usersList?.filter(u => u.roleKey === 'SUPERADMIN' || u.roleKey === 'ADMIN').length || 0} admins
                     </div>
                   </Card>
                 </div>
@@ -630,15 +711,124 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
       {/* Users Tab */}
       {activeTab === 'users' && (
         <div className="space-y-6 animate-fade-in">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-neutral-900">User Management</h2>
-            <p className="text-neutral-600 mt-1">Invite staff members and manage user roles</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-neutral-900">User Management</h2>
+              <p className="text-neutral-600 mt-1">Invite staff members, manage permissions, and track access scopes.</p>
+            </div>
+            <div className="flex flex-col md:flex-row gap-3">
+              <Button variant="secondary" onClick={() => {
+                const inviteSection = document.getElementById('invite-staff');
+                if (inviteSection) inviteSection.scrollIntoView({ behavior: 'smooth' });
+              }}>
+                Invite User
+              </Button>
+              <Button variant="primary" onClick={() => setShowAddUserModal(true)}>
+                Add User
+              </Button>
+            </div>
           </div>
 
+          {/* Search + Summary */}
+          <Card variant="default" padding="md">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by name, email, phone, or role..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+              <div className="text-sm text-neutral-600">
+                {filteredUsers.length} of {usersList.length} users
+              </div>
+            </div>
+          </Card>
+
+          {/* Users Table */}
+          {filteredUsers.length > 0 ? (
+            <Card variant="default" padding="none">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-neutral-50 border-b border-neutral-200">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Scope</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Contact</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">Joined</th>
+                      <th className="px-6 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-neutral-200">
+                    {filteredUsers.map((user) => {
+                      const scopeLabel = user.scopeType === 'ORG'
+                        ? 'All Locations'
+                        : user.scopeType === 'PROPERTY'
+                          ? properties.find(p => p.id === user.scopeId)?.name || `Property #${user.scopeId}`
+                          : brands.find(b => b.id === user.scopeId)?.name || `Brand #${user.scopeId}`;
+
+                      return (
+                        <tr key={user.id} className="hover:bg-neutral-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="font-semibold text-neutral-900">{user.name || 'Unnamed User'}</div>
+                              <div className="text-sm text-neutral-500">{user.email}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="neutral" size="sm">
+                              {user.roleName || user.roleKey}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-neutral-900">{scopeLabel}</div>
+                            <div className="text-xs text-neutral-500 uppercase">{user.scopeType}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-neutral-900">{user.phone || '—'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => {
+                                setEditingUser(user);
+                                setUserRole(user.roleKey || 'STAFF_FRONTDESK');
+                                setUserScopeType(user.scopeType || 'ORG');
+                                setUserScopeId(user.scopeType === 'ORG' ? null : user.scopeId || null);
+                                setUserPhone(user.phone || '');
+                                setShowUserModal(true);
+                              }}
+                              className="text-neutral-900 hover:text-neutral-700 font-semibold text-sm"
+                            >
+                              Manage User
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          ) : (
+            <div className="text-center py-12 text-neutral-500">
+              {userSearch ? 'No users found for this search.' : 'No staff members yet.'}
+            </div>
+          )}
+
           {/* Invite Form */}
-          <Card variant="default" padding="lg">
-            <h3 className="text-xl font-bold text-neutral-900 mb-4">👥 Invite Staff Member</h3>
-            <p className="text-neutral-600 mb-6">Send an invitation to a new team member</p>
+          <Card id="invite-staff" variant="default" padding="lg">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-neutral-900">👥 Invite Staff Member</h3>
+                <p className="text-neutral-600">Send an invitation to a new team member</p>
+              </div>
+            </div>
 
             <form onSubmit={handleInvite} className="space-y-5">
               {/* Email */}
@@ -657,48 +847,64 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
               </div>
 
               {/* Role */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Role *
-                </label>
-                <select
-                  value={inviteForm.roleKey}
-                  onChange={(e) => setInviteForm({...inviteForm, roleKey: e.target.value})}
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                >
-                  <option value="STAFF_FRONTDESK">Front Desk Staff</option>
-                  <option value="STAFF_OPS">Operations Staff</option>
-                  <option value="MANAGER">Property Manager</option>
-                  <option value="ADMIN">Group Administrator</option>
-                  <option value="SUPERADMIN">Super Administrator</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Role *
+                  </label>
+                  <select
+                    value={inviteForm.roleKey}
+                    onChange={(e) => setInviteForm({...inviteForm, roleKey: e.target.value})}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="STAFF_FRONTDESK">Front Desk Staff</option>
+                    <option value="STAFF_OPS">Operations Staff</option>
+                    <option value="MANAGER">Property Manager</option>
+                    <option value="ADMIN">Group Administrator</option>
+                    <option value="SUPERADMIN">Super Administrator</option>
+                  </select>
+                </div>
 
-              {/* Scope Type */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Access Scope *
-                </label>
-                <select
-                  value={inviteForm.scopeType}
-                  onChange={(e) => setInviteForm({...inviteForm, scopeType: e.target.value})}
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                >
-                  <option value="PROPERTY">Single Property</option>
-                  <option value="BRAND">Brand-Wide</option>
-                  <option value="ORG">Organization-Wide</option>
-                </select>
+                {/* Scope Type */}
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Access Scope *
+                  </label>
+                  <select
+                    value={inviteForm.scopeType}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setInviteForm({
+                      ...inviteForm,
+                      scopeType: value,
+                      scopeId: value === 'ORG'
+                        ? null
+                        : value === 'PROPERTY'
+                          ? (properties?.[0]?.id || null)
+                          : (brands?.[0]?.id || null)
+                    });
+                  })}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="PROPERTY">Single Property</option>
+                    <option value="BRAND">Brand-Wide</option>
+                    <option value="ORG">Organization-Wide</option>
+                  </select>
+                </div>
               </div>
 
               {/* Scope ID (for property/brand) */}
               {inviteForm.scopeType !== 'ORG' && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    {inviteForm.scopeType === 'PROPERTY' ? 'Property ID' : 'Brand ID'} *
+                    {inviteForm.scopeType === 'PROPERTY' ? 'Property' : 'Brand'} *
                   </label>
                   <select
                     value={inviteForm.scopeId}
-                    onChange={(e) => setInviteForm({...inviteForm, scopeId: parseInt(e.target.value)})}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setInviteForm({...inviteForm, scopeId: value ? parseInt(value) : null});
+                    })}
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   >
                     {inviteForm.scopeType === 'PROPERTY' ? (
@@ -1331,6 +1537,357 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
         </div>
       )}
 
+      {/* Manage User Modal */}
+      {showUserModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-neutral-900">Manage User</h3>
+              <button
+                onClick={() => {
+                  setShowUserModal(false);
+                  setEditingUser(null);
+                }}
+                className="text-neutral-500 hover:text-neutral-900 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <label className="block text-xs text-neutral-500 uppercase tracking-wide">Name</label>
+                    <p className="text-neutral-900 font-semibold">{editingUser.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-500 uppercase tracking-wide">Joined</label>
+                    <p className="text-neutral-900">{new Date(editingUser.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-500 uppercase tracking-wide">Email</label>
+                    <p className="text-neutral-900">{editingUser.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-500 uppercase tracking-wide">Current Role</label>
+                    <Badge variant="neutral" size="sm">{editingUser.roleName || editingUser.roleKey}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Role
+                    </label>
+                    <select
+                      value={userRole}
+                      onChange={(e) => setUserRole(e.target.value)}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    >
+                      <option value="STAFF_FRONTDESK">Front Desk Staff</option>
+                      <option value="STAFF_OPS">Operations Staff</option>
+                      <option value="MANAGER">Property Manager</option>
+                      <option value="ADMIN">Group Administrator</option>
+                      <option value="SUPERADMIN">Super Administrator</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Access Scope
+                    </label>
+                    <select
+                      value={userScopeType}
+                      onChange={(e) => {
+                        const value = e.target.value as 'PROPERTY' | 'BRAND' | 'ORG';
+                        setUserScopeType(value);
+                        if (value === 'PROPERTY') {
+                          setUserScopeId(properties?.[0]?.id || null);
+                        } else if (value === 'BRAND') {
+                          setUserScopeId(brands?.[0]?.id || null);
+                        } else {
+                          setUserScopeId(null);
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    >
+                      <option value="PROPERTY">Single Property</option>
+                      <option value="BRAND">Brand-Wide</option>
+                      <option value="ORG">Organization-Wide</option>
+                    </select>
+                  </div>
+                </div>
+
+                {userScopeType !== 'ORG' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      {userScopeType === 'PROPERTY' ? 'Property' : 'Brand'}
+                    </label>
+                    <select
+                      value={userScopeId || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setUserScopeId(value ? parseInt(value) : null);
+                      }}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    >
+                      {(userScopeType === 'PROPERTY' ? properties : brands).map((item) => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={userPhone}
+                    onChange={(e) => setUserPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowUserModal(false);
+                    setEditingUser(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/users/${editingUser.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          roleKey: userRole,
+                          scopeType: userScopeType,
+                          scopeId: userScopeType === 'ORG' ? null : userScopeId,
+                          phone: userPhone,
+                        }),
+                      });
+
+                      if (response.ok) {
+                        alert('User updated successfully!');
+                        setShowUserModal(false);
+                        setEditingUser(null);
+                        window.location.reload();
+                      } else {
+                        const error = await response.json();
+                        alert('Failed to update user: ' + error.error);
+                      }
+                    } catch (error) {
+                      alert('Error updating user');
+                      console.error(error);
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-neutral-900">Add User</h3>
+              <button
+                onClick={() => {
+                  setShowAddUserModal(false);
+                  setNewUserForm({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    roleKey: 'STAFF_FRONTDESK',
+                    scopeType: defaultScopeType,
+                    scopeId: defaultScopeId,
+                  });
+                }}
+                className="text-neutral-500 hover:text-neutral-900 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={newUserForm.name}
+                  onChange={(e) => setNewUserForm({...newUserForm, name: e.target.value})}
+                  placeholder="Enter full name"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={newUserForm.email}
+                  onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                  placeholder="staff@podnbeyond.com"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={newUserForm.phone}
+                  onChange={(e) => setNewUserForm({...newUserForm, phone: e.target.value})}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Role *
+                  </label>
+                  <select
+                    value={newUserForm.roleKey}
+                    onChange={(e) => setNewUserForm({...newUserForm, roleKey: e.target.value})}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="STAFF_FRONTDESK">Front Desk Staff</option>
+                    <option value="STAFF_OPS">Operations Staff</option>
+                    <option value="MANAGER">Property Manager</option>
+                    <option value="ADMIN">Group Administrator</option>
+                    <option value="SUPERADMIN">Super Administrator</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Access Scope *
+                  </label>
+                  <select
+                    value={newUserForm.scopeType}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewUserForm({
+                        ...newUserForm,
+                        scopeType: value,
+                        scopeId: value === 'ORG'
+                          ? null
+                          : value === 'PROPERTY'
+                            ? properties?.[0]?.id || null
+                            : brands?.[0]?.id || null,
+                      });
+                    }}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="PROPERTY">Single Property</option>
+                    <option value="BRAND">Brand-Wide</option>
+                    <option value="ORG">Organization-Wide</option>
+                  </select>
+                </div>
+              </div>
+
+              {newUserForm.scopeType !== 'ORG' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    {newUserForm.scopeType === 'PROPERTY' ? 'Property' : 'Brand'} *
+                  </label>
+                  <select
+                    value={newUserForm.scopeId || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewUserForm({...newUserForm, scopeId: value ? parseInt(value) : null});
+                    }}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    {(newUserForm.scopeType === 'PROPERTY' ? properties : brands).map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowAddUserModal(false);
+                    setNewUserForm({
+                      name: '',
+                      email: '',
+                      phone: '',
+                      roleKey: 'STAFF_FRONTDESK',
+                      scopeType: defaultScopeType,
+                      scopeId: defaultScopeId,
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          name: newUserForm.name,
+                          email: newUserForm.email,
+                          phone: newUserForm.phone,
+                          roleKey: newUserForm.roleKey,
+                          scopeType: newUserForm.scopeType,
+                          scopeId: newUserForm.scopeType === 'ORG' ? null : newUserForm.scopeId,
+                        }),
+                      });
+
+                      if (response.ok) {
+                        alert('User created successfully!');
+                        setShowAddUserModal(false);
+                        window.location.reload();
+                      } else {
+                        const error = await response.json();
+                        alert('Failed to create user: ' + error.error);
+                      }
+                    } catch (error) {
+                      alert('Error creating user');
+                      console.error(error);
+                    }
+                  }}
+                >
+                  Create User
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
@@ -1344,15 +1901,17 @@ export async function getServerSideProps() {
     console.log('Fetching admin data from:', API_URL);
 
     // Fetch all data with proper error handling
-    const [brandsRes, propertiesRes, bookingsRes] = await Promise.all([
+    const [brandsRes, propertiesRes, bookingsRes, usersRes] = await Promise.all([
       fetch(`${API_URL}/api/brands`).catch(e => { console.error('Brands fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/properties`).catch(e => { console.error('Properties fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/booking/bookings`).catch(e => { console.error('Bookings fetch failed:', e); return null; }),
+      fetch(`${API_URL}/api/users`).catch(e => { console.error('Users fetch failed:', e); return null; }),
     ]);
 
     const brands = brandsRes ? (await brandsRes.json()).brands || [] : [];
     const properties = propertiesRes ? (await propertiesRes.json()).properties || [] : [];
     const bookings = bookingsRes ? await bookingsRes.json() : [];
+    const users = usersRes ? (await usersRes.json()).users || [] : [];
 
     // Fetch real loyalty accounts from API
     const loyaltyRes = await fetch(`${API_URL}/api/loyalty/accounts`).catch(e => { 
@@ -1372,12 +1931,14 @@ export async function getServerSideProps() {
         brands,
         properties,
         bookings: Array.isArray(bookings) ? bookings : [],
+        users,
         loyalty: loyaltyAccounts,
         stats: {
           brands: brands.length,
           properties: properties.length,
           bookings: Array.isArray(bookings) ? bookings.length : 0,
           loyalty: loyaltyAccounts.length,
+          users: users.length,
         }
       }
     };
@@ -1389,8 +1950,9 @@ export async function getServerSideProps() {
         brands: [],
         properties: [],
         bookings: [],
+        users: [],
         loyalty: [],
-        stats: { brands: 0, properties: 0, bookings: 0, loyalty: 0 }
+        stats: { brands: 0, properties: 0, bookings: 0, loyalty: 0, users: 0 }
       }
     };
   }

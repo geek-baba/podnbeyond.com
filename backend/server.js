@@ -38,6 +38,7 @@ const adminLimiter = rateLimit({
 
 const bookingRoutes = require('./routes/booking');
 const loyaltyRoutes = require('./routes/loyalty');
+const usersRoutes = require('./routes/users');
 const paymentRoutes = require('./routes/payment');
 const channelRoutes = require('./routes/channels');
 const cronRoutes = require('./routes/cron');
@@ -69,6 +70,7 @@ app.use('/api/otp', authLimiter, require('./routes/otp'));
 
 // Admin routes - Higher limit
 app.use('/api/admin/invites', adminLimiter, require('./routes/invites'));
+app.use('/api/users', adminLimiter, usersRoutes);
 
 // Email routes (Postmark integration)
 app.use('/api/email/send', apiLimiter, require('./routes/email').router || require('./routes/email'));
