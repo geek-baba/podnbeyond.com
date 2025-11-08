@@ -883,7 +883,7 @@ useEffect(() => {
                           ? (properties?.[0]?.id || null)
                           : (brands?.[0]?.id || null)
                     });
-                  })}
+                  }}
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   >
                     <option value="PROPERTY">Single Property</option>
