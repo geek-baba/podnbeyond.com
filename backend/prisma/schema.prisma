@@ -463,19 +463,22 @@ model Payment {
 
 // Updated LoyaltyAccount model to match specifications
 model LoyaltyAccount {
-  id          Int         @id @default(autoincrement())
-  userId      String      @unique
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  points      Int         @default(0)
-  tier        LoyaltyTier @default(SILVER)
-  lastUpdated DateTime    @default(now())
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            Int         @id @default(autoincrement())
+  memberNumber  String      @unique // Simple 6-digit number like "000001"
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points        Int         @default(0)
+  lifetimeStays Int         @default(0) // Track total stays for tier qualification
+  tier          LoyaltyTier @default(SILVER) // Auto-calculated based on points/stays
+  lastUpdated   DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   // Relationship to Bookings
   bookings Booking[]
 
   @@index([userId])
+  @@index([memberNumber])
   @@map("loyalty_accounts")
 }
 
