@@ -23,13 +23,25 @@ interface AdminDashboardProps {
   };
 }
 
+type StaffScopeType = 'PROPERTY' | 'BRAND' | 'ORG';
+
+interface NewUserFormState {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  roleKey: string;
+  scopeType: StaffScopeType;
+  scopeId: number | null;
+}
+
 export default function AdminDashboard({ brands, properties, bookings, loyalty, users, stats }: AdminDashboardProps) {
   const { data: session, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
   const defaultPropertyId = properties?.[0]?.id || null;
   const defaultBrandId = brands?.[0]?.id || null;
-  const defaultScopeType: 'PROPERTY' | 'BRAND' | 'ORG' = defaultPropertyId ? 'PROPERTY' : defaultBrandId ? 'BRAND' : 'ORG';
+  const defaultScopeType: StaffScopeType = defaultPropertyId ? 'PROPERTY' : defaultBrandId ? 'BRAND' : 'ORG';
   const defaultScopeId = defaultScopeType === 'PROPERTY' ? defaultPropertyId : defaultScopeType === 'BRAND' ? defaultBrandId : null;
   
   // Payment Gateway Settings
@@ -72,16 +84,19 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   const [showUserModal, setShowUserModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [userRole, setUserRole] = useState('STAFF_FRONTDESK');
-  const [userScopeType, setUserScopeType] = useState<'PROPERTY' | 'BRAND' | 'ORG'>('ORG');
+  const [userScopeType, setUserScopeType] = useState<StaffScopeType>('ORG');
   const [userScopeId, setUserScopeId] = useState<number | null>(null);
+  const [userFirstName, setUserFirstName] = useState('');
+  const [userLastName, setUserLastName] = useState('');
   const [userPhone, setUserPhone] = useState('');
-  const [newUserForm, setNewUserForm] = useState({
-    name: '',
+  const [newUserForm, setNewUserForm] = useState<NewUserFormState>({
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     roleKey: 'STAFF_FRONTDESK',
-    scopeType: 'PROPERTY',
-    scopeId: properties?.[0]?.id || null,
+    scopeType: defaultScopeType,
+    scopeId: defaultScopeId,
   });
 
   // Filter loyalty members based on search
@@ -796,10 +811,15 @@ useEffect(() => {
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <button
                               onClick={() => {
+                                const nameParts = (user.name || '').trim().split(/\s+/);
+                                const first = nameParts.shift() || '';
+                                const last = nameParts.join(' ');
                                 setEditingUser(user);
                                 setUserRole(user.roleKey || 'STAFF_FRONTDESK');
                                 setUserScopeType(user.scopeType || 'ORG');
                                 setUserScopeId(user.scopeType === 'ORG' ? null : user.scopeId || null);
+                                setUserFirstName(first);
+                                setUserLastName(last);
                                 setUserPhone(user.phone || '');
                                 setShowUserModal(true);
                               }}
@@ -1549,6 +1569,9 @@ useEffect(() => {
                 onClick={() => {
                   setShowUserModal(false);
                   setEditingUser(null);
+                  setUserFirstName('');
+                  setUserLastName('');
+                  setUserPhone('');
                 }}
                 className="text-neutral-500 hover:text-neutral-900 text-2xl font-bold"
               >
@@ -1561,7 +1584,7 @@ useEffect(() => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <label className="block text-xs text-neutral-500 uppercase tracking-wide">Name</label>
-                    <p className="text-neutral-900 font-semibold">{editingUser.name || 'N/A'}</p>
+                    <p className="text-neutral-900 font-semibold">{[userFirstName, userLastName].filter(Boolean).join(' ') || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-xs text-neutral-500 uppercase tracking-wide">Joined</label>
@@ -1579,6 +1602,33 @@ useEffect(() => {
               </div>
 
               <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={userFirstName}
+                      onChange={(e) => setUserFirstName(e.target.value)}
+                      placeholder="First name"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={userLastName}
+                      onChange={(e) => setUserLastName(e.target.value)}
+                      placeholder="Last name"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
@@ -1644,7 +1694,7 @@ useEffect(() => {
 
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Phone Number
+                    Phone Number *
                   </label>
                   <input
                     type="tel"
@@ -1662,6 +1712,9 @@ useEffect(() => {
                   onClick={() => {
                     setShowUserModal(false);
                     setEditingUser(null);
+                    setUserFirstName('');
+                    setUserLastName('');
+                    setUserPhone('');
                   }}
                 >
                   Cancel
@@ -1669,6 +1722,15 @@ useEffect(() => {
                 <Button
                   variant="primary"
                   onClick={async () => {
+                    const trimmedFirst = userFirstName.trim();
+                    const trimmedLast = userLastName.trim();
+                    const trimmedPhone = userPhone.trim();
+
+                    if (!trimmedFirst || !trimmedLast || !trimmedPhone) {
+                      alert('First name, last name, and phone number are required.');
+                      return;
+                    }
+
                     try {
                       const response = await fetch(`/api/users/${editingUser.id}`, {
                         method: 'PATCH',
@@ -1677,7 +1739,9 @@ useEffect(() => {
                           roleKey: userRole,
                           scopeType: userScopeType,
                           scopeId: userScopeType === 'ORG' ? null : userScopeId,
-                          phone: userPhone,
+                          phone: trimmedPhone,
+                          firstName: trimmedFirst,
+                          lastName: trimmedLast,
                         }),
                       });
 
@@ -1714,7 +1778,8 @@ useEffect(() => {
                 onClick={() => {
                   setShowAddUserModal(false);
                   setNewUserForm({
-                    name: '',
+                    firstName: '',
+                    lastName: '',
                     email: '',
                     phone: '',
                     roleKey: 'STAFF_FRONTDESK',
@@ -1729,17 +1794,31 @@ useEffect(() => {
             </div>
 
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={newUserForm.name}
-                  onChange={(e) => setNewUserForm({...newUserForm, name: e.target.value})}
-                  placeholder="Enter full name"
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserForm.firstName}
+                    onChange={(e) => setNewUserForm({...newUserForm, firstName: e.target.value})}
+                    placeholder="First name"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserForm.lastName}
+                    onChange={(e) => setNewUserForm({...newUserForm, lastName: e.target.value})}
+                    placeholder="Last name"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1758,7 +1837,7 @@ useEffect(() => {
 
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Phone Number
+                  Phone Number *
                 </label>
                 <input
                   type="tel"
@@ -1794,7 +1873,7 @@ useEffect(() => {
                   <select
                     value={newUserForm.scopeType}
                     onChange={(e) => {
-                      const value = e.target.value;
+                      const value = e.target.value as StaffScopeType;
                       setNewUserForm({
                         ...newUserForm,
                         scopeType: value,
@@ -1823,7 +1902,7 @@ useEffect(() => {
                     value={newUserForm.scopeId || ''}
                     onChange={(e) => {
                       const value = e.target.value;
-                      setNewUserForm({...newUserForm, scopeId: value ? parseInt(value) : null});
+                      setNewUserForm({...newUserForm, scopeId: value ? parseInt(value, 10) : null});
                     }}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   >
@@ -1840,7 +1919,8 @@ useEffect(() => {
                   onClick={() => {
                     setShowAddUserModal(false);
                     setNewUserForm({
-                      name: '',
+                      firstName: '',
+                      lastName: '',
                       email: '',
                       phone: '',
                       roleKey: 'STAFF_FRONTDESK',
@@ -1854,14 +1934,24 @@ useEffect(() => {
                 <Button
                   variant="primary"
                   onClick={async () => {
+                    const trimmedFirst = newUserForm.firstName.trim();
+                    const trimmedLast = newUserForm.lastName.trim();
+                    const trimmedPhone = newUserForm.phone.trim();
+
+                    if (!trimmedFirst || !trimmedLast || !trimmedPhone) {
+                      alert('First name, last name, and phone number are required.');
+                      return;
+                    }
+
                     try {
                       const response = await fetch('/api/users', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                          name: newUserForm.name,
+                          firstName: trimmedFirst,
+                          lastName: trimmedLast,
                           email: newUserForm.email,
-                          phone: newUserForm.phone,
+                          phone: trimmedPhone,
                           roleKey: newUserForm.roleKey,
                           scopeType: newUserForm.scopeType,
                           scopeId: newUserForm.scopeType === 'ORG' ? null : newUserForm.scopeId,
@@ -1870,6 +1960,15 @@ useEffect(() => {
 
                       if (response.ok) {
                         alert('User created successfully!');
+                        setNewUserForm({
+                          firstName: '',
+                          lastName: '',
+                          email: '',
+                          phone: '',
+                          roleKey: 'STAFF_FRONTDESK',
+                          scopeType: defaultScopeType,
+                          scopeId: defaultScopeId,
+                        });
                         setShowAddUserModal(false);
                         window.location.reload();
                       } else {

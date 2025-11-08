@@ -90,10 +90,11 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, roleKey, scopeType = 'ORG', scopeId = null } = req.body;
+    const { firstName, lastName, email, phone, roleKey, scopeType = 'ORG', scopeId = null } = req.body;
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
 
-    if (!email || !roleKey) {
-      return res.status(400).json({ error: 'Email and role are required' });
+    if (!email || !roleKey || !firstName || !lastName || !phone) {
+      return res.status(400).json({ error: 'First name, last name, email, phone, and role are required' });
     }
 
     // Ensure email is unique
@@ -104,9 +105,9 @@ router.post('/', async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        name: name || email.split('@')[0],
+        name: fullName || email.split('@')[0],
         email,
-        phone: phone || null,
+        phone,
       },
     });
 
@@ -123,7 +124,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      user,
+      user: {
+        ...user,
+        name: fullName || user.name,
+      },
     });
   } catch (error) {
     console.error('Error creating user:', error);
@@ -141,7 +145,17 @@ router.post('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { roleKey, scopeType = 'ORG', scopeId = null, phone } = req.body;
+    const {
+      roleKey,
+      scopeType = 'ORG',
+      scopeId = null,
+      phone,
+      firstName,
+      lastName,
+      name,
+    } = req.body;
+
+    const fullName = name || [firstName, lastName].filter(Boolean).join(' ').trim();
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -155,11 +169,20 @@ router.patch('/:id', async (req, res) => {
     }
 
     // Update phone if provided
-    if (phone !== undefined) {
-      await prisma.user.update({
-        where: { id },
-        data: { phone: phone || null },
-      });
+    if (phone !== undefined || fullName) {
+      const updateData = {};
+      if (phone !== undefined) {
+        updateData.phone = phone || null;
+      }
+      if (fullName) {
+        updateData.name = fullName;
+      }
+      if (Object.keys(updateData).length > 0) {
+        await prisma.user.update({
+          where: { id },
+          data: updateData,
+        });
+      }
     }
 
     if (roleKey) {
