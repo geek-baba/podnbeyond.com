@@ -23,11 +23,6 @@ export default function MemberLogin() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 [MemberLogin] status:', status, 'session:', session);
-  }, [status, session]);
-
   // Redirect if already logged in
   useEffect(() => {
     if (status === 'authenticated' && session) {

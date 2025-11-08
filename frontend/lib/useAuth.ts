@@ -85,14 +85,11 @@ export function useAuth() {
       if (!sessionToken) {
         console.log('❌ [useAuth] No session token found');
         sessionCache = { data: null, timestamp: Date.now() };
-        const newState = {
+        setAuthState({
           data: null,
-          status: 'unauthenticated' as const,
+          status: 'unauthenticated',
           error: null
-        };
-        console.log('📝 [useAuth] Setting state to:', newState);
-        setAuthState(newState);
-        console.log('✅ [useAuth] State set complete');
+        });
         return;
       }
 
