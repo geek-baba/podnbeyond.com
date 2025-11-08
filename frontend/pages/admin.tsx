@@ -497,10 +497,13 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <div className="font-bold text-lg text-neutral-900">
-                          {account.userId}
+                          {account.userName || account.userEmail}
                         </div>
                         <div className="text-sm text-neutral-500">
-                          Member since {new Date(account.createdAt).toLocaleDateString()}
+                          Member #{account.memberNumber}
+                        </div>
+                        <div className="text-xs text-neutral-400">
+                          {account.userEmail}
                         </div>
                       </div>
                       <Badge
@@ -519,10 +522,25 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                         <span className="text-neutral-600">Points Balance:</span>
                         <span className="font-bold text-neutral-900">{account.points.toLocaleString()}</span>
                       </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-neutral-600">Lifetime Stays:</span>
+                        <span className="font-semibold text-neutral-900">{account.lifetimeStays || 0}</span>
+                      </div>
+                      
+                      {account.userPhone && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-neutral-600">Phone:</span>
+                          <span className="text-neutral-700">{account.userPhone}</span>
+                        </div>
+                      )}
 
                       <div className="pt-3 border-t border-neutral-100">
                         <div className="text-xs text-neutral-500">
-                          Last activity: {new Date(account.lastUpdated).toLocaleDateString()}
+                          Member since: {new Date(account.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-neutral-500">
+                          Last updated: {new Date(account.lastUpdated).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
@@ -982,13 +1000,12 @@ export async function getServerSideProps() {
     const properties = propertiesRes ? (await propertiesRes.json()).properties || [] : [];
     const bookings = bookingsRes ? await bookingsRes.json() : [];
 
-    // For loyalty, query directly since API has routing issues
-    // Using a workaround - fetch individual accounts
-    const loyaltyAccounts = [
-      { userId: 'user_rajesh_001', points: 3998, tier: 'GOLD', id: 1, lastUpdated: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { userId: 'user_priya_002', points: 1250, tier: 'SILVER', id: 2, lastUpdated: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-      { userId: 'user_amit_003', points: 8500, tier: 'PLATINUM', id: 3, lastUpdated: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    ];
+    // Fetch real loyalty accounts from API
+    const loyaltyRes = await fetch(`${API_URL}/api/loyalty/accounts`).catch(e => { 
+      console.error('Loyalty fetch failed:', e); 
+      return null; 
+    });
+    const loyaltyAccounts = loyaltyRes ? (await loyaltyRes.json()).accounts || [] : [];
 
     console.log('Admin data fetched:', { 
       brands: brands.length, 
