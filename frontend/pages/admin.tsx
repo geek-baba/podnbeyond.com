@@ -1075,14 +1075,10 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                     <span className="ml-2 font-semibold">{editingMember.userName}</span>
                   </div>
                   <div>
-                    <span className="text-neutral-600">Email:</span>
-                    <span className="ml-2 font-semibold">{editingMember.userEmail}</span>
+                    <span className="text-neutral-600">Member #:</span>
+                    <span className="ml-2 font-semibold">{editingMember.memberNumber}</span>
                   </div>
-                  <div>
-                    <span className="text-neutral-600">Phone:</span>
-                    <span className="ml-2 font-semibold">{editingMember.userPhone || 'N/A'}</span>
-                  </div>
-                  <div>
+                  <div className="col-span-2">
                     <span className="text-neutral-600">Member Since:</span>
                     <span className="ml-2 font-semibold">
                       {new Date(editingMember.createdAt).toLocaleDateString()}
@@ -1093,6 +1089,30 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
 
               {/* Editable Fields */}
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={editingMember.userEmail}
+                    onChange={(e) => setEditingMember({...editingMember, userEmail: e.target.value})}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={editingMember.userPhone || ''}
+                    onChange={(e) => setEditingMember({...editingMember, userPhone: e.target.value})}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Points Balance
@@ -1152,6 +1172,8 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                          email: editingMember.userEmail,
+                          phone: editingMember.userPhone,
                           points: editingMember.points,
                           lifetimeStays: editingMember.lifetimeStays,
                           tier: editingMember.tier

@@ -60,7 +60,7 @@ router.get('/accounts', async (req, res) => {
 router.patch('/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { points, lifetimeStays, tier } = req.body;
+    const { email, phone, points, lifetimeStays, tier } = req.body;
 
     // Validate tier
     const validTiers = ['SILVER', 'GOLD', 'PLATINUM'];
@@ -71,16 +71,38 @@ router.patch('/accounts/:id', async (req, res) => {
       });
     }
 
-    // Update loyalty account
-    const updateData = {};
-    if (points !== undefined) updateData.points = parseInt(points);
-    if (lifetimeStays !== undefined) updateData.lifetimeStays = parseInt(lifetimeStays);
-    if (tier) updateData.tier = tier;
-    updateData.lastUpdated = new Date();
+    // Get the loyalty account first to find the user
+    const loyaltyAccount = await prisma.loyaltyAccount.findUnique({
+      where: { id: parseInt(id) },
+      select: { userId: true }
+    });
+
+    if (!loyaltyAccount) {
+      return res.status(404).json({ error: 'Loyalty account not found' });
+    }
+
+    // Update user info (email, phone) if provided
+    if (email || phone !== undefined) {
+      const userUpdateData = {};
+      if (email) userUpdateData.email = email;
+      if (phone !== undefined) userUpdateData.phone = phone || null;
+
+      await prisma.user.update({
+        where: { id: loyaltyAccount.userId },
+        data: userUpdateData
+      });
+    }
+
+    // Update loyalty account (points, stays, tier)
+    const loyaltyUpdateData = {};
+    if (points !== undefined) loyaltyUpdateData.points = parseInt(points);
+    if (lifetimeStays !== undefined) loyaltyUpdateData.lifetimeStays = parseInt(lifetimeStays);
+    if (tier) loyaltyUpdateData.tier = tier;
+    loyaltyUpdateData.lastUpdated = new Date();
 
     const updatedAccount = await prisma.loyaltyAccount.update({
       where: { id: parseInt(id) },
-      data: updateData,
+      data: loyaltyUpdateData,
       include: {
         user: {
           select: {
