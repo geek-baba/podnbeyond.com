@@ -31,7 +31,6 @@ export default function MembershipPage() {
       requirement: '25,000 points',
       subtext: 'or 10 stays',
       color: '#f59e0b',
-      popular: true,
       earnRate: '12 pts per ₹100 (+20%)',
       benefits: [
         'All Silver benefits',
