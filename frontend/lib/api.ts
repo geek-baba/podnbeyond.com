@@ -4,14 +4,14 @@
 
 /**
  * Get the API base URL based on environment
- * - Production: Uses relative URLs (proxied by Next.js rewrites)
- * - Development: Uses NEXT_PUBLIC_API_URL if set, otherwise relative URLs
+ * - Client-side: Always use relative URLs (proxied by Next.js rewrites)
+ * - Server-side: Use NEXT_PUBLIC_API_URL or localhost
  */
 export function getApiUrl(): string {
-  // In browser (client-side), use relative URLs for production
-  // Next.js rewrites will proxy /api/* to backend
+  // In browser (client-side), ALWAYS use relative URLs
+  // Next.js rewrites will proxy /api/* to backend on both staging and production
   if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || '';
+    return ''; // Relative URLs only
   }
   
   // On server (getServerSideProps), use full URL
