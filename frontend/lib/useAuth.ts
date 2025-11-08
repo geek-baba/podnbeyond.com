@@ -88,10 +88,8 @@ export function useAuth() {
         return;
       }
 
-      // Fetch from backend
-      // Use relative URL for production (Next.js rewrites), full URL for local dev
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/auth/session`, {
+      // Fetch from backend using relative URL (Next.js rewrites handle proxying)
+      const response = await fetch('/api/auth/session', {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${sessionToken}`,
@@ -139,9 +137,8 @@ export function useAuth() {
       const sessionToken = localStorage.getItem('pod-session-token');
       
       if (sessionToken) {
-        // Use relative URL for production (Next.js rewrites), full URL for local dev
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        await fetch(`${apiUrl}/api/auth/signout`, {
+        // Use relative URL (Next.js rewrites handle proxying)
+        await fetch('/api/auth/signout', {
           method: 'POST',
           credentials: 'include',
           headers: {
