@@ -51,6 +51,22 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // Loyalty Management
+  const [loyaltySearch, setLoyaltySearch] = useState('');
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Filter loyalty members based on search
+  const filteredLoyalty = loyalty.filter(account => {
+    if (!loyaltySearch) return true;
+    const search = loyaltySearch.toLowerCase();
+    return (
+      account.userName?.toLowerCase().includes(search) ||
+      account.userEmail?.toLowerCase().includes(search) ||
+      account.memberNumber?.includes(search)
+    );
+  });
+
   // Update time on client side only to avoid hydration mismatch
   useEffect(() => {
     setCurrentTime(new Date().toLocaleString());
@@ -485,76 +501,125 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
           {activeTab === 'loyalty' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-neutral-900">Loyalty Program</h2>
-                <div className="text-sm text-neutral-600">
-                  {loyalty.length} members
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-900">Loyalty Program</h2>
+                  <div className="text-sm text-neutral-600 mt-1">
+                    {loyalty.length} total members
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {loyalty.map((account) => (
-                  <Card key={account.id} variant="default" padding="lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <div className="font-bold text-lg text-neutral-900">
-                          {account.userName || account.userEmail}
-                        </div>
-                        <div className="text-sm text-neutral-500">
-                          Member #{account.memberNumber}
-                        </div>
-                        <div className="text-xs text-neutral-400">
-                          {account.userEmail}
-                        </div>
-                      </div>
-                      <Badge
-                        variant={
-                          account.tier === 'PLATINUM' ? 'neutral' :
-                          account.tier === 'GOLD' ? 'smart' : 'capsule'
-                        }
-                        size="md"
-                      >
-                        {account.tier}
-                      </Badge>
-                    </div>
+              {/* Search Bar */}
+              <Card variant="default" padding="md">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search by name, email, or member number..."
+                      value={loyaltySearch}
+                      onChange={(e) => setLoyaltySearch(e.target.value)}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                  </div>
+                  <div className="text-sm text-neutral-600">
+                    {filteredLoyalty.length} results
+                  </div>
+                </div>
+              </Card>
 
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-neutral-600">Points Balance:</span>
-                        <span className="font-bold text-neutral-900">{account.points.toLocaleString()}</span>
-                      </div>
-                      
-                      <div className="flex justify-between text-sm">
-                        <span className="text-neutral-600">Lifetime Stays:</span>
-                        <span className="font-semibold text-neutral-900">{account.lifetimeStays || 0}</span>
-                      </div>
-                      
-                      {account.userPhone && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-neutral-600">Phone:</span>
-                          <span className="text-neutral-700">{account.userPhone}</span>
-                        </div>
-                      )}
-
-                      <div className="pt-3 border-t border-neutral-100">
-                        <div className="text-xs text-neutral-500">
-                          Member since: {new Date(account.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="text-xs text-neutral-500">
-                          Last updated: {new Date(account.lastUpdated).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-          {loyalty.length === 0 && (
-            <div className="text-center py-12 text-neutral-500">
-              No loyalty members yet.
+              {/* Members List Table */}
+              {filteredLoyalty.length > 0 ? (
+                <Card variant="default" padding="none">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-neutral-50 border-b border-neutral-200">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                            Member
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                            Contact
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                            Tier
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                            Points
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                            Stays
+                          </th>
+                          <th className="px-6 py-3 text-center text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-neutral-200">
+                        {filteredLoyalty.map((account) => (
+                          <tr key={account.id} className="hover:bg-neutral-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div>
+                                <div className="font-semibold text-neutral-900">
+                                  {account.userName || 'N/A'}
+                                </div>
+                                <div className="text-sm text-neutral-500">
+                                  Member #{account.memberNumber}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm">
+                                <div className="text-neutral-900">{account.userEmail}</div>
+                                {account.userPhone && (
+                                  <div className="text-neutral-500">{account.userPhone}</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Badge
+                                variant={
+                                  account.tier === 'PLATINUM' ? 'neutral' :
+                                  account.tier === 'GOLD' ? 'smart' : 'capsule'
+                                }
+                                size="sm"
+                              >
+                                {account.tier}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <div className="font-semibold text-neutral-900">
+                                {account.points.toLocaleString()}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <div className="text-neutral-900">
+                                {account.lifetimeStays || 0}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <button
+                                onClick={() => {
+                                  setEditingMember(account);
+                                  setShowEditModal(true);
+                                }}
+                                className="text-neutral-900 hover:text-neutral-700 font-semibold text-sm"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              ) : (
+                <div className="text-center py-12 text-neutral-500">
+                  {loyaltySearch ? 'No members found matching your search.' : 'No loyalty members yet.'}
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
       {/* Users Tab */}
       {activeTab === 'users' && (
@@ -976,6 +1041,145 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
           )}
         </Container>
       </section>
+
+      {/* Edit Member Modal */}
+      {showEditModal && editingMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-neutral-900">Edit Member</h3>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    Member #{editingMember.memberNumber}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingMember(null);
+                  }}
+                  className="text-neutral-500 hover:text-neutral-900 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Member Info (Read-only) */}
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-neutral-600">Name:</span>
+                    <span className="ml-2 font-semibold">{editingMember.userName}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-600">Email:</span>
+                    <span className="ml-2 font-semibold">{editingMember.userEmail}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-600">Phone:</span>
+                    <span className="ml-2 font-semibold">{editingMember.userPhone || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-600">Member Since:</span>
+                    <span className="ml-2 font-semibold">
+                      {new Date(editingMember.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Points Balance
+                  </label>
+                  <input
+                    type="number"
+                    value={editingMember.points}
+                    onChange={(e) => setEditingMember({...editingMember, points: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Lifetime Stays
+                  </label>
+                  <input
+                    type="number"
+                    value={editingMember.lifetimeStays}
+                    onChange={(e) => setEditingMember({...editingMember, lifetimeStays: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Membership Tier
+                  </label>
+                  <select
+                    value={editingMember.tier}
+                    onChange={(e) => setEditingMember({...editingMember, tier: e.target.value})}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="SILVER">Silver</option>
+                    <option value="GOLD">Gold</option>
+                    <option value="PLATINUM">Platinum</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingMember(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/loyalty/accounts/${editingMember.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          points: editingMember.points,
+                          lifetimeStays: editingMember.lifetimeStays,
+                          tier: editingMember.tier
+                        })
+                      });
+
+                      if (response.ok) {
+                        alert('Member updated successfully!');
+                        setShowEditModal(false);
+                        setEditingMember(null);
+                        window.location.reload(); // Refresh to show updated data
+                      } else {
+                        const error = await response.json();
+                        alert('Failed to update: ' + error.error);
+                      }
+                    } catch (error) {
+                      alert('Error updating member');
+                      console.error(error);
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
