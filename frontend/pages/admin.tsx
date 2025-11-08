@@ -822,15 +822,16 @@ useEffect(() => {
           )}
 
           {/* Invite Form */}
-          <Card id="invite-staff" variant="default" padding="lg">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-neutral-900">👥 Invite Staff Member</h3>
-                <p className="text-neutral-600">Send an invitation to a new team member</p>
+          <div id="invite-staff">
+            <Card variant="default" padding="lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-neutral-900">👥 Invite Staff Member</h3>
+                  <p className="text-neutral-600">Send an invitation to a new team member</p>
+                </div>
               </div>
-            </div>
 
-            <form onSubmit={handleInvite} className="space-y-5">
+              <form onSubmit={handleInvite} className="space-y-5">
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
@@ -932,17 +933,18 @@ useEffect(() => {
               )}
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                variant="primary" 
-                size="lg" 
-                fullWidth
-                disabled={inviteLoading}
-              >
-                {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
-              </Button>
-            </form>
-          </Card>
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  size="lg" 
+                  fullWidth
+                  disabled={inviteLoading}
+                >
+                  {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
+                </Button>
+              </form>
+            </Card>
+          </div>
 
           {/* Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
