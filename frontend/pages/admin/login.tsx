@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Container from '../../components/layout/Container';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { apiRequest } from '../../lib/api';
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -39,15 +40,10 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Use relative URL for production (Next.js rewrites), full URL for local dev
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/otp/send`, {
+      const data = await apiRequest('/api/otp/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-
-      const data = await response.json();
 
       if (data.success) {
         setOtpSent(true);
@@ -123,21 +119,11 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Use relative URL for production (Next.js rewrites), full URL for local dev
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const response = await fetch(`${apiUrl}/api/otp/verify`, {
+      const data = await apiRequest('/api/otp/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email, otp: code }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      const data = await response.json();
 
       if (data.success && data.sessionToken) {
         // Store session token in localStorage
