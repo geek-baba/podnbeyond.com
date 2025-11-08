@@ -45,12 +45,21 @@ router.get('/session', async (req, res) => {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
+        phone: session.user.phone, // Add phone field
         roles: session.user.userRoles.map(ur => ({
           key: ur.roleKey,
           name: ur.role?.name || ur.roleKey,
           scopeType: ur.scopeType,
           scopeId: ur.scopeId
         })),
+        // Include full loyalty account object
+        loyaltyAccount: session.user.loyaltyAccount ? {
+          memberNumber: session.user.loyaltyAccount.memberNumber,
+          tier: session.user.loyaltyAccount.tier,
+          points: session.user.loyaltyAccount.points,
+          lifetimeStays: session.user.loyaltyAccount.lifetimeStays
+        } : null,
+        // Keep backwards compatibility
         loyaltyTier: session.user.loyaltyAccount?.tier || 'SILVER',
         loyaltyPoints: session.user.loyaltyAccount?.points || 0
       },

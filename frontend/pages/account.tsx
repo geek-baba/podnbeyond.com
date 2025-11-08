@@ -174,11 +174,14 @@ export default function MemberAccount() {
                     </p>
                   </Card>
                   <Card variant="default" padding="lg">
-                    <p className="text-sm text-neutral-600 mb-2">Next Tier</p>
+                    <p className="text-sm text-neutral-600 mb-2">Current Tier</p>
                     <p className="text-lg font-semibold text-neutral-900">
-                      {loyaltyAccount?.tier === 'SILVER' ? 'GOLD (2,500 pts)' : 
-                       loyaltyAccount?.tier === 'GOLD' ? 'PLATINUM (5,000 pts)' : 
-                       'PLATINUM (Achieved!)'}
+                      {loyaltyAccount?.tier || 'SILVER'}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {loyaltyAccount?.tier === 'SILVER' ? 'Next: GOLD at 25,000 pts' : 
+                       loyaltyAccount?.tier === 'GOLD' ? 'Next: PLATINUM at 75,000 pts' : 
+                       'Highest tier achieved!'}
                     </p>
                   </Card>
                 </div>
