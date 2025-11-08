@@ -874,7 +874,7 @@ useEffect(() => {
                   <select
                     value={inviteForm.scopeType}
                   onChange={(e) => {
-                    const value = e.target.value;
+                    const value = e.target.value as 'PROPERTY' | 'BRAND' | 'ORG';
                     setInviteForm({
                       ...inviteForm,
                       scopeType: value,
