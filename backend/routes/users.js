@@ -3,15 +3,32 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const STAFF_ROLE_KEYS = [
+  'STAFF_FRONTDESK',
+  'STAFF_OPS',
+  'MANAGER',
+  'ADMIN',
+  'SUPERADMIN',
+];
+
 /**
  * GET /api/users
- * List all users with primary role information
+ * List all staff/admin users with primary role information
  */
 router.get('/', async (req, res) => {
   try {
     const search = (req.query.search || '').toLowerCase();
 
     const users = await prisma.user.findMany({
+      where: {
+        userRoles: {
+          some: {
+            roleKey: {
+              in: STAFF_ROLE_KEYS,
+            },
+          },
+        },
+      },
       include: {
         userRoles: {
           include: {
@@ -38,8 +55,8 @@ router.get('/', async (req, res) => {
           phone: user.phone,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
-          roleKey: primaryRole?.roleKey || 'MEMBER',
-          roleName: primaryRole?.role?.name || 'Member',
+          roleKey: primaryRole?.roleKey || null,
+          roleName: primaryRole?.role?.name || primaryRole?.roleKey || null,
           scopeType: primaryRole?.scopeType || 'ORG',
           scopeId: primaryRole?.scopeId || null,
         };
