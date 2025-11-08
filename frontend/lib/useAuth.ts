@@ -33,7 +33,7 @@ let sessionCache: { data: Session | null; timestamp: number } | null = null;
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
 
 export function useAuth() {
-  // Initialize with cache if available and fresh
+  // Initialize with cache if available and fresh, OR check localStorage immediately
   const getInitialState = (): AuthState => {
     if (sessionCache && Date.now() - sessionCache.timestamp < CACHE_DURATION) {
       return {
@@ -41,6 +41,18 @@ export function useAuth() {
         status: sessionCache.data ? 'authenticated' : 'unauthenticated',
         error: null
       };
+    }
+    // Check if there's a session token in localStorage
+    // If not, start as unauthenticated instead of loading
+    if (typeof window !== 'undefined') {
+      const hasToken = localStorage.getItem('pod-session-token');
+      if (!hasToken) {
+        return {
+          data: null,
+          status: 'unauthenticated',
+          error: null
+        };
+      }
     }
     return {
       data: null,
