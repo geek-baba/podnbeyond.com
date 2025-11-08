@@ -55,6 +55,9 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   const [loyaltySearch, setLoyaltySearch] = useState('');
   const [editingMember, setEditingMember] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [bonusPoints, setBonusPoints] = useState(0);
+  const [bonusStays, setBonusStays] = useState(0);
+  const [bonusReason, setBonusReason] = useState('');
 
   // Filter loyalty members based on search
   const filteredLoyalty = loyalty.filter(account => {
@@ -600,11 +603,14 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                               <button
                                 onClick={() => {
                                   setEditingMember(account);
+                                  setBonusPoints(0);
+                                  setBonusStays(0);
+                                  setBonusReason('');
                                   setShowEditModal(true);
                                 }}
                                 className="text-neutral-900 hover:text-neutral-700 font-semibold text-sm"
                               >
-                                Edit
+                                Manage Member
                               </button>
                             </td>
                           </tr>
@@ -1042,22 +1048,20 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
         </Container>
       </section>
 
-      {/* Edit Member Modal */}
+      {/* Manage Member Modal */}
       {showEditModal && editingMember && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-neutral-200">
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-neutral-900">Edit Member</h3>
-                  <p className="text-sm text-neutral-600 mt-1">
-                    Member #{editingMember.memberNumber}
-                  </p>
-                </div>
+                <h3 className="text-xl font-bold text-neutral-900">Manage Member</h3>
                 <button
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingMember(null);
+                    setBonusPoints(0);
+                    setBonusStays(0);
+                    setBonusReason('');
                   }}
                   className="text-neutral-500 hover:text-neutral-900 text-2xl font-bold"
                 >
@@ -1066,73 +1070,171 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Member Info (Read-only) */}
-              <div className="bg-neutral-50 p-4 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="p-6 space-y-8">
+              {/* SECTION 1: Contact Information */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-lg text-neutral-900 border-b pb-2">Contact Information</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-neutral-600">Name:</span>
-                    <span className="ml-2 font-semibold">{editingMember.userName}</span>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">Name</label>
+                    <p className="text-neutral-900">{editingMember.userName || 'N/A'}</p>
                   </div>
                   <div>
-                    <span className="text-neutral-600">Member #:</span>
-                    <span className="ml-2 font-semibold">{editingMember.memberNumber}</span>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">Member #</label>
+                    <p className="text-neutral-900 font-mono">{editingMember.memberNumber}</p>
                   </div>
-                  <div className="col-span-2">
-                    <span className="text-neutral-600">Member Since:</span>
-                    <span className="ml-2 font-semibold">
-                      {new Date(editingMember.createdAt).toLocaleDateString()}
-                    </span>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">Member Since</label>
+                    <p className="text-neutral-900">{new Date(editingMember.createdAt).toLocaleDateString()}</p>
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">Status</label>
+                    <Badge
+                      variant={
+                        editingMember.tier === 'PLATINUM' ? 'neutral' :
+                        editingMember.tier === 'GOLD' ? 'smart' : 'capsule'
+                      }
+                      size="sm"
+                    >
+                      {editingMember.tier}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={editingMember.userEmail}
+                      onChange={(e) => setEditingMember({...editingMember, userEmail: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={editingMember.userPhone || ''}
+                      onChange={(e) => setEditingMember({...editingMember, userPhone: e.target.value})}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/loyalty/accounts/${editingMember.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            email: editingMember.userEmail,
+                            phone: editingMember.userPhone
+                          })
+                        });
+
+                        if (response.ok) {
+                          alert('Contact info updated successfully!');
+                          window.location.reload();
+                        } else {
+                          const error = await response.json();
+                          alert('Failed to update: ' + error.error);
+                        }
+                      } catch (error) {
+                        alert('Error updating contact info');
+                        console.error(error);
+                      }
+                    }}
+                  >
+                    Update Contact Info
+                  </Button>
                 </div>
               </div>
 
-              {/* Editable Fields */}
+              {/* SECTION 2: Loyalty Management */}
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={editingMember.userEmail}
-                    onChange={(e) => setEditingMember({...editingMember, userEmail: e.target.value})}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  />
+                <h4 className="font-bold text-lg text-neutral-900 border-b pb-2">Loyalty Management</h4>
+                
+                {/* Current Balances (Read-only) */}
+                <div className="grid grid-cols-3 gap-4 bg-neutral-50 p-4 rounded-lg">
+                  <div>
+                    <label className="block text-xs text-neutral-600 mb-1">Current Points</label>
+                    <p className="text-2xl font-bold text-neutral-900">{editingMember.points.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-600 mb-1">Lifetime Stays</label>
+                    <p className="text-2xl font-bold text-neutral-900">{editingMember.lifetimeStays || 0}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-600 mb-1">Current Tier</label>
+                    <Badge
+                      variant={
+                        editingMember.tier === 'PLATINUM' ? 'neutral' :
+                        editingMember.tier === 'GOLD' ? 'smart' : 'capsule'
+                      }
+                      size="md"
+                    >
+                      {editingMember.tier}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Add Bonus Points/Stays */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Add Bonus Points
+                    </label>
+                    <input
+                      type="number"
+                      value={bonusPoints}
+                      onChange={(e) => setBonusPoints(parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      min="0"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">
+                      New balance: {(editingMember.points + bonusPoints).toLocaleString()}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Add Bonus Stays
+                    </label>
+                    <input
+                      type="number"
+                      value={bonusStays}
+                      onChange={(e) => setBonusStays(parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      min="0"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">
+                      New total: {editingMember.lifetimeStays + bonusStays}
+                    </p>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Phone Number
+                    Reason for Adjustment
                   </label>
-                  <input
-                    type="tel"
-                    value={editingMember.userPhone || ''}
-                    onChange={(e) => setEditingMember({...editingMember, userPhone: e.target.value})}
-                    placeholder="+91 98765 43210"
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Points Balance
-                  </label>
-                  <input
-                    type="number"
-                    value={editingMember.points}
-                    onChange={(e) => setEditingMember({...editingMember, points: parseInt(e.target.value) || 0})}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Lifetime Stays
-                  </label>
-                  <input
-                    type="number"
-                    value={editingMember.lifetimeStays}
-                    onChange={(e) => setEditingMember({...editingMember, lifetimeStays: parseInt(e.target.value) || 0})}
+                  <textarea
+                    value={bonusReason}
+                    onChange={(e) => setBonusReason(e.target.value)}
+                    placeholder="E.g., Compensation for service issue, promotional bonus, etc."
+                    rows={2}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   />
                 </div>
@@ -1160,6 +1262,9 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingMember(null);
+                    setBonusPoints(0);
+                    setBonusStays(0);
+                    setBonusReason('');
                   }}
                 >
                   Cancel
@@ -1168,26 +1273,49 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
                   variant="primary"
                   onClick={async () => {
                     try {
-                      const response = await fetch(`/api/loyalty/accounts/${editingMember.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          email: editingMember.userEmail,
-                          phone: editingMember.userPhone,
-                          points: editingMember.points,
-                          lifetimeStays: editingMember.lifetimeStays,
-                          tier: editingMember.tier
-                        })
-                      });
+                      // Only send if there are actual changes
+                      if (bonusPoints === 0 && bonusStays === 0 && !bonusReason) {
+                        // Just update tier if changed
+                        const response = await fetch(`/api/loyalty/accounts/${editingMember.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ tier: editingMember.tier })
+                        });
 
-                      if (response.ok) {
-                        alert('Member updated successfully!');
-                        setShowEditModal(false);
-                        setEditingMember(null);
-                        window.location.reload(); // Refresh to show updated data
+                        if (response.ok) {
+                          alert('Tier updated successfully!');
+                          setShowEditModal(false);
+                          setEditingMember(null);
+                          window.location.reload();
+                        } else {
+                          const error = await response.json();
+                          alert('Failed to update: ' + error.error);
+                        }
                       } else {
-                        const error = await response.json();
-                        alert('Failed to update: ' + error.error);
+                        // Add bonus points/stays
+                        const response = await fetch(`/api/loyalty/accounts/${editingMember.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            addPoints: bonusPoints,
+                            addStays: bonusStays,
+                            reason: bonusReason || 'Admin adjustment',
+                            tier: editingMember.tier
+                          })
+                        });
+
+                        if (response.ok) {
+                          alert('Member updated successfully!');
+                          setShowEditModal(false);
+                          setEditingMember(null);
+                          setBonusPoints(0);
+                          setBonusStays(0);
+                          setBonusReason('');
+                          window.location.reload();
+                        } else {
+                          const error = await response.json();
+                          alert('Failed to update: ' + error.error);
+                        }
                       }
                     } catch (error) {
                       alert('Error updating member');

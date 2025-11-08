@@ -60,7 +60,7 @@ router.get('/accounts', async (req, res) => {
 router.patch('/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, phone, points, lifetimeStays, tier } = req.body;
+    const { email, phone, addPoints, addStays, reason, tier } = req.body;
 
     // Validate tier
     const validTiers = ['SILVER', 'GOLD', 'PLATINUM'];
@@ -71,10 +71,10 @@ router.patch('/accounts/:id', async (req, res) => {
       });
     }
 
-    // Get the loyalty account first to find the user
+    // Get the loyalty account first
     const loyaltyAccount = await prisma.loyaltyAccount.findUnique({
       where: { id: parseInt(id) },
-      select: { userId: true }
+      include: { user: true }
     });
 
     if (!loyaltyAccount) {
@@ -93,10 +93,24 @@ router.patch('/accounts/:id', async (req, res) => {
       });
     }
 
-    // Update loyalty account (points, stays, tier)
+    // Update loyalty account (ADD points/stays, not replace)
     const loyaltyUpdateData = {};
-    if (points !== undefined) loyaltyUpdateData.points = parseInt(points);
-    if (lifetimeStays !== undefined) loyaltyUpdateData.lifetimeStays = parseInt(lifetimeStays);
+    if (addPoints && addPoints > 0) {
+      loyaltyUpdateData.points = loyaltyAccount.points + parseInt(addPoints);
+      
+      // Create points ledger entry for audit trail
+      await prisma.pointsLedger.create({
+        data: {
+          userId: loyaltyAccount.userId,
+          points: parseInt(addPoints),
+          reason: reason || 'Admin bonus adjustment',
+          balanceAfter: loyaltyAccount.points + parseInt(addPoints)
+        }
+      });
+    }
+    if (addStays && addStays > 0) {
+      loyaltyUpdateData.lifetimeStays = loyaltyAccount.lifetimeStays + parseInt(addStays);
+    }
     if (tier) loyaltyUpdateData.tier = tier;
     loyaltyUpdateData.lastUpdated = new Date();
 
@@ -114,6 +128,14 @@ router.patch('/accounts/:id', async (req, res) => {
         }
       }
     });
+
+    // Log the changes
+    if (addPoints && addPoints > 0) {
+      console.log(`✅ Added ${addPoints} bonus points to Member #${updatedAccount.memberNumber} (${updatedAccount.user.email})`);
+    }
+    if (addStays && addStays > 0) {
+      console.log(`✅ Added ${addStays} bonus stays to Member #${updatedAccount.memberNumber} (${updatedAccount.user.email})`);
+    }
 
     res.json({
       success: true,
