@@ -905,7 +905,7 @@ useEffect(() => {
                     onChange={(e) => {
                       const value = e.target.value;
                       setInviteForm({...inviteForm, scopeId: value ? parseInt(value) : null});
-                    })}
+                    }}
                     className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   >
                     {inviteForm.scopeType === 'PROPERTY' ? (
