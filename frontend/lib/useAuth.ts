@@ -51,13 +51,6 @@ export function useAuth() {
 
   const [authState, setAuthState] = useState<AuthState>(getInitialState());
 
-  useEffect(() => {
-    // Only fetch if we don't have fresh cached data
-    if (!sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
-      fetchSession();
-    }
-  }, []);
-
   const fetchSession = useCallback(async (forceRefresh = false) => {
     try {
       console.log('🔍 [useAuth] Fetching session... forceRefresh:', forceRefresh);
@@ -131,6 +124,13 @@ export function useAuth() {
       }));
     }
   }, []);
+
+  useEffect(() => {
+    // Only fetch if we don't have fresh cached data
+    if (!sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
+      fetchSession();
+    }
+  }, [fetchSession]);
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
     try {
