@@ -259,7 +259,7 @@ useEffect(() => {
               <div className="flex space-x-3">
                 <a href="/admin/email">
                   <button className="px-6 py-2 bg-white text-neutral-900 rounded-button font-semibold hover:bg-neutral-100 transition-all">
-                    📧 Email Center
+                    💬 Communication Hub
                   </button>
                 </a>
                 <button
