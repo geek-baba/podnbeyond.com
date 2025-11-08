@@ -8,7 +8,9 @@ import Card from '../../components/ui/Card';
 export default function AcceptInvite() {
   const router = useRouter();
   const { token } = router.query;
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -18,11 +20,26 @@ export default function AcceptInvite() {
     setError('');
     setIsLoading(true);
 
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedFirst || !trimmedLast || !trimmedPhone) {
+      setError('Please provide your first name, last name, and phone number.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/invites/accept`, {
+      const response = await fetch('/api/admin/invites/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, name })
+        body: JSON.stringify({
+          token,
+          firstName: trimmedFirst,
+          lastName: trimmedLast,
+          phone: trimmedPhone,
+        })
       });
 
       const data = await response.json();
@@ -87,13 +104,43 @@ export default function AcceptInvite() {
                   <form onSubmit={handleAccept} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                        Your Name
+                        First Name *
                       </label>
                       <input
                         type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your full name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Enter your first name"
+                        required
+                        className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Enter your last name"
+                        required
+                        className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
                         required
                         className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                         disabled={isLoading}

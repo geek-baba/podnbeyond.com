@@ -68,6 +68,8 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   });
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Loyalty Management
   const [loyaltySearch, setLoyaltySearch] = useState('');
@@ -183,24 +185,42 @@ useEffect(() => {
     e.preventDefault();
     setInviteLoading(true);
     setInviteMessage(null);
+    setInviteLink(null);
+
+    const trimmedEmail = inviteForm.email.trim();
+    if (!trimmedEmail) {
+      setInviteMessage({ type: 'error', text: 'Email address is required.' });
+      setInviteLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch('http://localhost:4000/api/admin/invites', {
+      const response = await fetch('/api/admin/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(inviteForm)
+        body: JSON.stringify({
+          ...inviteForm,
+          email: trimmedEmail,
+        })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setInviteMessage({ type: 'success', text: `Invite sent to ${inviteForm.email}! Token: ${data.invite.token}` });
+        const inviteUrl = data?.invite?.inviteUrl;
+        setInviteMessage({
+          type: 'success',
+          text: `Invite sent to ${inviteForm.email}!`,
+        });
+        setInviteLink(inviteUrl || null);
         setInviteForm({ email: '', roleKey: 'STAFF_FRONTDESK', scopeType: defaultScopeType, scopeId: defaultScopeId });
       } else {
         setInviteMessage({ type: 'error', text: data.error || 'Failed to send invite' });
+        setInviteLink(null);
       }
     } catch (error) {
       setInviteMessage({ type: 'error', text: 'Network error. Please try again.' });
+      setInviteLink(null);
     } finally {
       setInviteLoading(false);
     }
@@ -732,10 +752,13 @@ useEffect(() => {
               <p className="text-neutral-600 mt-1">Invite staff members, manage permissions, and track access scopes.</p>
             </div>
             <div className="flex flex-col md:flex-row gap-3">
-              <Button variant="secondary" onClick={() => {
-                const inviteSection = document.getElementById('invite-staff');
-                if (inviteSection) inviteSection.scrollIntoView({ behavior: 'smooth' });
-              }}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setInviteMessage(null);
+                  setShowInviteModal(true);
+                }}
+              >
                 Invite User
               </Button>
               <Button variant="primary" onClick={() => setShowAddUserModal(true)}>
@@ -840,131 +863,6 @@ useEffect(() => {
               {userSearch ? 'No users found for this search.' : 'No staff members yet.'}
             </div>
           )}
-
-          {/* Invite Form */}
-          <div id="invite-staff">
-            <Card variant="default" padding="lg">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-neutral-900">👥 Invite Staff Member</h3>
-                  <p className="text-neutral-600">Send an invitation to a new team member</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleInvite} className="space-y-5">
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={inviteForm.email}
-                  onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})}
-                  placeholder="staff@podnbeyond.com"
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                />
-              </div>
-
-              {/* Role */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Role *
-                  </label>
-                  <select
-                    value={inviteForm.roleKey}
-                    onChange={(e) => setInviteForm({...inviteForm, roleKey: e.target.value})}
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  >
-                    <option value="STAFF_FRONTDESK">Front Desk Staff</option>
-                    <option value="STAFF_OPS">Operations Staff</option>
-                    <option value="MANAGER">Property Manager</option>
-                    <option value="ADMIN">Group Administrator</option>
-                    <option value="SUPERADMIN">Super Administrator</option>
-                  </select>
-                </div>
-
-                {/* Scope Type */}
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Access Scope *
-                  </label>
-                  <select
-                    value={inviteForm.scopeType}
-                  onChange={(e) => {
-                    const value = e.target.value as 'PROPERTY' | 'BRAND' | 'ORG';
-                    setInviteForm({
-                      ...inviteForm,
-                      scopeType: value,
-                      scopeId: value === 'ORG'
-                        ? null
-                        : value === 'PROPERTY'
-                          ? (properties?.[0]?.id || null)
-                          : (brands?.[0]?.id || null)
-                    });
-                  }}
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  >
-                    <option value="PROPERTY">Single Property</option>
-                    <option value="BRAND">Brand-Wide</option>
-                    <option value="ORG">Organization-Wide</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Scope ID (for property/brand) */}
-              {inviteForm.scopeType !== 'ORG' && (
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    {inviteForm.scopeType === 'PROPERTY' ? 'Property' : 'Brand'} *
-                  </label>
-                  <select
-                    value={inviteForm.scopeId}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setInviteForm({...inviteForm, scopeId: value ? parseInt(value) : null});
-                    }}
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  >
-                    {inviteForm.scopeType === 'PROPERTY' ? (
-                      properties.map(prop => (
-                        <option key={prop.id} value={prop.id}>{prop.name}</option>
-                      ))
-                    ) : (
-                      brands.map(brand => (
-                        <option key={brand.id} value={brand.id}>{brand.name}</option>
-                      ))
-                    )}
-                  </select>
-                </div>
-              )}
-
-              {/* Success/Error Message */}
-              {inviteMessage && (
-                <div className={`p-4 rounded-lg ${
-                  inviteMessage.type === 'success' 
-                    ? 'bg-green-50 text-green-800 border border-green-200' 
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}>
-                  {inviteMessage.text}
-                </div>
-              )}
-
-              {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  size="lg" 
-                  fullWidth
-                  disabled={inviteLoading}
-                >
-                  {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
-                </Button>
-              </form>
-            </Card>
-          </div>
 
           {/* Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1555,6 +1453,163 @@ useEffect(() => {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite User Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-neutral-900">Invite Staff Member</h3>
+              <button
+                onClick={() => {
+                  setShowInviteModal(false);
+                  setInviteMessage(null);
+                  setInviteLink(null);
+                  setInviteForm({
+                    email: '',
+                    roleKey: 'STAFF_FRONTDESK',
+                    scopeType: defaultScopeType,
+                    scopeId: defaultScopeId,
+                  });
+                }}
+                className="text-neutral-500 hover:text-neutral-900 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleInvite} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={inviteForm.email}
+                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                    placeholder="staff@podnbeyond.com"
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Role *
+                  </label>
+                  <select
+                    value={inviteForm.roleKey}
+                    onChange={(e) => setInviteForm({ ...inviteForm, roleKey: e.target.value })}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="STAFF_FRONTDESK">Front Desk Staff</option>
+                    <option value="STAFF_OPS">Operations Staff</option>
+                    <option value="MANAGER">Property Manager</option>
+                    <option value="ADMIN">Group Administrator</option>
+                    <option value="SUPERADMIN">Super Administrator</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Access Scope *
+                  </label>
+                  <select
+                    value={inviteForm.scopeType}
+                    onChange={(e) => {
+                      const value = e.target.value as StaffScopeType;
+                      setInviteForm({
+                        ...inviteForm,
+                        scopeType: value,
+                        scopeId:
+                          value === 'ORG'
+                            ? null
+                            : value === 'PROPERTY'
+                              ? properties?.[0]?.id || null
+                              : brands?.[0]?.id || null,
+                      });
+                    }}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="PROPERTY">Single Property</option>
+                    <option value="BRAND">Brand-Wide</option>
+                    <option value="ORG">Organization-Wide</option>
+                  </select>
+                </div>
+              </div>
+
+              {inviteForm.scopeType !== 'ORG' && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    {inviteForm.scopeType === 'PROPERTY' ? 'Property' : 'Brand'} *
+                  </label>
+                  <select
+                    value={inviteForm.scopeId || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setInviteForm({
+                        ...inviteForm,
+                        scopeId: value ? parseInt(value, 10) : null,
+                      });
+                    }}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    {(inviteForm.scopeType === 'PROPERTY' ? properties : brands).map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {inviteMessage && (
+                <div
+                  className={`p-4 rounded-lg ${
+                    inviteMessage.type === 'success'
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}
+                >
+                  <p>{inviteMessage.text}</p>
+                  {inviteMessage.type === 'success' && inviteLink && (
+                    <p className="mt-2 text-sm">
+                      <span className="font-semibold">Invite Link:</span>{' '}
+                      <a href={inviteLink} target="_blank" rel="noopener noreferrer" className="underline break-all">
+                        {inviteLink}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowInviteModal(false);
+                    setInviteMessage(null);
+                    setInviteLink(null);
+                    setInviteForm({
+                      email: '',
+                      roleKey: 'STAFF_FRONTDESK',
+                      scopeType: defaultScopeType,
+                      scopeId: defaultScopeId,
+                    });
+                  }}
+                  type="button"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="lg" disabled={inviteLoading}>
+                  {inviteLoading ? 'Sending Invitation...' : 'Send Invitation'}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

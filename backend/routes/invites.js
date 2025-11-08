@@ -164,7 +164,7 @@ router.post('/', async (req, res) => {
  */
 router.post('/accept', async (req, res) => {
   try {
-    const { token, name } = req.body;
+    const { token, firstName, lastName, phone } = req.body;
 
     if (!token) {
       return res.status(400).json({
@@ -172,6 +172,26 @@ router.post('/accept', async (req, res) => {
         error: 'Invite token required'
       });
     }
+
+    if (!firstName || !lastName || !phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'First name, last name, and phone number are required'
+      });
+    }
+
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedFirst || !trimmedLast || !trimmedPhone) {
+      return res.status(400).json({
+        success: false,
+        error: 'First name, last name, and phone number are required'
+      });
+    }
+
+    const fullName = [trimmedFirst, trimmedLast].filter(Boolean).join(' ').trim();
 
     // Find invite
     const invite = await prisma.invite.findUnique({
@@ -206,7 +226,8 @@ router.post('/accept', async (req, res) => {
     const user = await prisma.user.create({
       data: {
         email: invite.email,
-        name: name || invite.email.split('@')[0],
+        name: fullName || invite.email.split('@')[0],
+        phone: trimmedPhone,
         emailVerified: new Date()
       }
     });
