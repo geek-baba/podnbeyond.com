@@ -200,7 +200,11 @@ export default function CommunicationHub() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="secondary" onClick={() => router.push('/admin')}>
+              <Button
+                variant="secondary"
+                onClick={() => router.push('/admin')}
+                className="border-white text-white hover:bg-white hover:text-neutral-900 focus:ring-white focus:ring-offset-neutral-900"
+              >
                 ← Back to Admin
               </Button>
               <Button variant="primary" onClick={loadThreads}>

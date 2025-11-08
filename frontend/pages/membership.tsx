@@ -389,7 +389,11 @@ export default function MembershipPage() {
                 </Button>
               </a>
               <a href="mailto:info@podnbeyond.com?subject=Membership Inquiry">
-                <Button variant="secondary" size="xl">
+                <Button
+                  variant="secondary"
+                  size="xl"
+                  className="border-white text-white hover:bg-white hover:text-neutral-900 focus:ring-white focus:ring-offset-neutral-900"
+                >
                   Contact Us
                 </Button>
               </a>
