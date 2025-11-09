@@ -53,12 +53,14 @@ async function backfillRoomTypes() {
       const capacity = rooms[0]?.capacity || 1;
       const pricePerNight = rooms[0]?.pricePerNight || 0;
       const description = rooms[0]?.description || null;
-      const code =
-        rooms[0]?.typeCode ||
-        typeName
-          .replace(/[^a-zA-Z0-9]+/g, '_')
-          .replace(/(^_+|_+$)/g, '')
-          .toUpperCase();
+      const normalizedType = typeName
+        .replace(/[^a-zA-Z0-9]+/g, '_')
+        .replace(/(^_+|_+$)/g, '')
+        .toUpperCase();
+      const codeBase = `${property.slug}_${normalizedType || 'TYPE'}`
+        .replace(/[^a-zA-Z0-9]+/g, '_')
+        .slice(0, 48)
+        .toUpperCase();
 
       let roomType = existing;
 
@@ -66,6 +68,7 @@ async function backfillRoomTypes() {
         roomType = await prisma.roomType.update({
           where: { id: existing.id },
           data: {
+            code: codeBase,
             baseRooms: rooms.length,
             capacity,
             description,
@@ -78,7 +81,7 @@ async function backfillRoomTypes() {
           data: {
             propertyId: property.id,
             name: typeName,
-            code,
+            code: codeBase,
             baseRooms: rooms.length,
             capacity,
             description,
