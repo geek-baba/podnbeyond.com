@@ -1,4 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const {
+  getDateRange,
+  normalizeDate,
+  ensureInventoryRow,
+  updateInventoryWithConfirmation,
+} = require('../lib/inventoryUtils');
 
 const prisma = new PrismaClient();
 
@@ -129,9 +135,19 @@ class ChannelManager {
       
       const config = this.validateChannelConfig(channelId);
       
-      // If no rooms provided, fetch from database
       if (!rooms) {
-        rooms = await this.getRoomAvailability(startDate, endDate);
+        rooms = await this.getRoomAvailability(startDate, endDate, channelId);
+      } else {
+        rooms = rooms.filter((room) => room.mapping?.provider === channelId);
+      }
+
+      if (!rooms || rooms.length === 0) {
+        console.log(`ℹ️  No mapped room types found for channel ${channelId}. Skipping availability push.`);
+        return {
+          success: true,
+          message: 'No mapped room types to sync',
+          syncedRooms: 0,
+        };
       }
 
       let result;
@@ -341,35 +357,118 @@ class ChannelManager {
   /**
    * Get room availability from database
    */
-  async getRoomAvailability(startDate, endDate) {
+  async getRoomAvailability(startDate, endDate, channelId = null) {
     try {
-      const rooms = await prisma.room.findMany({
-        where: { status: 'ACTIVE' },
+      const start = normalizeDate(startDate);
+      const end = normalizeDate(endDate);
+      const inclusiveEnd = new Date(end);
+      inclusiveEnd.setUTCDate(inclusiveEnd.getUTCDate() + 1);
+
+      const mappings = await prisma.oTAMapping.findMany({
+        where: {
+          isActive: true,
+          ...(channelId ? { provider: channelId } : {}),
+        },
         include: {
-          bookings: {
-            where: {
-              checkIn: { lte: endDate },
-              checkOut: { gte: startDate },
-              status: { in: ['PENDING', 'CONFIRMED'] }
-            }
-          }
-        }
+          property: true,
+          roomType: {
+            include: {
+              property: true,
+              ratePlans: true,
+            },
+          },
+          ratePlan: true,
+        },
       });
 
-      return rooms.map(room => ({
-        roomId: room.id,
-        roomType: room.type,
-        roomName: room.name,
-        pricePerNight: room.pricePerNight,
-        capacity: room.capacity,
-        totalRooms: 1, // Assuming 1 room per type for now
-        availableRooms: room.bookings.length === 0 ? 1 : 0,
-        bookings: room.bookings.map(booking => ({
-          checkIn: booking.checkIn,
-          checkOut: booking.checkOut,
-          status: booking.status
-        }))
-      }));
+      const roomTypeIds = [
+        ...new Set(
+          mappings
+            .filter((mapping) => mapping.roomTypeId)
+            .map((mapping) => mapping.roomTypeId)
+        ),
+      ];
+
+      if (roomTypeIds.length === 0) {
+        return [];
+      }
+
+      const inventories = await prisma.inventory.findMany({
+        where: {
+          roomTypeId: { in: roomTypeIds },
+          date: {
+            gte: start,
+            lt: inclusiveEnd,
+          },
+        },
+        orderBy: { date: 'asc' },
+      });
+
+      const inventoryMap = new Map();
+      inventories.forEach((inv) => {
+        const key = `${inv.roomTypeId}:${normalizeDate(inv.date).toISOString()}`;
+        inventoryMap.set(key, inv);
+      });
+
+      const rooms = [];
+
+      for (const mapping of mappings) {
+        const roomType = mapping.roomType;
+        if (!roomType || !roomType.isActive) {
+          continue;
+        }
+
+        const property = mapping.property || roomType.property;
+        if (!property || property.status !== 'ACTIVE') {
+          continue;
+        }
+
+        const rangeDates = getDateRange(start, inclusiveEnd);
+        const availability = [];
+
+        for (const date of rangeDates) {
+          const normalizedDate = normalizeDate(date);
+          const mapKey = `${roomType.id}:${normalizedDate.toISOString()}`;
+          let inventory = inventoryMap.get(mapKey);
+
+          if (!inventory) {
+            inventory = await ensureInventoryRow(prisma, property, roomType, normalizedDate);
+            inventoryMap.set(mapKey, inventory);
+          }
+
+          availability.push({
+            date: normalizedDate.toISOString(),
+            sellable: inventory.sellable,
+            booked: inventory.booked,
+            holds: inventory.holds,
+            freeToSell: inventory.freeToSell,
+            bufferPercent: inventory.bufferPercent,
+          });
+        }
+
+        const primaryRatePlan = mapping.ratePlan || roomType.ratePlans?.[0] || null;
+
+        rooms.push({
+          propertyId: property.id,
+          propertyName: property.name,
+          propertySlug: property.slug,
+          roomTypeId: roomType.id,
+          roomTypeName: roomType.name,
+          capacity: roomType.capacity,
+          baseRooms: roomType.baseRooms,
+          ratePlanId: primaryRatePlan ? primaryRatePlan.id : null,
+          ratePlanCode: primaryRatePlan ? primaryRatePlan.code : null,
+          mapping: {
+            provider: mapping.provider,
+            externalPropertyCode: mapping.externalPropertyCode,
+            externalRoomCode: mapping.externalRoomCode,
+            externalRateCode: mapping.externalRateCode,
+          },
+          availability,
+        });
+      }
+
+      return rooms;
     } catch (error) {
       console.error('Error fetching room availability:', error);
       throw error;
@@ -381,16 +480,23 @@ class ChannelManager {
    */
   validateBookingData(bookingData) {
     const requiredFields = [
-      'guestName', 'email', 'checkIn', 'checkOut', 
-      'guests', 'roomType', 'totalPrice'
+      'guestName', 'email', 'checkIn', 'checkOut', 'totalPrice'
     ];
-    
+
     for (const field of requiredFields) {
       if (!bookingData[field]) {
         throw new Error(`Missing required field: ${field}`);
       }
     }
-    
+
+    if (
+      !bookingData.roomTypeId &&
+      !bookingData.roomTypeCode &&
+      !bookingData.externalRoomCode
+    ) {
+      throw new Error('Missing room type reference (roomTypeId, roomTypeCode, or externalRoomCode required)');
+    }
+
     // Validate dates
     const checkIn = new Date(bookingData.checkIn);
     const checkOut = new Date(bookingData.checkOut);
@@ -399,50 +505,57 @@ class ChannelManager {
       throw new Error('Check-out date must be after check-in date');
     }
     
-    if (checkIn < new Date()) {
-      throw new Error('Check-in date cannot be in the past');
-    }
+    // Allow past check-ins for OTA modifications (they may send historical data)
+  }
+
+  buildAvailabilityPayload(rooms) {
+    return rooms.map((room) => ({
+      propertyId: room.propertyId,
+      propertyName: room.propertyName,
+      roomTypeId: room.roomTypeId,
+      roomTypeName: room.roomTypeName,
+      capacity: room.capacity,
+      baseRooms: room.baseRooms,
+      externalPropertyCode: room.mapping?.externalPropertyCode || null,
+      externalRoomCode: room.mapping?.externalRoomCode || null,
+      externalRateCode: room.mapping?.externalRateCode || null,
+      ratePlanCode: room.ratePlanCode,
+      availability: room.availability,
+    }));
   }
 
   // ===== MakeMyTrip Integration Methods =====
   
   async pushMakeMyTripAvailability(config, startDate, endDate, rooms) {
-    console.log(`🔄 [MakeMyTrip] Pushing availability for ${rooms.length} rooms`);
+    const payloadRooms = this.buildAvailabilityPayload(rooms);
+
+    console.log(`🔄 [MakeMyTrip] Pushing availability for ${payloadRooms.length} mapped room types`);
     console.log(`📅 Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
-    
-    // Placeholder API call to MakeMyTrip
+
     const apiPayload = {
       hotelId: config.hotelId,
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
-      rooms: rooms.map(room => ({
-        roomType: room.roomType,
-        roomName: room.roomName,
-        pricePerNight: room.pricePerNight,
-        availableRooms: room.availableRooms,
-        totalRooms: room.totalRooms,
-        capacity: room.capacity
-      }))
+      inventory: payloadRooms,
     };
 
     console.log(`📤 [MakeMyTrip] API Payload:`, JSON.stringify(apiPayload, null, 2));
-    
-    // Simulate API call (placeholder)
+
     const mockResponse = {
       success: true,
       message: 'Availability updated successfully',
-      syncedRooms: rooms.length,
-      timestamp: new Date().toISOString()
+      syncedRooms: payloadRooms.length,
+      timestamp: new Date().toISOString(),
     };
 
     console.log(`✅ [MakeMyTrip] Availability push completed`);
-    
+
     return {
       success: true,
       channel: 'MakeMyTrip',
-      syncedRooms: rooms.length,
+      syncedRooms: payloadRooms.length,
       message: 'Availability pushed successfully',
-      apiResponse: mockResponse
+      apiResponse: mockResponse,
     };
   }
 
@@ -553,13 +666,15 @@ class ChannelManager {
   // ===== Yatra Integration Methods =====
   
   async pushYatraAvailability(config, startDate, endDate, rooms) {
-    console.log(`🔄 [Yatra] Pushing availability for ${rooms.length} rooms`);
-    
+    const payloadRooms = this.buildAvailabilityPayload(rooms);
+    console.log(`🔄 [Yatra] Pushing availability for ${payloadRooms.length} mapped room types`);
+
     return {
       success: true,
       channel: 'Yatra',
-      syncedRooms: rooms.length,
-      message: 'Availability pushed successfully (placeholder)'
+      syncedRooms: payloadRooms.length,
+      message: 'Availability pushed successfully (placeholder)',
+      payload: payloadRooms,
     };
   }
 
@@ -592,13 +707,15 @@ class ChannelManager {
   // ===== Goibibo Integration Methods =====
   
   async pushGoibiboAvailability(config, startDate, endDate, rooms) {
-    console.log(`🔄 [Goibibo] Pushing availability for ${rooms.length} rooms`);
-    
+    const payloadRooms = this.buildAvailabilityPayload(rooms);
+    console.log(`🔄 [Goibibo] Pushing availability for ${payloadRooms.length} mapped room types`);
+
     return {
       success: true,
       channel: 'Goibibo',
-      syncedRooms: rooms.length,
-      message: 'Availability pushed successfully (placeholder)'
+      syncedRooms: payloadRooms.length,
+      message: 'Availability pushed successfully (placeholder)',
+      payload: payloadRooms,
     };
   }
 
@@ -631,13 +748,15 @@ class ChannelManager {
   // ===== Booking.com Integration Methods =====
   
   async pushBookingAvailability(config, startDate, endDate, rooms) {
-    console.log(`🔄 [Booking.com] Pushing availability for ${rooms.length} rooms`);
-    
+    const payloadRooms = this.buildAvailabilityPayload(rooms);
+    console.log(`🔄 [Booking.com] Pushing availability for ${payloadRooms.length} mapped room types`);
+
     return {
       success: true,
       channel: 'Booking.com',
-      syncedRooms: rooms.length,
-      message: 'Availability pushed successfully (placeholder)'
+      syncedRooms: payloadRooms.length,
+      message: 'Availability pushed successfully (placeholder)',
+      payload: payloadRooms,
     };
   }
 
@@ -670,13 +789,15 @@ class ChannelManager {
   // ===== Agoda Integration Methods =====
   
   async pushAgodaAvailability(config, startDate, endDate, rooms) {
-    console.log(`🔄 [Agoda] Pushing availability for ${rooms.length} rooms`);
-    
+    const payloadRooms = this.buildAvailabilityPayload(rooms);
+    console.log(`🔄 [Agoda] Pushing availability for ${payloadRooms.length} mapped room types`);
+
     return {
       success: true,
       channel: 'Agoda',
-      syncedRooms: rooms.length,
-      message: 'Availability pushed successfully (placeholder)'
+      syncedRooms: payloadRooms.length,
+      message: 'Availability pushed successfully (placeholder)',
+      payload: payloadRooms,
     };
   }
 

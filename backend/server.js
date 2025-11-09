@@ -41,8 +41,12 @@ const loyaltyRoutes = require('./routes/loyalty');
 const usersRoutes = require('./routes/users');
 const paymentRoutes = require('./routes/payment');
 const channelRoutes = require('./routes/channels');
+const inventoryRoutes = require('./routes/inventory');
+const bufferRuleRoutes = require('./routes/bufferRules');
+const otaMappingRoutes = require('./routes/otaMappings');
 const cronRoutes = require('./routes/cron');
 const cmsRoutes = require('./routes/cms');
+const { initHoldReleaseJob } = require('./jobs/holdReleaseJob');
 
 // Import cron service
 const cronService = require('./services/cronService');
@@ -80,6 +84,8 @@ app.use('/api/email', apiLimiter, require('./routes/email')); // Other email end
 
 // Business routes - General API limiting
 app.use('/api/booking', apiLimiter, bookingRoutes);
+app.use('/api/inventory', apiLimiter, inventoryRoutes);
+app.use('/api/admin/buffer-rules', adminLimiter, bufferRuleRoutes);
 app.use('/api/loyalty', apiLimiter, loyaltyRoutes);
 app.use('/api/payment', apiLimiter, paymentRoutes);
 app.use('/api/channels', apiLimiter, channelRoutes);
@@ -88,6 +94,7 @@ app.use('/api/cms', apiLimiter, cmsRoutes);
 app.use('/api/gallery', apiLimiter, require('./routes/gallery'));
 app.use('/api/properties', apiLimiter, require('./routes/properties'));
 app.use('/api/brands', apiLimiter, require('./routes/brands'));
+app.use('/api/admin/ota-mappings', adminLimiter, otaMappingRoutes);
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {
@@ -106,4 +113,6 @@ app.listen(port, () => {
   // Uncomment the line below to enable external booking sync on production
   // cronService.start();
   console.log('ℹ️  Cron service disabled for local development');
+
+  initHoldReleaseJob();
 });

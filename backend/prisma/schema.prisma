@@ -11,10 +11,23 @@ datasource db {
 }
 
 enum BookingStatus {
+  HOLD
   PENDING
   CONFIRMED
   CANCELLED
   COMPLETED
+  FAILED
+  NO_SHOW
+}
+
+enum BookingSource {
+  DIRECT
+  MMT
+  GOIBIBO
+  YATRA
+  BOOKING_COM
+  AGODA
+  OTHER
 }
 
 enum PaymentStatus {
@@ -355,6 +368,11 @@ model Property {
   latitude     Float?
   longitude    Float?
   status       PropertyStatus @default(ACTIVE)
+  timezone     String?        @default("Asia/Kolkata")
+  defaultBuffer Int           @default(0)
+  currency     String?        @default("INR")
+  checkInCutoffMinutes Int?   @default(0)
+  overbookingEnabled Boolean  @default(true)
 
   // Brand relationship
   brandId Int?
@@ -365,12 +383,48 @@ model Property {
 
   // Relationships
   rooms        Room[]
+  roomTypes    RoomType[]
+  inventories  Inventory[]
+  bufferRules  BufferRule[]
+  bookings     Booking[]
+  otaMappings  OTAMapping[]
+  ratePlans    RatePlan[]
   emailThreads Thread[] // Email conversations about this property
+  idempotencyKeys IdempotencyKey[]
 
   @@map("properties")
 }
 
-// Updated Room model to match specifications
+model RoomType {
+  id              Int        @id @default(autoincrement())
+  propertyId      Int
+  property        Property   @relation(fields: [propertyId], references: [id])
+  name            String
+  code            String?    @unique
+  description     String?
+  baseRooms       Int        @default(0)
+  capacity        Int        @default(1)
+  bedConfig       String?
+  amenities       String[]   @default([])
+  features        String[]   @default([])
+  isActive        Boolean    @default(true)
+  images          String[]   @default([])
+  sortOrder       Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  rooms           Room[]
+  inventories     Inventory[]
+  bufferRules     BufferRule[]
+  ratePlans       RatePlan[]
+  bookings        Booking[]
+  otaMappings     OTAMapping[]
+
+  @@index([propertyId, isActive])
+  @@map("room_types")
+}
+
+// Updated Room model to match new specifications (optional physical room mapping)
 model Room {
   id            Int        @id @default(autoincrement())
   name          String
@@ -384,13 +438,16 @@ model Room {
   propertyId Int
   property   Property @relation(fields: [propertyId], references: [id])
 
+  // Room type relationship (optional physical room tracking)
+  roomTypeId Int?
+  roomType   RoomType? @relation(fields: [roomTypeId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relationships
   bookings  Booking[]
   images    RoomImage[]
-  ratePlans RatePlan[]
 
   @@map("rooms")
 }
@@ -398,16 +455,33 @@ model Room {
 // New RatePlan model
 model RatePlan {
   id            Int      @id @default(autoincrement())
-  roomId        Int
+  propertyId    Int
+  property      Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId    Int
+  roomType      RoomType  @relation(fields: [roomTypeId], references: [id])
+  name          String
+  code          String?
+  description   String?
+  refundable    Boolean   @default(true)
   seasonalPrice Float
-  startDate     DateTime
-  endDate       DateTime
+  currency      String?   @default("INR")
+  taxConfig     Json?
+  minLOS        Int?      @default(1)
+  maxLOS        Int?
+  weekdayMask   String?   // e.g. "1111100" for weekdays
+  startDate     DateTime?
+  endDate       DateTime?
+  bookingWindowStart Int?
+  bookingWindowEnd   Int?
+  cancellationPolicy String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relationship to Room
-  room Room @relation(fields: [roomId], references: [id])
+  bookings      Booking[]
+  otaMappings   OTAMapping[]
 
+  @@unique([propertyId, roomTypeId, name])
+  @@index([roomTypeId])
   @@map("rate_plans")
 }
 
@@ -419,13 +493,31 @@ model Booking {
   checkIn         DateTime
   checkOut        DateTime
   guests          Int           @default(1)
+  rooms           Int           @default(1)
   totalPrice      Float
   specialRequests String?
   status          BookingStatus @default(PENDING)
+  currency        String?       @default("INR")
+  netAmount       Float?        @default(0)
+  taxAmount       Float?        @default(0)
+  holdToken       String?       @unique
+  holdExpiresAt   DateTime?
+  source          BookingSource @default(DIRECT)
+  externalBookingId String? // External booking ID from channel
+  externalChannel   String? // Channel name (makemytrip, yatra, etc.)
+  externalConfirmation Json?
 
   // Relationship to Room
-  roomId Int
-  room   Room @relation(fields: [roomId], references: [id])
+  roomId Int?
+  room   Room? @relation(fields: [roomId], references: [id])
+
+  // Link to property & room type
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id])
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  ratePlanId Int?
+  ratePlan   RatePlan? @relation(fields: [ratePlanId], references: [id])
 
   // Relationship to Payments
   payments Payment[]
@@ -434,16 +526,17 @@ model Booking {
   loyaltyAccountId Int?
   loyaltyAccount   LoyaltyAccount? @relation(fields: [loyaltyAccountId], references: [id])
 
-  // External booking fields
-  externalBookingId String? // External booking ID from channel
-  externalChannel   String? // Channel name (makemytrip, yatra, etc.)
-  
   // Email threads related to this booking
   emailThreads Thread[]
+
+  inventoryLocks    InventoryLock[]
+  holdLogs          HoldLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([propertyId, status])
+  @@index([roomTypeId, checkIn, checkOut])
   @@map("bookings")
 }
 
@@ -455,6 +548,7 @@ model Payment {
   razorpayPaymentId String?
   amount            Float
   status            PaymentStatus @default(PENDING)
+  metadata          Json?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -490,6 +584,148 @@ model OTASyncLog {
   timestamp DateTime @default(now())
 
   @@map("ota_sync_logs")
+}
+
+model OTAMapping {
+  id                  Int       @id @default(autoincrement())
+  propertyId          Int
+  property            Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId          Int?
+  roomType            RoomType? @relation(fields: [roomTypeId], references: [id])
+  ratePlanId          Int?
+  ratePlan            RatePlan? @relation(fields: [ratePlanId], references: [id])
+  provider            String
+  externalPropertyCode String
+  externalRoomCode    String?
+  externalRateCode    String?
+  credentials         Json?
+  isActive            Boolean   @default(true)
+  supportsPush        Boolean   @default(true)
+  supportsPull        Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([provider, propertyId, roomTypeId, ratePlanId])
+  @@map("ota_mappings")
+}
+
+model Inventory {
+  id            Int      @id @default(autoincrement())
+  propertyId    Int
+  property      Property @relation(fields: [propertyId], references: [id])
+  roomTypeId    Int
+  roomType      RoomType @relation(fields: [roomTypeId], references: [id])
+  date          DateTime
+  baseAvailable Int      @default(0)
+  bufferPercent Int      @default(0)
+  sellable      Int      @default(0)
+  booked        Int      @default(0)
+  holds         Int      @default(0)
+  freeToSell    Int      @default(0)
+  overbooked    Int      @default(0)
+  updatedBy     String?
+  updatedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  inventoryLocks InventoryLock[]
+  audits         InventoryAudit[]
+
+  @@unique([roomTypeId, date], name: "roomTypeId_date")
+  @@index([propertyId, date])
+  @@map("inventories")
+}
+
+model InventoryLock {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  bookingId   Int?
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  holdToken   String?
+  lockedAt    DateTime  @default(now())
+  releasedAt  DateTime?
+  change      Int       @default(0)
+  type        String    @default("HOLD") // HOLD / BOOKED / RELEASE
+  metadata    Json?
+
+  @@index([inventoryId, lockedAt])
+  @@map("inventory_locks")
+}
+
+model BufferRule {
+  id          Int       @id @default(autoincrement())
+  propertyId  Int
+  property    Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId  Int?
+  roomType    RoomType? @relation(fields: [roomTypeId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  percent     Int       @default(0)
+  daysOfWeek  String?   // e.g. "1111100"
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+
+  @@index([propertyId, isActive])
+  @@index([roomTypeId])
+  @@map("buffer_rules")
+}
+
+model InventoryAudit {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  changeType  String
+  beforeState Json?
+  afterState  Json?
+  reason      String?
+  createdAt   DateTime  @default(now())
+  createdById String?
+
+  @@index([inventoryId, createdAt])
+  @@map("inventory_audits")
+}
+
+model HoldLog {
+  id          Int       @id @default(autoincrement())
+  bookingId   Int?
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  holdToken   String
+  roomTypeId  Int
+  propertyId  Int
+  checkIn     DateTime
+  checkOut    DateTime
+  rooms       Int       @default(1)
+  guests      Int       @default(1)
+  status      String    @default("ACTIVE") // ACTIVE / RELEASED / CONFIRMED / EXPIRED
+  expiresAt   DateTime?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([holdToken])
+  @@index([propertyId, roomTypeId, status])
+  @@map("hold_logs")
+}
+
+model IdempotencyKey {
+  id            Int       @id @default(autoincrement())
+  key           String    @unique
+  method        String
+  path          String
+  requestHash   String
+  responseBody  Json?
+  statusCode    Int?
+  propertyId    Int?
+  property      Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  @default(now())
+
+  @@index([method, path])
+  @@map("idempotency_keys")
 }
 
 // CMS Models for Content Management

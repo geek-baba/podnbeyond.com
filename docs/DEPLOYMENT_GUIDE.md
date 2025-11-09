@@ -497,65 +497,65 @@ curl http://localhost:4000/api/cms/images/GALLERY_IMAGE
 
 ### Step 1: Verify GitHub Actions Workflow
 
-The repository includes two workflow files. For CloudPanel deployments, use `deploy-cloudpanel.yml`:
+The repository now uses environment-specific workflows:
 
-```bash
-# On your server, verify the workflow file exists
-cd ~/htdocs/capsulepodhotel.com
+- `deploy-staging.yml` (runs on pushes to `main`)
+- `deploy-production.yml` (to be added; will run on pushes to `prod` once enabled)
+
+```
+# Confirm the workflows exist
 ls -la .github/workflows/
 
-# You should see:
-# - deploy-cloudpanel.yml (recommended for CloudPanel)
-# - deploy.yml (alternative workflow)
+# Expected outputs
+# - deploy-staging.yml
 ```
 
-The `deploy-cloudpanel.yml` workflow is optimized for CloudPanel because it:
+`deploy-staging.yml` builds both apps, applies Prisma migrations against the staging database, connects to the staging host via SSH, and performs a health check. When we introduce `deploy-production.yml` it will follow the same pattern but use the `PROD_*` secrets and require a merge into `prod`.
 
-- ✅ Uses `rsync` for efficient file synchronization
-- ✅ Leverages `ecosystem.config.js` for PM2 management
-- ✅ Uses `pm2 startOrReload` instead of `pm2 restart all`
-- ✅ Calls the `deploy-cloudpanel.sh` script if available
-- ✅ Includes proper health checks
-- ✅ Better error handling
+### Step 2: Create/Protect Branches
 
-**The workflow file already exists in your repository** - no need to create it!
+Ensure the staging flow runs off `main` and production from `prod`:
 
-### Step 2: Create Production Branch (If Needed)
+```
+# Verify branches
+git branch -a | grep "\bprod\b"
 
-The `deploy-cloudpanel.yml` workflow triggers on pushes to the `production` branch:
+# Create prod branch if missing
+git checkout -b prod
+git push origin prod
 
-```bash
-# Check if production branch exists
-git branch -a | grep production
-
-# If it doesn't exist, create it from main
-git checkout -b production
-git push origin production
-
-# If it exists, switch to it
-git checkout production
+# Switch back to main for day-to-day work
+git checkout main
 ```
 
-### Step 3: Test Automated Deployment
+In GitHub → Settings → Branches add protection rules:
+- `main`: optional (recommended if you want PRs before staging deploys)
+- `prod`: require PRs, at least one review, and the production workflow status check (once it exists)
 
-```bash
-# Make sure you're on production branch
-git checkout production
+### Step 3: Test Staging Deployment
 
-# Merge latest changes from main
-git merge main
+```
+# Merge feature branch into main (via PR)
+git checkout main
+git merge feature/some-update
 
-# Push to trigger deployment
-git push origin production
+git push origin main   # triggers staging deploy
 ```
 
-### Step 4: Monitor Deployment
+Monitor **Actions → Deploy - Staging** to ensure the job runs end-to-end and the staging health check passes.
 
-1. **Go to GitHub**: Repository → **Actions** tab
-2. **Check Workflow**: Look for "Deploy to CloudPanel" workflow
-3. **Monitor Steps**: Watch each step complete
-4. **Check Logs**: If any step fails, check the logs
-5. **Verify Health Check**: The workflow includes automated health checks
+### Step 4: Promote to Production (once workflow exists)
+
+After the production workflow is in place:
+
+```
+# Open PR from main -> prod using GitHub UI
+# After approvals, merge to prod
+
+git push origin prod   # triggers production deploy
+```
+
+Monitor **Actions → Deploy - Production** and verify the production health check.
 
 ---
 
@@ -564,14 +564,12 @@ git push origin production
 ### Method 1: Automated (Recommended)
 
 ```bash
-# Switch to production branch
-git checkout production
+# Ensure your changes are on main (via PR) and ready for prod
+# Then open a PR from main -> prod and merge once approved
 
-# Merge your changes
-git merge main
+git checkout prod
 
-# Push to trigger deployment
-git push origin production
+git push origin prod   # triggers Deploy - Production (once workflow exists)
 ```
 
 ### Method 2: Manual Deployment
@@ -583,8 +581,9 @@ ssh capsulepodhotel@your-server-ip
 # Navigate to project
 cd /home/capsulepodhotel/htdocs/capsulepodhotel.com
 
-# Pull latest changes
-git pull origin production
+# Pull latest changes from prod branch
+git checkout prod
+git pull origin prod
 
 # Install dependencies
 cd backend && npm ci --only=production
@@ -600,7 +599,7 @@ npm run build
 
 # Restart services
 cd ..
-pm2 restart all
+pm2 reload ecosystem.config.js --only production || pm2 restart production
 ```
 
 ---

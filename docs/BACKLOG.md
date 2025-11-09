@@ -56,7 +56,8 @@ This document tracks future enhancements and improvements to be implemented afte
 - [ ] Rollback capability on failure
 
 **References:**
-- Existing workflow: `.github/workflows/deploy-cloudpanel.yml` (needs updating)
+- Existing workflow: `.github/workflows/deploy-staging.yml` (runs on `main`)
+- TODO: add `.github/workflows/deploy-production.yml` (trigger on `prod` with approval)
 - Current manual deployment: See `docs/DEPLOYMENT_SUCCESS.md`
 
 ---

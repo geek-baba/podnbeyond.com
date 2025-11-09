@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../lib/useAuth';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
@@ -8,12 +8,17 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+  : '';
+
 interface AdminDashboardProps {
   brands: any[];
   properties: any[];
   bookings: any[];
   loyalty: any[];
   users: any[];
+  roomTypes: any[];
   stats: {
     brands: number;
     properties: number;
@@ -35,7 +40,7 @@ interface NewUserFormState {
   scopeId: number | null;
 }
 
-export default function AdminDashboard({ brands, properties, bookings, loyalty, users, stats }: AdminDashboardProps) {
+export default function AdminDashboard({ brands, properties, bookings, loyalty, users, roomTypes, stats }: AdminDashboardProps) {
   const { data: session, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
@@ -100,6 +105,43 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
     scopeType: defaultScopeType,
     scopeId: defaultScopeId,
   });
+
+  const roomTypesByProperty = useMemo(() => {
+    const map = new Map<number, any[]>();
+    (roomTypes || []).forEach((roomType) => {
+      const propertyId = roomType?.property?.id;
+      if (!propertyId) return;
+      if (!map.has(propertyId)) {
+        map.set(propertyId, []);
+      }
+      map.get(propertyId)?.push(roomType);
+    });
+    return map;
+  }, [roomTypes]);
+
+  const [inventoryPropertyId, setInventoryPropertyId] = useState<number | null>(defaultPropertyId);
+  const [inventoryDays, setInventoryDays] = useState(7);
+  const [inventoryData, setInventoryData] = useState<any | null>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
+  const [inventoryReloadKey, setInventoryReloadKey] = useState(0);
+
+  const formatDateLabel = (iso: string) => {
+    const date = new Date(iso);
+    return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  };
+
+  const formatWeekdayLabel = (iso: string) => {
+    const date = new Date(iso);
+    return date.toLocaleDateString('en-IN', { weekday: 'short' });
+  };
+
+  const selectedProperty = inventoryPropertyId
+    ? properties.find((prop) => prop.id === inventoryPropertyId) || null
+    : null;
+  const selectedRoomTypes = inventoryPropertyId
+    ? roomTypesByProperty.get(inventoryPropertyId) || []
+    : [];
 
   // Filter loyalty members based on search
   const filteredLoyalty = loyalty.filter(account => {
@@ -179,6 +221,59 @@ useEffect(() => {
     }
   }
 }, [newUserForm.scopeType, newUserForm.scopeId, properties, brands]);
+
+  useEffect(() => {
+    if (!inventoryPropertyId) {
+      setInventoryData(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const fetchInventory = async () => {
+      setInventoryLoading(true);
+      setInventoryError(null);
+
+      try {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + inventoryDays);
+
+        const params = new URLSearchParams({
+          propertyId: inventoryPropertyId.toString(),
+          start: start.toISOString(),
+          end: end.toISOString(),
+        });
+
+        const url = API_BASE_URL
+          ? `${API_BASE_URL}/api/inventory/availability?${params.toString()}`
+          : `/api/inventory/availability?${params.toString()}`;
+
+        const response = await fetch(url, { signal: controller.signal });
+        const data = await response.json();
+
+        if (!response.ok || data?.success === false) {
+          throw new Error(data?.error || 'Failed to load inventory');
+        }
+
+        setInventoryData(data);
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          return;
+        }
+        console.error('Inventory fetch error:', error);
+        setInventoryError(error.message || 'Failed to load inventory data');
+        setInventoryData(null);
+      } finally {
+        setInventoryLoading(false);
+      }
+    };
+
+    fetchInventory();
+
+    return () => controller.abort();
+  }, [inventoryPropertyId, inventoryDays, inventoryReloadKey]);
 
   // Handle Invite Submission
   const handleInvite = async (e: React.FormEvent) => {
@@ -374,14 +469,22 @@ useEffect(() => {
                               {new Date(booking.checkIn).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 text-sm text-neutral-700">
-                              {booking.room?.name || 'N/A'}
+                              <div className="font-medium text-neutral-900">
+                                {booking.roomType?.name || booking.roomType?.type || 'N/A'}
+                              </div>
+                              <div className="text-xs text-neutral-500">
+                                {booking.property?.name || booking.source || 'Direct'}
+                              </div>
                             </td>
                             <td className="px-6 py-4">
                               <Badge 
                                 variant={
                                   booking.status === 'CONFIRMED' ? 'success' :
+                                  booking.status === 'HOLD' ? 'warning' :
                                   booking.status === 'PENDING' ? 'warning' :
-                                  booking.status === 'CANCELLED' ? 'error' : 'neutral'
+                                  booking.status === 'CANCELLED' ? 'error' :
+                                  booking.status === 'FAILED' ? 'error' :
+                                  booking.status === 'NO_SHOW' ? 'error' : 'neutral'
                                 }
                                 size="sm"
                               >
@@ -389,7 +492,7 @@ useEffect(() => {
                               </Badge>
                             </td>
                             <td className="px-6 py-4 font-semibold text-neutral-900">
-                              ₹{booking.totalPrice.toLocaleString()}
+                              ₹{Number(booking.totalPrice || 0).toLocaleString()}
                             </td>
                           </tr>
                         )) : (
@@ -475,7 +578,10 @@ useEffect(() => {
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">Property Management</h2>
               
               <div className="grid grid-cols-1 gap-6">
-                {properties.map((property) => (
+                {properties.map((property) => {
+                  const propertyRoomTypes = roomTypesByProperty.get(property.id) || [];
+                  const totalBaseRooms = propertyRoomTypes.reduce((sum, roomType) => sum + (roomType.baseRooms || 0), 0);
+                  return (
                   <Card key={property.id} variant="default" padding="lg">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -499,10 +605,14 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-sm">
                       <div>
-                        <span className="text-neutral-600">Rooms:</span>
-                        <span className="ml-2 font-semibold">{property._count?.rooms || 0}</span>
+                        <span className="text-neutral-600">Room Types:</span>
+                        <span className="ml-2 font-semibold">{propertyRoomTypes.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-neutral-600">Base Pods:</span>
+                        <span className="ml-2 font-semibold">{totalBaseRooms}</span>
                       </div>
                       <div>
                         <span className="text-neutral-600">Phone:</span>
@@ -521,8 +631,166 @@ useEffect(() => {
                       <Button variant="primary" size="sm">Edit</Button>
                     </div>
                   </Card>
-                ))}
+                );
+                })}
               </div>
+
+              {properties.length > 0 && (
+                <Card variant="default" padding="lg">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-neutral-900">Inventory Snapshot</h3>
+                      <p className="text-sm text-neutral-500">
+                        Buffer-aware availability for the next {inventoryDays} days.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <select
+                        className="px-3 py-2 border border-neutral-200 rounded-md text-sm bg-white"
+                        value={inventoryPropertyId ?? ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setInventoryPropertyId(value ? Number(value) : null);
+                        }}
+                      >
+                        {properties.map((property) => (
+                          <option key={property.id} value={property.id}>
+                            {property.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className="px-3 py-2 border border-neutral-200 rounded-md text-sm bg-white"
+                        value={inventoryDays}
+                        onChange={(event) => setInventoryDays(Number(event.target.value))}
+                      >
+                        {[7, 14, 30].map((days) => (
+                          <option key={days} value={days}>
+                            {days} days
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setInventoryReloadKey((key) => key + 1)}
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+
+                  {inventoryError && (
+                    <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+                      {inventoryError}
+                    </div>
+                  )}
+
+                  {inventoryLoading && (
+                    <div className="py-6 text-sm text-neutral-500">Loading inventory...</div>
+                  )}
+
+                  {!inventoryLoading && inventoryData && inventoryData.roomTypes && (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
+                        <span>
+                          Window:{' '}
+                          <strong>
+                            {formatDateLabel(inventoryData.range.start)} → {formatDateLabel(inventoryData.range.end)}
+                          </strong>
+                        </span>
+                        {selectedProperty && (
+                          <span>
+                            Timezone: <strong>{selectedProperty.timezone || 'Asia/Kolkata'}</strong>
+                          </span>
+                        )}
+                        <span>
+                          Buffer: <strong>{inventoryData.property?.defaultBuffer ?? selectedProperty?.defaultBuffer ?? 0}%</strong>
+                        </span>
+                        <span>
+                          Room types tracked:{' '}
+                          <strong>{selectedRoomTypes.length}</strong>
+                        </span>
+                      </div>
+
+                      {inventoryData.roomTypes.length === 0 && (
+                        <div className="text-sm text-neutral-500">No inventory configured for this property.</div>
+                      )}
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {inventoryData.roomTypes.map((roomType: any) => (
+                          <div key={roomType.roomTypeId} className="border border-neutral-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <h4 className="font-semibold text-neutral-900">{roomType.name}</h4>
+                                <p className="text-xs text-neutral-500">
+                                  Capacity {roomType.capacity} · Base {roomType.baseRooms}
+                                </p>
+                              </div>
+                              <div className="text-right text-xs text-neutral-500">
+                                <div>
+                                  Free to sell total:{' '}
+                                  <span className="font-semibold text-neutral-900">
+                                    {roomType.summary.totalFreeToSell}
+                                  </span>
+                                </div>
+                                <div>
+                                  Booked:{' '}
+                                  <span className="font-semibold text-neutral-900">
+                                    {roomType.summary.totalBooked}
+                                  </span>
+                                </div>
+                                <div>
+                                  Holds:{' '}
+                                  <span className="font-semibold text-neutral-900">
+                                    {roomType.summary.totalHolds}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              {roomType.availability.slice(0, Math.min(inventoryDays, 9)).map((day: any) => (
+                                <div
+                                  key={day.date}
+                                  className="border border-neutral-200 rounded-md px-3 py-2 bg-neutral-50"
+                                >
+                                  <div className="font-semibold text-neutral-900">
+                                    {formatWeekdayLabel(day.date)}
+                                  </div>
+                                  <div className="text-neutral-500">{formatDateLabel(day.date)}</div>
+                                  <div className="mt-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-neutral-500">Sellable</span>
+                                      <span className="font-semibold text-neutral-900">{day.sellable}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-neutral-500">Booked</span>
+                                      <span className="font-semibold text-neutral-900">{day.booked}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-neutral-500">Holds</span>
+                                      <span className="font-semibold text-neutral-900">{day.holds}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-neutral-500">Free</span>
+                                      <span className="font-semibold text-sanctuary-500">{day.freeToSell}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!inventoryLoading && !inventoryData && !inventoryError && (
+                    <div className="text-sm text-neutral-500">Select a property to view inventory.</div>
+                  )}
+                </Card>
+              )}
             </div>
           )}
 
@@ -568,8 +836,12 @@ useEffect(() => {
                               )}
                             </td>
                             <td className="px-6 py-4 text-sm text-neutral-700">
-                              {booking.room?.name || 'N/A'}
-                              <div className="text-xs text-neutral-500">{booking.room?.type}</div>
+                              <div className="font-medium text-neutral-900">
+                                {booking.roomType?.name || booking.roomType?.type || 'N/A'}
+                              </div>
+                              <div className="text-xs text-neutral-500">
+                                {booking.property?.name || booking.source || 'Direct'}
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-sm text-neutral-700">
                               {new Date(booking.checkIn).toLocaleDateString()}
@@ -581,8 +853,11 @@ useEffect(() => {
                               <Badge
                                 variant={
                                   booking.status === 'CONFIRMED' ? 'success' :
+                                  booking.status === 'HOLD' ? 'warning' :
                                   booking.status === 'PENDING' ? 'warning' :
-                                  booking.status === 'CANCELLED' ? 'error' : 'neutral'
+                                  booking.status === 'CANCELLED' ? 'error' :
+                                  booking.status === 'FAILED' ? 'error' :
+                                  booking.status === 'NO_SHOW' ? 'error' : 'neutral'
                                 }
                                 size="sm"
                               >
@@ -595,7 +870,7 @@ useEffect(() => {
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              <div className="font-bold text-neutral-900">₹{booking.totalPrice.toLocaleString()}</div>
+                              <div className="font-bold text-neutral-900">₹{Number(booking.totalPrice || 0).toLocaleString()}</div>
                               {booking.specialRequests && (
                                 <div className="text-xs text-neutral-500 mt-1">Has special requests</div>
                               )}
@@ -2057,17 +2332,19 @@ export async function getServerSideProps() {
     console.log('Fetching admin data from:', API_URL);
 
     // Fetch all data with proper error handling
-    const [brandsRes, propertiesRes, bookingsRes, usersRes] = await Promise.all([
+    const [brandsRes, propertiesRes, bookingsRes, usersRes, roomTypesRes] = await Promise.all([
       fetch(`${API_URL}/api/brands`).catch(e => { console.error('Brands fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/properties`).catch(e => { console.error('Properties fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/booking/bookings`).catch(e => { console.error('Bookings fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/users`).catch(e => { console.error('Users fetch failed:', e); return null; }),
+      fetch(`${API_URL}/api/booking/rooms`).catch(e => { console.error('Room types fetch failed:', e); return null; }),
     ]);
 
     const brands = brandsRes ? (await brandsRes.json()).brands || [] : [];
     const properties = propertiesRes ? (await propertiesRes.json()).properties || [] : [];
     const bookings = bookingsRes ? await bookingsRes.json() : [];
     const users = usersRes ? (await usersRes.json()).users || [] : [];
+    const roomTypes = roomTypesRes ? await roomTypesRes.json() : [];
 
     // Fetch real loyalty accounts from API
     const loyaltyRes = await fetch(`${API_URL}/api/loyalty/accounts`).catch(e => { 
@@ -2088,6 +2365,7 @@ export async function getServerSideProps() {
         properties,
         bookings: Array.isArray(bookings) ? bookings : [],
         users,
+        roomTypes: Array.isArray(roomTypes) ? roomTypes : [],
         loyalty: loyaltyAccounts,
         stats: {
           brands: brands.length,
@@ -2107,6 +2385,7 @@ export async function getServerSideProps() {
         properties: [],
         bookings: [],
         users: [],
+        roomTypes: [],
         loyalty: [],
         stats: { brands: 0, properties: 0, bookings: 0, loyalty: 0, users: 0 }
       }
