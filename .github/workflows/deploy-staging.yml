@@ -66,7 +66,6 @@ jobs:
             npm ci --prefix backend
             npm ci --prefix frontend
             cd backend && npx prisma migrate deploy && cd ..
-            npm run build --prefix backend
             npm run build --prefix frontend
 
             pm2 reload ecosystem.config.js --only staging || pm2 restart staging
