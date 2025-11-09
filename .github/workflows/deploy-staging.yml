@@ -36,12 +36,6 @@ jobs:
         working-directory: frontend
         run: npm run lint || echo "lint step skipped"
 
-      - name: Apply Prisma migrations (staging)
-        working-directory: backend
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: npx prisma migrate deploy
-
       - name: Build frontend
         working-directory: frontend
         env:
@@ -71,6 +65,7 @@ jobs:
 
             npm ci --prefix backend
             npm ci --prefix frontend
+            cd backend && npx prisma migrate deploy && cd ..
             npm run build --prefix backend
             npm run build --prefix frontend
 
