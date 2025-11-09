@@ -73,7 +73,8 @@ jobs:
             cd backend && npx prisma migrate deploy && cd ..
             npm run build --prefix frontend
 
-            pm2 reload ecosystem.config.js --only staging || pm2 restart staging
+            pm2 reload ecosystem.config.js --only hotel-booking-backend || pm2 restart hotel-booking-backend
+            pm2 reload ecosystem.config.js --only hotel-booking-frontend || pm2 restart hotel-booking-frontend
 
       - name: Staging health check
         run: curl --fail -L ${{ secrets.STAGING_HEALTHCHECK_URL }}
