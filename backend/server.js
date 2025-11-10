@@ -43,6 +43,7 @@ const paymentRoutes = require('./routes/payment');
 const channelRoutes = require('./routes/channels');
 const inventoryRoutes = require('./routes/inventory');
 const bufferRuleRoutes = require('./routes/bufferRules');
+const adminPropertiesRoutes = require('./routes/adminProperties');
 const otaMappingRoutes = require('./routes/otaMappings');
 const cronRoutes = require('./routes/cron');
 const cmsRoutes = require('./routes/cms');
@@ -86,6 +87,7 @@ app.use('/api/email', apiLimiter, require('./routes/email')); // Other email end
 app.use('/api/booking', apiLimiter, bookingRoutes);
 app.use('/api/inventory', apiLimiter, inventoryRoutes);
 app.use('/api/admin/buffer-rules', adminLimiter, bufferRuleRoutes);
+app.use('/api/admin/properties', adminLimiter, adminPropertiesRoutes);
 app.use('/api/loyalty', apiLimiter, loyaltyRoutes);
 app.use('/api/payment', apiLimiter, paymentRoutes);
 app.use('/api/channels', apiLimiter, channelRoutes);

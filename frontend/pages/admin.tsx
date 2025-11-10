@@ -7,6 +7,7 @@ import Container from '../components/layout/Container';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
@@ -40,8 +41,20 @@ interface NewUserFormState {
   scopeId: number | null;
 }
 
-export default function AdminDashboard({ brands, properties, bookings, loyalty, users, roomTypes, stats }: AdminDashboardProps) {
+export default function AdminDashboard({ brands, properties: initialProperties, bookings, loyalty, users, roomTypes: initialRoomTypes, stats }: AdminDashboardProps) {
   const { data: session, signOut } = useAuth();
+  const [properties, setProperties] = useState(initialProperties || []);
+  const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
+  const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
+  const [propertyRoomTypesLoaded, setPropertyRoomTypesLoaded] = useState(false);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
+  const [propertyEditorOpen, setPropertyEditorOpen] = useState(false);
+  const [propertyEditorLoading, setPropertyEditorLoading] = useState(false);
+  const [propertyEditorSaving, setPropertyEditorSaving] = useState(false);
+  const [propertyEditorError, setPropertyEditorError] = useState<string | null>(null);
+  const [propertyEditorPropertyId, setPropertyEditorPropertyId] = useState<number | null>(null);
+  const [propertyForm, setPropertyForm] = useState<any>(null);
+  const [roomTypeForms, setRoomTypeForms] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [currentTime, setCurrentTime] = useState('');
   const defaultPropertyId = properties?.[0]?.id || null;
@@ -119,6 +132,87 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
     return map;
   }, [roomTypes]);
 
+  useEffect(() => {
+    if (propertyRoomTypesLoaded || !properties || properties.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRoomTypes = async () => {
+      setPropertiesLoading(true);
+      try {
+        const results = await Promise.all(
+          properties.map(async (property) => {
+            const response = await fetch(`/api/admin/properties/${property.id}/room-types`);
+            if (!response.ok) {
+              const message = await response.text();
+              throw new Error(message || `Failed to load room types for property ${property.id}`);
+            }
+            const payload = await response.json();
+            return { propertyId: property.id, payload: payload?.data };
+          })
+        );
+
+        if (cancelled) return;
+
+        const flattenedRoomTypes: any[] = [];
+        const payloadMap: Record<number, { property: any; roomTypes: any[] }> = {};
+
+        results.forEach((result) => {
+          if (!result?.payload) {
+            return;
+          }
+          payloadMap[result.propertyId] = result.payload;
+          const propertyInfo = result.payload.property;
+          (result.payload.roomTypes || []).forEach((roomType: any) => {
+            flattenedRoomTypes.push({
+              ...roomType,
+              property: {
+                id: propertyInfo?.id,
+                name: propertyInfo?.name,
+              },
+            });
+          });
+        });
+
+        setPropertyRoomTypeData(payloadMap);
+        setRoomTypes(flattenedRoomTypes);
+        setProperties((prev) =>
+          prev.map((property) => {
+            const payload = payloadMap[property.id];
+            if (!payload) {
+              return property;
+            }
+            return {
+              ...property,
+              defaultBuffer: payload.property?.defaultBuffer ?? property.defaultBuffer,
+              timezone: payload.property?.timezone ?? property.timezone,
+              currency: payload.property?.currency ?? property.currency,
+              overbookingEnabled:
+                payload.property?.overbookingEnabled ?? property.overbookingEnabled,
+            };
+          })
+        );
+        setPropertyRoomTypesLoaded(true);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load property room types', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setPropertiesLoading(false);
+        }
+      }
+    };
+
+    loadRoomTypes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [properties, propertyRoomTypesLoaded]);
+
   const [inventoryPropertyId, setInventoryPropertyId] = useState<number | null>(defaultPropertyId);
   const [inventoryDays, setInventoryDays] = useState(7);
   const [inventoryData, setInventoryData] = useState<any | null>(null);
@@ -142,6 +236,299 @@ export default function AdminDashboard({ brands, properties, bookings, loyalty, 
   const selectedRoomTypes = inventoryPropertyId
     ? roomTypesByProperty.get(inventoryPropertyId) || []
     : [];
+
+  const activePropertyMeta = propertyEditorPropertyId ? propertyRoomTypeData[propertyEditorPropertyId] : null;
+
+  const resetPropertyEditor = () => {
+    setPropertyEditorOpen(false);
+    setPropertyEditorLoading(false);
+    setPropertyEditorSaving(false);
+    setPropertyEditorError(null);
+    setPropertyEditorPropertyId(null);
+    setPropertyForm(null);
+    setRoomTypeForms([]);
+  };
+
+  const closePropertyEditor = () => {
+    resetPropertyEditor();
+  };
+
+  const openPropertyEditorModal = async (propertyId: number) => {
+    setPropertyEditorOpen(true);
+    setPropertyEditorLoading(true);
+    setPropertyEditorError(null);
+    setPropertyEditorPropertyId(propertyId);
+
+    const summary = properties.find((prop) => prop.id === propertyId) || null;
+    setPropertyForm({
+      name: summary?.name || '',
+      phone: summary?.phone || '',
+      email: summary?.email || '',
+      defaultBuffer: summary?.defaultBuffer !== undefined && summary?.defaultBuffer !== null
+        ? String(summary.defaultBuffer)
+        : '0',
+      timezone: summary?.timezone || 'Asia/Kolkata',
+      overbookingEnabled: summary?.overbookingEnabled !== false,
+      address: summary?.address || '',
+      city: summary?.city || '',
+      state: summary?.state || '',
+      pincode: summary?.pincode || '',
+      currency: summary?.currency || 'INR',
+    });
+
+    try {
+      const response = await fetch(`/api/admin/properties/${propertyId}/room-types`);
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to load property room types');
+      }
+      const json = await response.json();
+      const payload = json?.data;
+
+      if (payload?.property) {
+        setPropertyForm((prev: any) => ({
+          ...(prev || {}),
+          defaultBuffer:
+            payload.property.defaultBuffer !== undefined && payload.property.defaultBuffer !== null
+              ? String(payload.property.defaultBuffer)
+              : prev?.defaultBuffer ?? '0',
+          timezone: payload.property.timezone || prev?.timezone || 'Asia/Kolkata',
+          overbookingEnabled:
+            payload.property.overbookingEnabled !== undefined
+              ? payload.property.overbookingEnabled
+              : prev?.overbookingEnabled ?? true,
+          currency: payload.property.currency || prev?.currency || 'INR',
+        }));
+      }
+
+      const mappedRoomTypes = (payload?.roomTypes || []).map((roomType: any, index: number) => ({
+        id: roomType.id,
+        tempId: `existing-${roomType.id}`,
+        name: roomType.name || '',
+        code: roomType.code || '',
+        baseRooms:
+          roomType.baseRooms !== undefined && roomType.baseRooms !== null
+            ? String(roomType.baseRooms)
+            : '0',
+        capacity:
+          roomType.capacity !== undefined && roomType.capacity !== null
+            ? String(roomType.capacity)
+            : '1',
+        description: roomType.description || '',
+        isActive: roomType.isActive !== false,
+        ratePlanPrice:
+          roomType?.ratePlan?.seasonalPrice !== undefined && roomType?.ratePlan?.seasonalPrice !== null
+            ? String(Number(roomType.ratePlan.seasonalPrice))
+            : '',
+        sortOrder:
+          roomType.sortOrder !== undefined && roomType.sortOrder !== null
+            ? String(roomType.sortOrder)
+            : String(index),
+        inventorySummary: roomType.inventorySummary || null,
+      }));
+      setRoomTypeForms(mappedRoomTypes);
+      setPropertyRoomTypeData((prev) => ({
+        ...prev,
+        [propertyId]: payload,
+      }));
+    } catch (error: any) {
+      console.error('Failed to load property editor data', error);
+      setPropertyEditorError(error?.message || 'Failed to load property data');
+    } finally {
+      setPropertyEditorLoading(false);
+    }
+  };
+
+  const handlePropertyFormChange = (field: string, value: any) => {
+    setPropertyForm((prev: any) => ({
+      ...(prev || {}),
+      [field]: value,
+    }));
+  };
+
+  const updateRoomTypeField = (index: number, field: string, value: any) => {
+    setRoomTypeForms((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const removeRoomTypeRow = (index: number) => {
+    setRoomTypeForms((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const addRoomTypeRow = () => {
+    setRoomTypeForms((prev) => [
+      ...prev,
+      {
+        id: null,
+        tempId: `new-${Date.now()}`,
+        name: '',
+        code: '',
+        baseRooms: '0',
+        capacity: '1',
+        description: '',
+        isActive: true,
+        ratePlanPrice: '',
+        sortOrder: String(prev.length),
+        inventorySummary: null,
+      },
+    ]);
+  };
+
+  const handlePropertyEditorSave = async () => {
+    if (!propertyEditorPropertyId || !propertyForm) {
+      return;
+    }
+
+    if (!roomTypeForms || roomTypeForms.length === 0) {
+      setPropertyEditorError('Add at least one room type before saving.');
+      return;
+    }
+
+    const invalidRoomType = roomTypeForms.find((roomType) => !roomType.name || !roomType.name.trim());
+    if (invalidRoomType) {
+      setPropertyEditorError('Every room type needs a name.');
+      return;
+    }
+
+    const hasInvalidPrice = roomTypeForms.some((roomType) => {
+      if (roomType.ratePlanPrice === '' || roomType.ratePlanPrice === null || roomType.ratePlanPrice === undefined) {
+        return false;
+      }
+      const parsed = Number(roomType.ratePlanPrice);
+      return Number.isNaN(parsed);
+    });
+    if (hasInvalidPrice) {
+      setPropertyEditorError('BAR price must be a valid number.');
+      return;
+    }
+
+    setPropertyEditorSaving(true);
+    setPropertyEditorError(null);
+
+    try {
+      const propertyId = propertyEditorPropertyId;
+      const propertyPayload = {
+        name: propertyForm.name?.trim() || propertyForm.name,
+        phone: propertyForm.phone?.trim() || null,
+        email: propertyForm.email?.trim() || null,
+        defaultBuffer: Number(propertyForm.defaultBuffer ?? 0) || 0,
+        timezone: propertyForm.timezone || 'Asia/Kolkata',
+        overbookingEnabled: propertyForm.overbookingEnabled !== false,
+        address: propertyForm.address?.trim() || null,
+        city: propertyForm.city?.trim() || null,
+        state: propertyForm.state?.trim() || null,
+        pincode: propertyForm.pincode?.trim() || null,
+        currency: propertyForm.currency || 'INR',
+      };
+
+      const propertyResponse = await fetch(`/api/properties/${propertyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(propertyPayload),
+      });
+
+      if (!propertyResponse.ok) {
+        const message = await propertyResponse.text();
+        throw new Error(message || 'Failed to update property details.');
+      }
+
+      const propertyJson = await propertyResponse.json();
+      const updatedProperty = propertyJson?.property || propertyJson?.data?.property || null;
+
+      const roomTypesPayload = roomTypeForms.map((roomType, index) => ({
+        ...(roomType.id ? { id: roomType.id } : {}),
+        name: roomType.name?.trim(),
+        code: roomType.code?.trim() || undefined,
+        baseRooms: Number(roomType.baseRooms ?? 0) || 0,
+        capacity: Number(roomType.capacity ?? 1) || 1,
+        isActive: roomType.isActive !== false,
+        description: roomType.description?.trim() || null,
+        sortOrder: Number(roomType.sortOrder ?? index),
+        ratePlanPrice:
+          roomType.ratePlanPrice === '' || roomType.ratePlanPrice === null
+            ? null
+            : Number(roomType.ratePlanPrice),
+      }));
+
+      const roomTypeResponse = await fetch(`/api/admin/properties/${propertyId}/room-types`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomTypes: roomTypesPayload }),
+      });
+
+      if (!roomTypeResponse.ok) {
+        const message = await roomTypeResponse.text();
+        throw new Error(message || 'Failed to save room types.');
+      }
+
+      const roomTypeJson = await roomTypeResponse.json();
+      const payload = roomTypeJson?.data;
+
+      if (payload?.roomTypes) {
+        setRoomTypeForms(
+          payload.roomTypes.map((roomType: any, index: number) => ({
+            id: roomType.id,
+            tempId: `existing-${roomType.id}`,
+            name: roomType.name || '',
+            code: roomType.code || '',
+            baseRooms:
+              roomType.baseRooms !== undefined && roomType.baseRooms !== null
+                ? String(roomType.baseRooms)
+                : '0',
+            capacity:
+              roomType.capacity !== undefined && roomType.capacity !== null
+                ? String(roomType.capacity)
+                : '1',
+            description: roomType.description || '',
+            isActive: roomType.isActive !== false,
+            ratePlanPrice:
+              roomType?.ratePlan?.seasonalPrice !== undefined && roomType?.ratePlan?.seasonalPrice !== null
+                ? String(Number(roomType.ratePlan.seasonalPrice))
+                : '',
+            sortOrder:
+              roomType.sortOrder !== undefined && roomType.sortOrder !== null
+                ? String(roomType.sortOrder)
+                : String(index),
+            inventorySummary: roomType.inventorySummary || null,
+          }))
+        );
+
+        setPropertyRoomTypeData((prev) => ({
+          ...prev,
+          [propertyId]: payload,
+        }));
+
+        setRoomTypes((prev) => {
+          const filtered = prev.filter((roomType) => roomType?.property?.id !== propertyId);
+          const mapped = payload.roomTypes.map((roomType: any) => ({
+            ...roomType,
+            property: {
+              id: payload.property.id,
+              name: payload.property.name,
+            },
+          }));
+          return [...filtered, ...mapped];
+        });
+      }
+
+      if (updatedProperty) {
+        setProperties((prev) =>
+          prev.map((property) => (property.id === propertyId ? { ...property, ...updatedProperty } : property))
+        );
+      }
+
+      setInventoryReloadKey((key) => key + 1);
+      resetPropertyEditor();
+    } catch (error: any) {
+      console.error('Failed to save property configuration', error);
+      setPropertyEditorError(error?.message || 'Failed to save property configuration.');
+    } finally {
+      setPropertyEditorSaving(false);
+    }
+  };
 
   // Filter loyalty members based on search
   const filteredLoyalty = loyalty.filter(account => {
@@ -251,10 +638,31 @@ useEffect(() => {
           : `/api/inventory/availability?${params.toString()}`;
 
         const response = await fetch(url, { signal: controller.signal });
-        const data = await response.json();
+        const contentType = response.headers.get('content-type') || '';
+        let data: any = null;
+
+        try {
+          if (contentType.includes('application/json')) {
+            data = await response.json();
+          } else {
+            const rawText = await response.text();
+            throw new Error(
+              response.ok
+                ? 'Inventory API returned an unexpected response format.'
+                : rawText || `Failed to load inventory (status ${response.status})`
+            );
+          }
+        } catch (parseError: any) {
+          if (!contentType.includes('application/json')) {
+            throw parseError;
+          }
+          throw new Error('Unable to parse inventory data from the server.');
+        }
 
         if (!response.ok || data?.success === false) {
-          throw new Error(data?.error || 'Failed to load inventory');
+          throw new Error(
+            data?.error || `Failed to load inventory (status ${response.status})`
+          );
         }
 
         setInventoryData(data);
@@ -576,6 +984,11 @@ useEffect(() => {
           {activeTab === 'properties' && (
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">Property Management</h2>
+              {propertiesLoading && (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+                  Syncing latest room types and inventory data...
+                </div>
+              )}
               
               <div className="grid grid-cols-1 gap-6">
                 {properties.map((property) => {
@@ -628,7 +1041,9 @@ useEffect(() => {
                       <a href={`/locations/${property.slug}`} className="flex-1">
                         <Button variant="ghost" size="sm" fullWidth>View Page</Button>
                       </a>
-                      <Button variant="primary" size="sm">Edit</Button>
+                      <Button variant="primary" size="sm" onClick={() => openPropertyEditorModal(property.id)}>
+                        Edit
+                      </Button>
                     </div>
                   </Card>
                 );
@@ -2312,6 +2727,296 @@ useEffect(() => {
                   }}
                 >
                   Create User
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {propertyEditorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 backdrop-blur-sm px-4 py-8">
+          <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-100 px-6 py-4">
+              <div>
+                <h3 className="text-xl font-semibold text-neutral-900">
+                  Edit {propertyForm?.name || 'Property'}
+                </h3>
+                <p className="text-sm text-neutral-500">
+                  Update property information, room types, and base availability.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePropertyEditor}
+                className="text-sm font-medium text-neutral-500 transition hover:text-neutral-900"
+                disabled={propertyEditorSaving}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-6">
+              {propertyEditorLoading ? (
+                <div className="py-10 text-center text-sm text-neutral-500">
+                  Loading property configuration…
+                </div>
+              ) : (
+                <>
+                  {propertyEditorError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {propertyEditorError}
+                    </div>
+                  )}
+
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-700">
+                        Property Details
+                      </h4>
+                      <Input
+                        label="Property Name"
+                        value={propertyForm?.name ?? ''}
+                        onChange={(event) => handlePropertyFormChange('name', event.target.value)}
+                        fullWidth
+                      />
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Input
+                          label="Phone"
+                          value={propertyForm?.phone ?? ''}
+                          onChange={(event) => handlePropertyFormChange('phone', event.target.value)}
+                          fullWidth
+                        />
+                        <Input
+                          label="Email"
+                          type="email"
+                          value={propertyForm?.email ?? ''}
+                          onChange={(event) => handlePropertyFormChange('email', event.target.value)}
+                          fullWidth
+                        />
+                        <Input
+                          label="Timezone"
+                          value={propertyForm?.timezone ?? 'Asia/Kolkata'}
+                          onChange={(event) => handlePropertyFormChange('timezone', event.target.value)}
+                          fullWidth
+                        />
+                        <Input
+                          label="Currency"
+                          value={propertyForm?.currency ?? 'INR'}
+                          onChange={(event) => handlePropertyFormChange('currency', event.target.value)}
+                          fullWidth
+                        />
+                        <Input
+                          label="Default Buffer (%)"
+                          type="number"
+                          value={propertyForm?.defaultBuffer ?? '0'}
+                          onChange={(event) => handlePropertyFormChange('defaultBuffer', event.target.value)}
+                          fullWidth
+                        />
+                      </div>
+
+                      <label className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                          checked={propertyForm?.overbookingEnabled !== false}
+                          onChange={(event) => handlePropertyFormChange('overbookingEnabled', event.target.checked)}
+                        />
+                        Allow controlled overbooking (respect property buffer)
+                      </label>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Input
+                          label="City"
+                          value={propertyForm?.city ?? ''}
+                          onChange={(event) => handlePropertyFormChange('city', event.target.value)}
+                          fullWidth
+                        />
+                        <Input
+                          label="State"
+                          value={propertyForm?.state ?? ''}
+                          onChange={(event) => handlePropertyFormChange('state', event.target.value)}
+                          fullWidth
+                        />
+                        <Input
+                          label="Postal Code"
+                          value={propertyForm?.pincode ?? ''}
+                          onChange={(event) => handlePropertyFormChange('pincode', event.target.value)}
+                          fullWidth
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                          Address
+                        </label>
+                        <textarea
+                          className="w-full rounded-lg border border-neutral-300 px-4 py-3 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                          rows={3}
+                          value={propertyForm?.address ?? ''}
+                          onChange={(event) => handlePropertyFormChange('address', event.target.value)}
+                        />
+                      </div>
+
+                      {activePropertyMeta?.property?.defaultBuffer !== undefined && (
+                        <div className="rounded-lg bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
+                          <span className="font-semibold text-neutral-900">Property Buffer:</span>
+                          <span className="ml-2">{activePropertyMeta.property.defaultBuffer}%</span>
+                          <span className="ml-3 font-semibold text-neutral-900">Timezone:</span>
+                          <span className="ml-2">{activePropertyMeta.property.timezone || 'Asia/Kolkata'}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-700">
+                        Notes
+                      </h4>
+                      <p className="rounded-lg border border-dashed border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+                        Updating property details and room types will regenerate BAR pricing and
+                        recalculate inventory buffers for the next 60 days.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-700">
+                          Room Types &amp; Base Pods
+                        </h4>
+                        <p className="text-xs text-neutral-500">
+                          Adjust base availability and BAR (Best Available Rate) pricing. Remove a room type to deactivate it.
+                        </p>
+                      </div>
+                      <Button variant="primary" size="sm" onClick={addRoomTypeRow}>
+                        Add Room Type
+                      </Button>
+                    </div>
+
+                    {roomTypeForms.length === 0 ? (
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-6 text-center text-sm text-neutral-500">
+                        No room types configured yet. Add your first room type to begin syncing availability.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {roomTypeForms.map((roomType, index) => {
+                          const key = roomType.id ?? roomType.tempId ?? index;
+                          return (
+                            <div key={key} className="rounded-xl border border-neutral-200 px-4 py-4 shadow-sm">
+                              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div className="flex-1">
+                                  <Input
+                                    label="Room Type Name"
+                                    value={roomType.name}
+                                    onChange={(event) => updateRoomTypeField(index, 'name', event.target.value)}
+                                    fullWidth
+                                  />
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <label className="flex items-center gap-2 text-xs font-medium text-neutral-600">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                                      checked={roomType.isActive !== false}
+                                      onChange={(event) => updateRoomTypeField(index, 'isActive', event.target.checked)}
+                                    />
+                                    Active
+                                  </label>
+                                  <button
+                                    type="button"
+                                    className="text-xs font-medium text-red-600 hover:text-red-700"
+                                    onClick={() => removeRoomTypeRow(index)}
+                                    disabled={propertyEditorSaving}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="grid gap-4 pt-4 md:grid-cols-5">
+                                <Input
+                                  label="Base Pods"
+                                  type="number"
+                                  value={roomType.baseRooms}
+                                  onChange={(event) => updateRoomTypeField(index, 'baseRooms', event.target.value)}
+                                  fullWidth
+                                />
+                                <Input
+                                  label="Capacity"
+                                  type="number"
+                                  value={roomType.capacity}
+                                  onChange={(event) => updateRoomTypeField(index, 'capacity', event.target.value)}
+                                  fullWidth
+                                />
+                                <Input
+                                  label="BAR Price (INR)"
+                                  type="number"
+                                  value={roomType.ratePlanPrice ?? ''}
+                                  onChange={(event) => updateRoomTypeField(index, 'ratePlanPrice', event.target.value)}
+                                  fullWidth
+                                />
+                                <Input
+                                  label="Sort Order"
+                                  type="number"
+                                  value={roomType.sortOrder ?? String(index)}
+                                  onChange={(event) => updateRoomTypeField(index, 'sortOrder', event.target.value)}
+                                  fullWidth
+                                />
+                                <Input
+                                  label="Code (optional)"
+                                  value={roomType.code ?? ''}
+                                  onChange={(event) => updateRoomTypeField(index, 'code', event.target.value)}
+                                  fullWidth
+                                />
+                              </div>
+
+                              <div className="pt-4">
+                                <label className="block text-xs font-semibold text-neutral-600 mb-2">
+                                  Description
+                                </label>
+                                <textarea
+                                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                                  rows={2}
+                                  value={roomType.description || ''}
+                                  onChange={(event) => updateRoomTypeField(index, 'description', event.target.value)}
+                                />
+                              </div>
+
+                              {roomType.inventorySummary && (
+                                <div className="mt-4 grid gap-3 rounded-lg bg-neutral-50 px-4 py-3 text-xs text-neutral-600 md:grid-cols-3">
+                                  <div>
+                                    <span className="font-semibold text-neutral-900">{roomType.inventorySummary.totalFreeToSell ?? 0}</span>
+                                    <span className="ml-1">free to sell (next window)</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-neutral-900">{roomType.inventorySummary.totalBooked ?? 0}</span>
+                                    <span className="ml-1">booked</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-neutral-900">{roomType.inventorySummary.totalHolds ?? 0}</span>
+                                    <span className="ml-1">on hold</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-neutral-100 bg-neutral-50 px-6 py-4 text-sm text-neutral-600 md:flex-row md:items-center md:justify-between">
+              <span>Saving will refresh BAR pricing and re-sync OTA availability automatically.</span>
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="sm" onClick={closePropertyEditor} disabled={propertyEditorSaving}>
+                  Cancel
+                </Button>
+                <Button variant="primary" size="sm" onClick={handlePropertyEditorSave} disabled={propertyEditorSaving}>
+                  {propertyEditorSaving ? 'Saving…' : 'Save Changes'}
                 </Button>
               </div>
             </div>
