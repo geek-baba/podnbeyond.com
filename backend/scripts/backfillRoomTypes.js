@@ -62,6 +62,8 @@ async function backfillRoomTypes() {
         .slice(0, 48)
         .toUpperCase();
 
+      console.log(`    → Generated code: ${codeBase}`);
+
       let roomType = existing;
 
       if (existing) {
@@ -96,6 +98,9 @@ async function backfillRoomTypes() {
         data: { roomTypeId: roomType.id },
       });
 
+      const ratePlanCodeBase = `${roomType.code || codeBase}-BAR`;
+
+      // Ensure BAR rate plan exists.
       const existingRatePlan = await prisma.ratePlan.findFirst({
         where: {
           roomTypeId: roomType.id,
@@ -109,7 +114,7 @@ async function backfillRoomTypes() {
             propertyId: property.id,
             roomTypeId: roomType.id,
             name: 'BAR',
-            code: `${code || roomType.id}-BAR`,
+            code: ratePlanCodeBase,
             seasonalPrice: pricePerNight,
             refundable: true,
             currency: 'INR',
