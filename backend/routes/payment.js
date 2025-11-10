@@ -1,15 +1,35 @@
 const express = require('express');
-const Razorpay = require('razorpay');
+let Razorpay;
+try {
+  // Defer requiring Razorpay until we know credentials exist to avoid throwing during boot
+  Razorpay = require('razorpay');
+} catch (error) {
+  // If the dependency is missing, leave Razorpay undefined; downstream checks will prevent usage.
+  Razorpay = null;
+}
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
 
 const prisma = new PrismaClient();
 
-// Initialize Razorpay with your key_id and key_secret
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const hasRazorpayCredentials =
+  Boolean(process.env.RAZORPAY_KEY_ID) &&
+  process.env.RAZORPAY_KEY_ID !== 'REPLACE_ME' &&
+  Boolean(process.env.RAZORPAY_KEY_SECRET) &&
+  process.env.RAZORPAY_KEY_SECRET !== 'REPLACE_ME';
+
+let razorpay = null;
+if (hasRazorpayCredentials && Razorpay) {
+  try {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  } catch (error) {
+    console.error('Failed to initialize Razorpay SDK:', error.message);
+    razorpay = null;
+  }
+}
 
 // Create a new payment order
 router.post('/create-order', async (req, res) => {
@@ -32,8 +52,11 @@ router.post('/create-order', async (req, res) => {
     }
 
     // TEST MODE: For development/testing without Razorpay
-    const isTestMode = testMode || process.env.NODE_ENV === 'development' && 
-                       (!process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID.includes('placeholder'));
+    const isTestMode =
+      testMode ||
+      !razorpay ||
+      (process.env.NODE_ENV === 'development' &&
+        (!process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID.includes('placeholder')));
     
     if (isTestMode) {
       console.log('⚠️  TEST MODE: Bypassing Razorpay payment');
@@ -64,9 +87,10 @@ router.post('/create-order', async (req, res) => {
     }
 
     // Check if Razorpay credentials are configured
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(500).json({ 
-        error: 'Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.' 
+    if (!razorpay) {
+      return res.status(503).json({
+        error:
+          'Razorpay credentials are not configured on this environment. Payments cannot be processed right now.',
       });
     }
 
@@ -158,6 +182,12 @@ router.post('/verify-payment', async (req, res) => {
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ 
         error: 'Missing payment verification parameters' 
+      });
+    }
+
+    if (!razorpay || !hasRazorpayCredentials) {
+      return res.status(503).json({
+        error: 'Payment verification is unavailable because Razorpay credentials are not configured.',
       });
     }
 
@@ -360,239 +390,4 @@ async function updateLoyaltyAccount(loyaltyAccountId, pointsToAdd, totalPrice) {
     console.log(`Total points: ${currentAccount.points} → ${newTotalPoints}`);
     
     if (tierUpgraded) {
-      console.log(`Tier upgraded: ${currentAccount.tier} → ${newTier}`);
-    }
-
-    return {
-      updatedAccount,
-      pointsAdded: pointsToAdd,
-      totalPoints: newTotalPoints,
-      tierUpgraded,
-      newTier,
-      previousTier: currentAccount.tier
-    };
-  } catch (error) {
-    console.error('Error updating loyalty account:', error);
-    throw error;
-  }
-}
-
-// Get payment details by order ID
-router.get('/order/:orderId', async (req, res) => {
-  try {
-    const { orderId } = req.params;
-
-    if (!orderId) {
-      return res.status(400).json({ 
-        error: 'Order ID is required' 
-      });
-    }
-
-    const order = await razorpay.orders.fetch(orderId);
-
-    res.json({
-      success: true,
-      order: {
-        id: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        receipt: order.receipt,
-        status: order.status,
-        notes: order.notes,
-        created_at: order.created_at
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching order:', error);
-    
-    if (error.error && error.error.description) {
-      return res.status(404).json({ 
-        error: `Order not found: ${error.error.description}` 
-      });
-    }
-    
-    res.status(500).json({ 
-      error: 'Failed to fetch order details' 
-    });
-  }
-});
-
-// Get all payments for a booking
-router.get('/payments/:bookingId', async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-
-    if (!bookingId) {
-      return res.status(400).json({ 
-        error: 'Booking ID is required' 
-      });
-    }
-
-    const payments = await prisma.payment.findMany({
-      where: {
-        bookingId: parseInt(bookingId)
-      },
-      include: {
-        booking: {
-          include: {
-            room: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    res.json({
-      success: true,
-      payments: payments.map(payment => ({
-        id: payment.id,
-        razorpayOrderId: payment.razorpayOrderId,
-        razorpayPaymentId: payment.razorpayPaymentId,
-        amount: payment.amount,
-        status: payment.status,
-        createdAt: payment.createdAt,
-        booking: {
-          id: payment.booking.id,
-          guestName: payment.booking.guestName,
-          roomType: payment.booking.room.name,
-          totalPrice: payment.booking.totalPrice,
-          status: payment.booking.status
-        }
-      }))
-    });
-
-  } catch (error) {
-    console.error('Error fetching payments:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch payment details' 
-    });
-  }
-});
-
-// Helper function to calculate tier based on points (legacy - kept for compatibility)
-function calculateTier(points) {
-  if (points >= 10000) return 'PLATINUM';
-  if (points >= 5000) return 'GOLD';
-  return 'SILVER';
-}
-
-// Helper function to calculate loyalty points based on amount spent and tier (legacy - kept for compatibility)
-function calculateLoyaltyPoints(amount, tier) {
-  // Base rate: 1 point per ₹100 spent
-  const basePoints = Math.floor(amount / 100);
-  
-  // Apply tier multiplier
-  const tierMultiplier = getTierMultiplier(tier);
-  const totalPoints = Math.round(basePoints * tierMultiplier);
-  
-  return totalPoints;
-}
-
-// Helper function to get tier multiplier for points calculation (legacy - kept for compatibility)
-function getTierMultiplier(tier) {
-  switch (tier) {
-    case 'PLATINUM':
-      return 2.0; // 2x points (2 points per ₹100)
-    case 'GOLD':
-      return 1.5; // 1.5x points (1.5 points per ₹100)
-    case 'SILVER':
-    default:
-      return 1.0; // 1x points (1 point per ₹100)
-  }
-}
-
-// Helper function to get points multiplier based on tier (legacy - kept for compatibility)
-function getPointsMultiplier(tier) {
-  return getTierMultiplier(tier);
-}
-
-// Test mode payment confirmation (for development without Razorpay)
-router.post('/test-confirm', async (req, res) => {
-  try {
-    const { bookingId, orderId } = req.body;
-
-    if (!bookingId) {
-      return res.status(400).json({ error: 'Booking ID is required' });
-    }
-
-    console.log('⚠️  TEST MODE: Confirming payment for booking', bookingId);
-
-    // Find the booking
-    const booking = await prisma.booking.findUnique({
-      where: { id: parseInt(bookingId) },
-      include: { 
-        room: true,
-        loyaltyAccount: true
-      }
-    });
-
-    if (!booking) {
-      return res.status(404).json({ error: 'Booking not found' });
-    }
-
-    if (booking.status !== 'PENDING') {
-      return res.status(400).json({ 
-        error: `Booking is not in pending status. Current status: ${booking.status}` 
-      });
-    }
-
-    // Create a test payment record
-    const payment = await prisma.payment.create({
-      data: {
-        bookingId: booking.id,
-        amount: booking.totalPrice,
-        status: 'COMPLETED',
-        razorpayOrderId: orderId || `test_order_${Date.now()}`,
-        razorpayPaymentId: `test_payment_${Date.now()}`
-      }
-    });
-
-    // Update booking to CONFIRMED
-    const confirmedBooking = await prisma.booking.update({
-      where: { id: booking.id },
-      data: { status: 'CONFIRMED' },
-      include: {
-        room: true,
-        loyaltyAccount: true,
-        payments: true
-      }
-    });
-
-    // Calculate and add loyalty points (10% cashback)
-    const loyaltyPoints = Math.floor(booking.totalPrice * 0.10); // 10% as points
-    
-    if (booking.loyaltyAccountId) {
-      const updatedLoyalty = await prisma.loyaltyAccount.update({
-        where: { id: booking.loyaltyAccountId },
-        data: {
-          points: { increment: loyaltyPoints },
-          lastUpdated: new Date()
-        }
-      });
-
-      console.log(`✅ TEST MODE: Added ${loyaltyPoints} loyalty points`);
-    }
-
-    res.json({
-      success: true,
-      testMode: true,
-      message: 'Test payment confirmed successfully',
-      booking: confirmedBooking,
-      payment: payment,
-      loyaltyPoints: loyaltyPoints
-    });
-
-  } catch (error) {
-    console.error('Error in test payment confirmation:', error);
-    res.status(500).json({ 
-      error: 'Failed to confirm test payment',
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
-
-module.exports = router; 
+      console.log(`
