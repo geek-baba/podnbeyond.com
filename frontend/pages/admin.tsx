@@ -155,7 +155,12 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       try {
         const results = await Promise.all(
           properties.map(async (property) => {
-            const response = await fetch(resolveApiUrl(`/api/admin/properties/${property.id}/room-types`));
+            const response = await fetch(resolveApiUrl(`/api/admin/properties/${property.id}/room-types`), {
+              credentials: 'include',
+              headers: {
+                Accept: 'application/json',
+              },
+            });
             if (!response.ok) {
               const message = await response.text();
               throw new Error(message || `Failed to load room types for property ${property.id}`);
@@ -288,7 +293,12 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
     });
 
     try {
-      const response = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`));
+      const response = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`), {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
       if (!response.ok) {
         const message = await response.text();
         throw new Error(message || 'Failed to load property room types');
@@ -437,7 +447,8 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
 
       const propertyResponse = await fetch(resolveApiUrl(`/api/properties/${propertyId}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(propertyPayload),
       });
 
@@ -466,7 +477,8 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
 
       const roomTypeResponse = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ roomTypes: roomTypesPayload }),
       });
 
@@ -646,7 +658,13 @@ useEffect(() => {
 
         const url = resolveApiUrl(`/api/inventory/availability?${params.toString()}`);
 
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, {
+          signal: controller.signal,
+          credentials: 'include',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
         const contentType = response.headers.get('content-type') || '';
         let data: any = null;
 

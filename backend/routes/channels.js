@@ -160,7 +160,7 @@ router.post('/:channelId/push-booking', async (req, res) => {
 router.get('/:channelId/fetch-bookings', async (req, res) => {
   try {
     const { channelId } = req.params;
-    const { startDate, endDate, channelId } = req.query;
+    const { startDate, endDate, channelId: queryChannelId } = req.query;
 
     // Validate required parameters
     if (!startDate || !endDate) {
@@ -182,7 +182,7 @@ router.get('/:channelId/fetch-bookings', async (req, res) => {
     
     res.json({
       success: true,
-      channel: channelId,
+      channel: queryChannelId || channelId,
       result
     });
 
@@ -377,7 +377,7 @@ router.get('/room-availability', async (req, res) => {
       });
     }
 
-    const availability = await channelManager.getRoomAvailability(start, end, channelId || null);
+    const availability = await channelManager.getRoomAvailability(start, end, queryChannelId || null);
     
     res.json({
       success: true,
@@ -386,7 +386,7 @@ router.get('/room-availability', async (req, res) => {
         startDate: start.toISOString(),
         endDate: end.toISOString()
       },
-      channel: channelId || null
+      channel: queryChannelId || null
     });
 
   } catch (error) {
