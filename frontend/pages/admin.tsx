@@ -13,6 +13,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
   ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
   : '';
 
+const resolveApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${normalizedPath}`;
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}${normalizedPath}`;
+  }
+  return normalizedPath;
+};
+
 interface AdminDashboardProps {
   brands: any[];
   properties: any[];
@@ -144,7 +155,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       try {
         const results = await Promise.all(
           properties.map(async (property) => {
-            const response = await fetch(`/api/admin/properties/${property.id}/room-types`);
+            const response = await fetch(resolveApiUrl(`/api/admin/properties/${property.id}/room-types`));
             if (!response.ok) {
               const message = await response.text();
               throw new Error(message || `Failed to load room types for property ${property.id}`);
@@ -277,7 +288,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
     });
 
     try {
-      const response = await fetch(`/api/admin/properties/${propertyId}/room-types`);
+      const response = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`));
       if (!response.ok) {
         const message = await response.text();
         throw new Error(message || 'Failed to load property room types');
@@ -424,7 +435,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
         currency: propertyForm.currency || 'INR',
       };
 
-      const propertyResponse = await fetch(`/api/properties/${propertyId}`, {
+      const propertyResponse = await fetch(resolveApiUrl(`/api/properties/${propertyId}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(propertyPayload),
@@ -453,7 +464,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
             : Number(roomType.ratePlanPrice),
       }));
 
-      const roomTypeResponse = await fetch(`/api/admin/properties/${propertyId}/room-types`, {
+      const roomTypeResponse = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomTypes: roomTypesPayload }),
@@ -633,9 +644,7 @@ useEffect(() => {
           end: end.toISOString(),
         });
 
-        const url = API_BASE_URL
-          ? `${API_BASE_URL}/api/inventory/availability?${params.toString()}`
-          : `/api/inventory/availability?${params.toString()}`;
+        const url = resolveApiUrl(`/api/inventory/availability?${params.toString()}`);
 
         const response = await fetch(url, { signal: controller.signal });
         const contentType = response.headers.get('content-type') || '';
