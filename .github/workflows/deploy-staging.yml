@@ -84,8 +84,13 @@ jobs:
             NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}' \
             npm run build --prefix frontend
 
+            # Export env vars from .env.local for PM2 process
+            export NEXT_PUBLIC_BACKEND_URL='${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}'
+            export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
+            export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
+
             pm2 reload ecosystem.config.js --only staging-backend || pm2 restart staging-backend
-            pm2 reload ecosystem.config.js --only staging-frontend || pm2 restart staging-frontend
+            pm2 reload ecosystem.config.js --only staging-frontend --update-env || pm2 restart staging-frontend --update-env
             pm2 save
 
       - name: Staging health check
