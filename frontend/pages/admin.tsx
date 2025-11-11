@@ -3059,7 +3059,7 @@ export async function getServerSideProps() {
 
     const brands = brandsRes ? (await brandsRes.json()).brands || [] : [];
     const properties = propertiesRes ? (await propertiesRes.json()).properties || [] : [];
-    const bookings = bookingsRes ? await bookingsRes.json() : [];
+    const bookings = bookingsRes ? (await bookingsRes.json()).bookings || [] : [];
     const users = usersRes ? (await usersRes.json()).users || [] : [];
     const roomTypes = roomTypesRes ? await roomTypesRes.json() : [];
 
