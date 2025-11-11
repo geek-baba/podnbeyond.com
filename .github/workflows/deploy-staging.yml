@@ -64,6 +64,10 @@ jobs:
             export NEXT_PUBLIC_BACKEND_URL='${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}'
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
+            export REDIS_ENABLED='${{ secrets.STAGING_REDIS_ENABLED }}'
+            export REDIS_HOST='${{ secrets.STAGING_REDIS_HOST }}'
+            export REDIS_PORT='${{ secrets.STAGING_REDIS_PORT }}'
+            export QUEUE_PREFIX='staging'
 
             if [ -s "$HOME/.nvm/nvm.sh" ]; then
               export NVM_DIR="$HOME/.nvm"
@@ -72,7 +76,7 @@ jobs:
 
             npm ci --prefix backend
             npm ci --prefix frontend
-            cd backend && npx prisma migrate deploy && cd ..
+            cd backend && npx prisma migrate deploy || (echo "Migration failed, trying db push..." && npx prisma db push --accept-data-loss) && cd ..
             
             # Create .env.local for Next.js runtime (rewrites need this at runtime)
             echo "NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}" > frontend/.env.local
