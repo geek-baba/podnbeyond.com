@@ -73,6 +73,14 @@ jobs:
             npm ci --prefix backend
             npm ci --prefix frontend
             cd backend && npx prisma migrate deploy && cd ..
+            
+            # Create .env.local for Next.js runtime (rewrites need this at runtime)
+            cat > frontend/.env.local << EOF
+NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}
+NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
+NEXT_PUBLIC_RAZORPAY_KEY_ID=${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}
+EOF
+            
             NEXT_PUBLIC_BACKEND_URL='${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}' \
             NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}' \
             NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}' \
