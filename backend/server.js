@@ -47,6 +47,9 @@ const adminPropertiesRoutes = require('./routes/adminProperties');
 const otaMappingRoutes = require('./routes/otaMappings');
 const cronRoutes = require('./routes/cron');
 const cmsRoutes = require('./routes/cms');
+const notifyRoutes = require('./routes/notify');
+const voiceRoutes = require('./routes/voice');
+const webhookRoutes = require('./routes/webhooks');
 const { initHoldReleaseJob } = require('./jobs/holdReleaseJob');
 
 // Import cron service
@@ -97,6 +100,11 @@ app.use('/api/gallery', apiLimiter, require('./routes/gallery'));
 app.use('/api/properties', apiLimiter, require('./routes/properties'));
 app.use('/api/brands', apiLimiter, require('./routes/brands'));
 app.use('/api/admin/ota-mappings', adminLimiter, otaMappingRoutes);
+
+// Communication integration routes
+app.use('/api/notify', apiLimiter, notifyRoutes);
+app.use('/api/voice', apiLimiter, voiceRoutes);
+app.use('/webhooks', webhookRoutes); // No rate limit for webhooks
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {
