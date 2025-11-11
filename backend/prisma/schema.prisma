@@ -991,3 +991,150 @@ model Suppression {
   @@index([email])
   @@map("email_suppressions")
 }
+
+// ============================================================================
+// COMMUNICATION INTEGRATIONS MODELS (Gupshup + Exotel)
+// ============================================================================
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum MessageChannel {
+  WHATSAPP
+  SMS
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ANSWERED
+  COMPLETED
+  BUSY
+  FAILED
+  NO_ANSWER
+  CANCELLED
+}
+
+// Contact - Unified contact information
+model Contact {
+  id              Int      @id @default(autoincrement())
+  phone           String   @unique
+  name            String?
+  email           String?
+  metadata        Json?    // Additional contact info
+  
+  // Relations
+  messageLogs     MessageLog[]
+  callLogs        CallLog[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([phone])
+  @@map("contacts")
+}
+
+// MessageLog - Track all WhatsApp/SMS messages via Gupshup
+model MessageLog {
+  id              Int             @id @default(autoincrement())
+  contactId       Int?
+  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  
+  // Message details
+  channel         MessageChannel
+  direction       MessageDirection
+  status          MessageStatus  @default(PENDING)
+  phone           String          // Phone number (normalized)
+  message         String?         @db.Text
+  templateId      String?         // Gupshup template ID
+  templateParams  Json?           // Template parameters
+  
+  // Provider info
+  provider        String          @default("GUPSHUP")
+  providerMessageId String?       @unique // External message ID from Gupshup
+  providerStatus  String?         // Provider-specific status
+  
+  // Metadata
+  metadata        Json?           // Additional provider metadata
+  errorMessage    String?         @db.Text
+  
+  // Relations
+  bookingId       Int?            // Link to booking if message is booking-related
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+
+  @@index([contactId])
+  @@index([phone])
+  @@index([providerMessageId])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@index([bookingId])
+  @@map("message_logs")
+}
+
+// CallLog - Track all voice calls via Exotel
+model CallLog {
+  id              Int           @id @default(autoincrement())
+  contactId       Int?
+  contact         Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  
+  // Call details
+  direction       CallDirection
+  status          CallStatus    @default(INITIATED)
+  fromNumber      String        // Caller number
+  toNumber        String        // Called number
+  duration        Int?          // Call duration in seconds
+  
+  // Provider info
+  provider        String        @default("EXOTEL")
+  providerCallId  String?       @unique // External call ID from Exotel
+  providerStatus  String?       // Provider-specific status
+  
+  // IVR/Flow info
+  flowId          String?       // Exotel flow ID if applicable
+  ivrData         Json?         // IVR interaction data
+  
+  // Metadata
+  metadata        Json?         // Additional provider metadata
+  errorMessage    String?       @db.Text
+  recordingUrl     String?       // Call recording URL if available
+  
+  // Relations
+  bookingId       Int?          // Link to booking if call is booking-related
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  initiatedAt     DateTime?
+  answeredAt      DateTime?
+  completedAt     DateTime?
+
+  @@index([contactId])
+  @@index([fromNumber])
+  @@index([toNumber])
+  @@index([providerCallId])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@index([bookingId])
+  @@map("call_logs")
+}

@@ -442,63 +442,143 @@ export default function CommunicationHub() {
               </div>
             </div>
 
-            {/* Upcoming Channels */}
+            {/* Integrated Channels */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card variant="bordered" padding="lg">
+              {/* WhatsApp via Gupshup */}
+              <Card variant="default" padding="lg">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-xl font-bold text-neutral-900">💬 WhatsApp (Coming Soon)</h3>
+                    <h3 className="text-xl font-bold text-neutral-900">💬 WhatsApp (Gupshup)</h3>
                     <p className="text-neutral-600 mt-1">
-                      We’ll connect directly with Gupshup so you can manage WhatsApp guest chats alongside email.
-                      Real-time notifications, templated replies, and team assignment are on the roadmap.
+                      Send WhatsApp messages and SMS via Gupshup. Track delivery status and manage guest conversations.
                     </p>
                   </div>
-                  <span className="text-xs uppercase tracking-wide text-neutral-400 font-semibold">Planning</span>
+                  <Badge variant="success" size="sm">Active</Badge>
                 </div>
-                <div className="mt-4 space-y-3 text-sm text-neutral-600">
-                  <p>Planned features:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Two-way messaging with delivery receipts</li>
-                    <li>Shared inbox with assignment and tagging</li>
-                    <li>Message templates synced from Gupshup</li>
-                  </ul>
-                </div>
-                <div className="mt-6 flex items-center gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => window.open('https://apps.gupshup.io/whatsapp/dashboard', '_blank')}
-                  >
-                    Open Gupshup Dashboard
-                  </Button>
+                
+                {/* Quick Actions */}
+                <div className="mt-6 space-y-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="tel"
+                        id="whatsapp-phone"
+                        placeholder="+91 98765 43210"
+                        className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={async () => {
+                          const phoneInput = document.getElementById('whatsapp-phone') as HTMLInputElement;
+                          const phone = phoneInput?.value;
+                          if (!phone) {
+                            alert('Please enter a phone number');
+                            return;
+                          }
+                          const message = prompt('Enter message:');
+                          if (!message) return;
+                          
+                          try {
+                            const response = await fetch('/api/notify/booking', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                phone,
+                                message,
+                                channel: 'whatsapp',
+                              }),
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                              alert('WhatsApp message sent!');
+                              phoneInput.value = '';
+                            } else {
+                              alert(`Failed: ${data.error}`);
+                            }
+                          } catch (error) {
+                            alert('Failed to send message');
+                          }
+                        }}
+                      >
+                        Send WhatsApp
+                      </Button>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => window.open('https://apps.gupshup.io/whatsapp/dashboard', '_blank')}
+                    >
+                      Open Gupshup Dashboard
+                    </Button>
+                  </div>
                 </div>
               </Card>
 
-              <Card variant="bordered" padding="lg">
+              {/* Voice & SMS via Exotel */}
+              <Card variant="default" padding="lg">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-xl font-bold text-neutral-900">📞 Voice & SMS (Coming Soon)</h3>
+                    <h3 className="text-xl font-bold text-neutral-900">📞 Voice & SMS (Exotel)</h3>
                     <p className="text-neutral-600 mt-1">
-                      Integrate Exotel-powered calls and text messages to follow up on bookings, loyalty upgrades,
-                      and urgent guest issues—without leaving the hub.
+                      Initiate bridged calls between guests and reception. Track call logs and manage voice communications.
                     </p>
                   </div>
-                  <span className="text-xs uppercase tracking-wide text-neutral-400 font-semibold">Designing</span>
+                  <Badge variant="success" size="sm">Active</Badge>
                 </div>
-                <div className="mt-4 space-y-3 text-sm text-neutral-600">
-                  <p>Planned features:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Click-to-call with call outcome logging</li>
-                    <li>Broadcast and automated SMS journeys</li>
-                    <li>Shared call notes and follow-up tasks</li>
-                  </ul>
-                </div>
-                <div className="mt-6 flex items-center gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => window.open('https://my.exotel.com/', '_blank')}
-                  >
-                    Open Exotel Console
-                  </Button>
+                
+                {/* Quick Actions */}
+                <div className="mt-6 space-y-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="tel"
+                        id="call-phone"
+                        placeholder="+91 98765 43210"
+                        className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={async () => {
+                          const phoneInput = document.getElementById('call-phone') as HTMLInputElement;
+                          const guestPhone = phoneInput?.value;
+                          if (!guestPhone) {
+                            alert('Please enter a guest phone number');
+                            return;
+                          }
+                          
+                          try {
+                            const response = await fetch('/api/voice/call-reception', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                guestPhone,
+                              }),
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                              alert('Call initiated! Connecting guest to reception...');
+                              phoneInput.value = '';
+                            } else {
+                              alert(`Failed: ${data.error}`);
+                            }
+                          } catch (error) {
+                            alert('Failed to initiate call');
+                          }
+                        }}
+                      >
+                        📞 Call Reception
+                      </Button>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => window.open('https://my.exotel.com/', '_blank')}
+                    >
+                      Open Exotel Console
+                    </Button>
+                  </div>
                 </div>
               </Card>
             </div>
