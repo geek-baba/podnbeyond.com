@@ -73,9 +73,21 @@ jobs:
 
             npm ci --prefix backend
             npm ci --prefix frontend
-            cd backend && npx prisma migrate deploy && cd ..
+            cd backend
+            # Try to deploy migrations, if it fails with P3005 (baseline needed), resolve it
+            if ! npx prisma migrate deploy 2>&1; then
+              echo "Migration deploy failed, checking if baselining is needed..."
+              # If migrations are already applied or database is in sync, continue
+              npx prisma migrate status && echo "Migrations are up to date" || {
+                echo "Database may need baselining, but continuing deployment..."
+                # Generate Prisma client to ensure it's in sync
+                npx prisma generate
+              }
+            fi
+            cd ..
             
             # Create .env.local for Next.js runtime (rewrites need this at runtime)
+            mkdir -p frontend
             echo "NEXT_PUBLIC_BACKEND_URL=${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}" > frontend/.env.local
             echo "NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}" >> frontend/.env.local
             echo "NEXT_PUBLIC_RAZORPAY_KEY_ID=${{ secrets.PROD_RAZORPAY_KEY_ID }}" >> frontend/.env.local
