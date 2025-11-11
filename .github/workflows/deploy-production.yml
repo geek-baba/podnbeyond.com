@@ -90,8 +90,8 @@ jobs:
             export NEXT_PUBLIC_API_URL='${{ secrets.PROD_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.PROD_RAZORPAY_KEY_ID }}'
 
-            pm2 reload ecosystem.config.js --only hotel-booking-backend || pm2 restart hotel-booking-backend
-            pm2 reload ecosystem.config.js --only hotel-booking-frontend --update-env || pm2 restart hotel-booking-frontend --update-env
+            pm2 reload ecosystem.config.js --only prod-backend || pm2 restart prod-backend
+            pm2 reload ecosystem.config.js --only prod-frontend --update-env || pm2 restart prod-frontend --update-env
             pm2 save
 
       - name: Production health check
