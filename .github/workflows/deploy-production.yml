@@ -1,0 +1,100 @@
+name: Deploy - Production
+
+on:
+  workflow_dispatch:  # Manual trigger only for safety
+  # Uncomment below if you want automatic deployments on push to 'prod' branch
+  # push:
+  #   branches:
+  #     - prod
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production  # Requires approval if branch protection is enabled
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.21.1'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # TODO: replace with real lint/test commands when available.
+      - name: Run backend checks (placeholder)
+        working-directory: backend
+        run: npm run lint || echo "lint step skipped"
+
+      - name: Run frontend checks (placeholder)
+        working-directory: frontend
+        run: npm run lint || echo "lint step skipped"
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_BACKEND_URL: ${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.PROD_RAZORPAY_KEY_ID }}
+        run: npm run build
+
+      - name: Deploy to production host
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_DEPLOY_HOST }}
+          username: ${{ secrets.PROD_DEPLOY_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.PROD_DEPLOY_PATH }}
+            git fetch --all
+            git checkout main
+            git pull origin main
+
+            export DATABASE_URL='${{ secrets.PROD_DATABASE_URL }}'
+            export POSTMARK_TOKEN='${{ secrets.PROD_POSTMARK_TOKEN }}'
+            export RAZORPAY_KEY_ID='${{ secrets.PROD_RAZORPAY_KEY_ID }}'
+            export RAZORPAY_KEY_SECRET='${{ secrets.PROD_RAZORPAY_KEY_SECRET }}'
+            export NEXT_PUBLIC_BACKEND_URL='${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}'
+            export NEXT_PUBLIC_API_URL='${{ secrets.PROD_NEXT_PUBLIC_API_URL }}'
+            export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.PROD_RAZORPAY_KEY_ID }}'
+
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              . "$NVM_DIR/nvm.sh"
+            fi
+
+            npm ci --prefix backend
+            npm ci --prefix frontend
+            cd backend && npx prisma migrate deploy && cd ..
+            
+            # Create .env.local for Next.js runtime (rewrites need this at runtime)
+            echo "NEXT_PUBLIC_BACKEND_URL=${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}" > frontend/.env.local
+            echo "NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}" >> frontend/.env.local
+            echo "NEXT_PUBLIC_RAZORPAY_KEY_ID=${{ secrets.PROD_RAZORPAY_KEY_ID }}" >> frontend/.env.local
+            
+            NEXT_PUBLIC_BACKEND_URL='${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}' \
+            NEXT_PUBLIC_API_URL='${{ secrets.PROD_NEXT_PUBLIC_API_URL }}' \
+            NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.PROD_RAZORPAY_KEY_ID }}' \
+            npm run build --prefix frontend
+
+            # Export env vars from .env.local for PM2 process
+            export NEXT_PUBLIC_BACKEND_URL='${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}'
+            export NEXT_PUBLIC_API_URL='${{ secrets.PROD_NEXT_PUBLIC_API_URL }}'
+            export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.PROD_RAZORPAY_KEY_ID }}'
+
+            pm2 reload ecosystem.config.js --only hotel-booking-backend || pm2 restart hotel-booking-backend
+            pm2 reload ecosystem.config.js --only hotel-booking-frontend --update-env || pm2 restart hotel-booking-frontend --update-env
+            pm2 save
+
+      - name: Production health check
+        run: curl --fail -L ${{ secrets.PROD_HEALTHCHECK_URL }}
+
