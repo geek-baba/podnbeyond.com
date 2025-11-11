@@ -2,10 +2,9 @@ name: Deploy - Production
 
 on:
   workflow_dispatch:  # Manual trigger only for safety
-  # Uncomment below if you want automatic deployments on push to 'prod' branch
-  # push:
-  #   branches:
-  #     - prod
+  push:
+    branches:
+      - production  # Deploy when code is pushed to production branch
 
 jobs:
   build-and-deploy:
@@ -56,8 +55,8 @@ jobs:
             set -e
             cd ${{ secrets.PROD_DEPLOY_PATH }}
             git fetch --all
-            git checkout main
-            git pull origin main
+            git checkout production
+            git pull origin production
 
             export DATABASE_URL='${{ secrets.PROD_DATABASE_URL }}'
             export POSTMARK_TOKEN='${{ secrets.PROD_POSTMARK_TOKEN }}'
