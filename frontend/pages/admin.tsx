@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../lib/useAuth';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -39,6 +40,7 @@ interface NewUserFormState {
 
 export default function AdminDashboard({ brands, properties: initialProperties, bookings, loyalty, users, roomTypes: initialRoomTypes, stats }: AdminDashboardProps) {
   const { data: session, signOut } = useAuth();
+  const router = useRouter();
   const [properties, setProperties] = useState(initialProperties || []);
   const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
   const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
@@ -793,7 +795,7 @@ useEffect(() => {
       <section className="bg-white border-b border-neutral-200 sticky top-0 z-20">
         <Container>
           <div className="flex space-x-8 overflow-x-auto py-4">
-            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms', 'payment', 'ota'].map((tab) => (
+            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms', 'payment', 'ota', 'integrations'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -803,7 +805,7 @@ useEffect(() => {
                     : 'border-transparent text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                {tab === 'cms' ? 'CMS' : tab === 'ota' ? 'OTA' : tab}
+                {tab === 'cms' ? 'CMS' : tab === 'ota' ? 'OTA' : tab === 'integrations' ? 'Integrations' : tab}
               </button>
             ))}
           </div>
@@ -1776,6 +1778,42 @@ useEffect(() => {
                 <h3 className="font-bold text-lg mb-3">🧪 Test Payment Integration</h3>
                 <p className="text-neutral-600 mb-4">Verify your Razorpay integration is working</p>
                 <Button variant="secondary">Run Test Payment</Button>
+              </Card>
+            </div>
+          )}
+
+          {/* Integrations Tab */}
+          {activeTab === 'integrations' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-900">Third-Party Integrations</h2>
+                  <p className="text-neutral-600 mt-1">Manage all third-party service configurations</p>
+                </div>
+                <Button 
+                  variant="primary"
+                  onClick={() => router.push('/admin/integrations')}
+                >
+                  Open Integrations Manager
+                </Button>
+              </div>
+
+              <Card variant="default" padding="lg">
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                    Unified Integration Management
+                  </h3>
+                  <p className="text-neutral-600 mb-6">
+                    Manage all third-party integrations including Payment, Email, Messaging, Voice, and OTA channels
+                    from a single interface with secure credential storage and connection testing.
+                  </p>
+                  <Button 
+                    variant="primary"
+                    onClick={() => router.push('/admin/integrations')}
+                  >
+                    Go to Integrations Page
+                  </Button>
+                </div>
               </Card>
             </div>
           )}

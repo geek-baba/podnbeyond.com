@@ -98,6 +98,7 @@ app.use('/api/cron', apiLimiter, cronRoutes);
 app.use('/api/cms', apiLimiter, cmsRoutes);
 app.use('/api/gallery', apiLimiter, require('./routes/gallery'));
 app.use('/api/properties', apiLimiter, require('./routes/properties'));
+app.use('/api/integrations', adminLimiter, require('./routes/integrations'));
 app.use('/api/brands', apiLimiter, require('./routes/brands'));
 app.use('/api/admin/ota-mappings', adminLimiter, otaMappingRoutes);
 

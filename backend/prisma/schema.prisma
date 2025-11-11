@@ -139,7 +139,7 @@ model User {
   sentInvites    Invite[]        @relation("InvitedBy")
   auditLogs      AuditLog[]
   pointsLedger   PointsLedger[]
-  emailThreads   Thread[]        // Email conversations
+  emailThreads   Thread[] // Email conversations
 
   @@map("users")
 }
@@ -190,12 +190,12 @@ model VerificationToken {
 
 // OTP Codes for email authentication
 model OTPCode {
-  id         String   @id @default(cuid())
-  email      String
-  codeHash   String   // SHA-256 hash of the 6-digit OTP
-  attempts   Int      @default(0)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String // SHA-256 hash of the 6-digit OTP
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([email])
   @@map("otp_codes")
@@ -349,30 +349,30 @@ model Brand {
 
 // Property/Hotel model for multi-property support
 model Property {
-  id           Int            @id @default(autoincrement())
-  name         String
-  slug         String         @unique
-  location     String
-  address      String?
-  city         String
-  state        String         @default("Jharkhand")
-  pincode      String?
-  phone        String?
-  email        String?
-  rating       Float?         @default(0)
-  totalRatings Int            @default(0)
-  description  String?
-  amenities    String[]       @default([])
-  features     String[]       @default([])
-  images       String[]       @default([])
-  latitude     Float?
-  longitude    Float?
-  status       PropertyStatus @default(ACTIVE)
-  timezone     String?        @default("Asia/Kolkata")
-  defaultBuffer Int           @default(0)
-  currency     String?        @default("INR")
-  checkInCutoffMinutes Int?   @default(0)
-  overbookingEnabled Boolean  @default(true)
+  id                   Int            @id @default(autoincrement())
+  name                 String
+  slug                 String         @unique
+  location             String
+  address              String?
+  city                 String
+  state                String         @default("Jharkhand")
+  pincode              String?
+  phone                String?
+  email                String?
+  rating               Float?         @default(0)
+  totalRatings         Int            @default(0)
+  description          String?
+  amenities            String[]       @default([])
+  features             String[]       @default([])
+  images               String[]       @default([])
+  latitude             Float?
+  longitude            Float?
+  status               PropertyStatus @default(ACTIVE)
+  timezone             String?        @default("Asia/Kolkata")
+  defaultBuffer        Int            @default(0)
+  currency             String?        @default("INR")
+  checkInCutoffMinutes Int?           @default(0)
+  overbookingEnabled   Boolean        @default(true)
 
   // Brand relationship
   brandId Int?
@@ -382,43 +382,43 @@ model Property {
   updatedAt DateTime @updatedAt
 
   // Relationships
-  rooms        Room[]
-  roomTypes    RoomType[]
-  inventories  Inventory[]
-  bufferRules  BufferRule[]
-  bookings     Booking[]
-  otaMappings  OTAMapping[]
-  ratePlans    RatePlan[]
-  emailThreads Thread[] // Email conversations about this property
+  rooms           Room[]
+  roomTypes       RoomType[]
+  inventories     Inventory[]
+  bufferRules     BufferRule[]
+  bookings        Booking[]
+  otaMappings     OTAMapping[]
+  ratePlans       RatePlan[]
+  emailThreads    Thread[] // Email conversations about this property
   idempotencyKeys IdempotencyKey[]
 
   @@map("properties")
 }
 
 model RoomType {
-  id              Int        @id @default(autoincrement())
-  propertyId      Int
-  property        Property   @relation(fields: [propertyId], references: [id])
-  name            String
-  code            String?    @unique
-  description     String?
-  baseRooms       Int        @default(0)
-  capacity        Int        @default(1)
-  bedConfig       String?
-  amenities       String[]   @default([])
-  features        String[]   @default([])
-  isActive        Boolean    @default(true)
-  images          String[]   @default([])
-  sortOrder       Int        @default(0)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id          Int      @id @default(autoincrement())
+  propertyId  Int
+  property    Property @relation(fields: [propertyId], references: [id])
+  name        String
+  code        String?  @unique
+  description String?
+  baseRooms   Int      @default(0)
+  capacity    Int      @default(1)
+  bedConfig   String?
+  amenities   String[] @default([])
+  features    String[] @default([])
+  isActive    Boolean  @default(true)
+  images      String[] @default([])
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  rooms           Room[]
-  inventories     Inventory[]
-  bufferRules     BufferRule[]
-  ratePlans       RatePlan[]
-  bookings        Booking[]
-  otaMappings     OTAMapping[]
+  rooms       Room[]
+  inventories Inventory[]
+  bufferRules BufferRule[]
+  ratePlans   RatePlan[]
+  bookings    Booking[]
+  otaMappings OTAMapping[]
 
   @@index([propertyId, isActive])
   @@map("room_types")
@@ -446,39 +446,39 @@ model Room {
   updatedAt DateTime @updatedAt
 
   // Relationships
-  bookings  Booking[]
-  images    RoomImage[]
+  bookings Booking[]
+  images   RoomImage[]
 
   @@map("rooms")
 }
 
 // New RatePlan model
 model RatePlan {
-  id            Int      @id @default(autoincrement())
-  propertyId    Int
-  property      Property  @relation(fields: [propertyId], references: [id])
-  roomTypeId    Int
-  roomType      RoomType  @relation(fields: [roomTypeId], references: [id])
-  name          String
-  code          String?
-  description   String?
-  refundable    Boolean   @default(true)
-  seasonalPrice Float
-  currency      String?   @default("INR")
-  taxConfig     Json?
-  minLOS        Int?      @default(1)
-  maxLOS        Int?
-  weekdayMask   String?   // e.g. "1111100" for weekdays
-  startDate     DateTime?
-  endDate       DateTime?
+  id                 Int       @id @default(autoincrement())
+  propertyId         Int
+  property           Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId         Int
+  roomType           RoomType  @relation(fields: [roomTypeId], references: [id])
+  name               String
+  code               String?
+  description        String?
+  refundable         Boolean   @default(true)
+  seasonalPrice      Float
+  currency           String?   @default("INR")
+  taxConfig          Json?
+  minLOS             Int?      @default(1)
+  maxLOS             Int?
+  weekdayMask        String? // e.g. "1111100" for weekdays
+  startDate          DateTime?
+  endDate            DateTime?
   bookingWindowStart Int?
   bookingWindowEnd   Int?
   cancellationPolicy String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  bookings      Booking[]
-  otaMappings   OTAMapping[]
+  bookings    Booking[]
+  otaMappings OTAMapping[]
 
   @@unique([propertyId, roomTypeId, name])
   @@index([roomTypeId])
@@ -486,25 +486,25 @@ model RatePlan {
 }
 
 model Booking {
-  id              Int           @id @default(autoincrement())
-  guestName       String
-  email           String
-  phone           String?
-  checkIn         DateTime
-  checkOut        DateTime
-  guests          Int           @default(1)
-  rooms           Int           @default(1)
-  totalPrice      Float
-  specialRequests String?
-  status          BookingStatus @default(PENDING)
-  currency        String?       @default("INR")
-  netAmount       Float?        @default(0)
-  taxAmount       Float?        @default(0)
-  holdToken       String?       @unique
-  holdExpiresAt   DateTime?
-  source          BookingSource @default(DIRECT)
-  externalBookingId String? // External booking ID from channel
-  externalChannel   String? // Channel name (makemytrip, yatra, etc.)
+  id                   Int           @id @default(autoincrement())
+  guestName            String
+  email                String
+  phone                String?
+  checkIn              DateTime
+  checkOut             DateTime
+  guests               Int           @default(1)
+  rooms                Int           @default(1)
+  totalPrice           Float
+  specialRequests      String?
+  status               BookingStatus @default(PENDING)
+  currency             String?       @default("INR")
+  netAmount            Float?        @default(0)
+  taxAmount            Float?        @default(0)
+  holdToken            String?       @unique
+  holdExpiresAt        DateTime?
+  source               BookingSource @default(DIRECT)
+  externalBookingId    String? // External booking ID from channel
+  externalChannel      String? // Channel name (makemytrip, yatra, etc.)
   externalConfirmation Json?
 
   // Relationship to Room
@@ -513,9 +513,9 @@ model Booking {
 
   // Link to property & room type
   propertyId Int
-  property   Property @relation(fields: [propertyId], references: [id])
+  property   Property  @relation(fields: [propertyId], references: [id])
   roomTypeId Int
-  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  roomType   RoomType  @relation(fields: [roomTypeId], references: [id])
   ratePlanId Int?
   ratePlan   RatePlan? @relation(fields: [ratePlanId], references: [id])
 
@@ -529,8 +529,8 @@ model Booking {
   // Email threads related to this booking
   emailThreads Thread[]
 
-  inventoryLocks    InventoryLock[]
-  holdLogs          HoldLog[]
+  inventoryLocks InventoryLock[]
+  holdLogs       HoldLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -587,23 +587,23 @@ model OTASyncLog {
 }
 
 model OTAMapping {
-  id                  Int       @id @default(autoincrement())
-  propertyId          Int
-  property            Property  @relation(fields: [propertyId], references: [id])
-  roomTypeId          Int?
-  roomType            RoomType? @relation(fields: [roomTypeId], references: [id])
-  ratePlanId          Int?
-  ratePlan            RatePlan? @relation(fields: [ratePlanId], references: [id])
-  provider            String
+  id                   Int       @id @default(autoincrement())
+  propertyId           Int
+  property             Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId           Int?
+  roomType             RoomType? @relation(fields: [roomTypeId], references: [id])
+  ratePlanId           Int?
+  ratePlan             RatePlan? @relation(fields: [ratePlanId], references: [id])
+  provider             String
   externalPropertyCode String
-  externalRoomCode    String?
-  externalRateCode    String?
-  credentials         Json?
-  isActive            Boolean   @default(true)
-  supportsPush        Boolean   @default(true)
-  supportsPull        Boolean   @default(true)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  externalRoomCode     String?
+  externalRateCode     String?
+  credentials          Json?
+  isActive             Boolean   @default(true)
+  supportsPush         Boolean   @default(true)
+  supportsPull         Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([provider, propertyId, roomTypeId, ratePlanId])
   @@map("ota_mappings")
@@ -661,7 +661,7 @@ model BufferRule {
   startDate   DateTime
   endDate     DateTime
   percent     Int       @default(0)
-  daysOfWeek  String?   // e.g. "1111100"
+  daysOfWeek  String? // e.g. "1111100"
   notes       String?
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -690,21 +690,21 @@ model InventoryAudit {
 }
 
 model HoldLog {
-  id          Int       @id @default(autoincrement())
-  bookingId   Int?
-  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  holdToken   String
-  roomTypeId  Int
-  propertyId  Int
-  checkIn     DateTime
-  checkOut    DateTime
-  rooms       Int       @default(1)
-  guests      Int       @default(1)
-  status      String    @default("ACTIVE") // ACTIVE / RELEASED / CONFIRMED / EXPIRED
-  expiresAt   DateTime?
-  metadata    Json?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         Int       @id @default(autoincrement())
+  bookingId  Int?
+  booking    Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  holdToken  String
+  roomTypeId Int
+  propertyId Int
+  checkIn    DateTime
+  checkOut   DateTime
+  rooms      Int       @default(1)
+  guests     Int       @default(1)
+  status     String    @default("ACTIVE") // ACTIVE / RELEASED / CONFIRMED / EXPIRED
+  expiresAt  DateTime?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([holdToken])
   @@index([propertyId, roomTypeId, status])
@@ -712,17 +712,17 @@ model HoldLog {
 }
 
 model IdempotencyKey {
-  id            Int       @id @default(autoincrement())
-  key           String    @unique
-  method        String
-  path          String
-  requestHash   String
-  responseBody  Json?
-  statusCode    Int?
-  propertyId    Int?
-  property      Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-  createdAt     DateTime  @default(now())
-  lastUsedAt    DateTime  @default(now())
+  id           Int       @id @default(autoincrement())
+  key          String    @unique
+  method       String
+  path         String
+  requestHash  String
+  responseBody Json?
+  statusCode   Int?
+  propertyId   Int?
+  property     Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
 
   @@index([method, path])
   @@map("idempotency_keys")
@@ -866,26 +866,26 @@ enum SuppressionReason {
 }
 
 model Thread {
-  id              Int       @id @default(autoincrement())
-  subject         String
-  participants    String[]  @default([]) // Array of email addresses
-  lastMessageAt   DateTime  @default(now())
-  isArchived      Boolean   @default(false)
-  
+  id            Int      @id @default(autoincrement())
+  subject       String
+  participants  String[] @default([]) // Array of email addresses
+  lastMessageAt DateTime @default(now())
+  isArchived    Boolean  @default(false)
+
   // Relations
-  userId          String?   // User who owns this thread (if applicable)
-  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  bookingId       Int?      // Link to booking if email is booking-related
-  booking         Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
-  
-  propertyId      Int?      // Link to property if email is property-related
-  property        Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-  
-  emails          Email[]
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  userId String? // User who owns this thread (if applicable)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  bookingId Int? // Link to booking if email is booking-related
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  propertyId Int? // Link to property if email is property-related
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  emails Email[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([bookingId])
@@ -895,39 +895,39 @@ model Thread {
 }
 
 model Email {
-  id              Int             @id @default(autoincrement())
-  threadId        Int
-  thread          Thread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  
+  id       Int    @id @default(autoincrement())
+  threadId Int
+  thread   Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
   // Email metadata
-  messageId       String          @unique // Postmark MessageID or custom ID
-  direction       EmailDirection
-  status          EmailStatus     @default(QUEUED)
-  
+  messageId String         @unique // Postmark MessageID or custom ID
+  direction EmailDirection
+  status    EmailStatus    @default(QUEUED)
+
   // Sender/Recipients
-  fromEmail       String
-  fromName        String?
-  toEmails        String[]        @default([])
-  ccEmails        String[]        @default([])
-  bccEmails       String[]        @default([])
-  replyTo         String?
-  
+  fromEmail String
+  fromName  String?
+  toEmails  String[] @default([])
+  ccEmails  String[] @default([])
+  bccEmails String[] @default([])
+  replyTo   String?
+
   // Content
-  subject         String
-  htmlBody        String?         @db.Text
-  textBody        String?         @db.Text
-  
+  subject  String
+  htmlBody String? @db.Text
+  textBody String? @db.Text
+
   // Postmark specific
-  postmarkId      String?         @unique // Postmark MessageID for sent emails
-  tag             String?         // Postmark tag for categorization
-  metadata        Json?           // Additional metadata
-  
+  postmarkId String? @unique // Postmark MessageID for sent emails
+  tag        String? // Postmark tag for categorization
+  metadata   Json? // Additional metadata
+
   // Relations
-  attachments     Attachment[]
-  events          EmailEvent[]
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  attachments Attachment[]
+  events      EmailEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([threadId])
   @@index([fromEmail])
@@ -938,39 +938,39 @@ model Email {
 }
 
 model Attachment {
-  id              Int      @id @default(autoincrement())
-  emailId         Int
-  email           Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
-  
-  filename        String
-  contentType     String
-  size            Int      // bytes
-  
+  id      Int   @id @default(autoincrement())
+  emailId Int
+  email   Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  filename    String
+  contentType String
+  size        Int // bytes
+
   // Storage
-  storageUrl      String?  // S3/local path
-  postmarkUrl     String?  // Postmark URL for inbound attachments
-  
-  createdAt       DateTime @default(now())
+  storageUrl  String? // S3/local path
+  postmarkUrl String? // Postmark URL for inbound attachments
+
+  createdAt DateTime @default(now())
 
   @@index([emailId])
   @@map("email_attachments")
 }
 
 model EmailEvent {
-  id              Int            @id @default(autoincrement())
-  emailId         Int
-  email           Email          @relation(fields: [emailId], references: [id], onDelete: Cascade)
-  
-  eventType       EmailEventType
-  timestamp       DateTime       @default(now())
-  
+  id      Int   @id @default(autoincrement())
+  emailId Int
+  email   Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  eventType EmailEventType
+  timestamp DateTime       @default(now())
+
   // Event details
-  recipient       String?
-  details         Json?          // Bounce reason, spam details, etc.
-  userAgent       String?        // For opens/clicks
-  ip              String?
-  
-  createdAt       DateTime       @default(now())
+  recipient String?
+  details   Json? // Bounce reason, spam details, etc.
+  userAgent String? // For opens/clicks
+  ip        String?
+
+  createdAt DateTime @default(now())
 
   @@index([emailId])
   @@index([eventType])
@@ -979,14 +979,14 @@ model EmailEvent {
 }
 
 model Suppression {
-  id              Int                @id @default(autoincrement())
-  email           String             @unique
-  reason          SuppressionReason
-  origin          String?            // Which email triggered the suppression
-  suppressedAt    DateTime           @default(now())
-  
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id           Int               @id @default(autoincrement())
+  email        String            @unique
+  reason       SuppressionReason
+  origin       String? // Which email triggered the suppression
+  suppressedAt DateTime          @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@map("email_suppressions")
@@ -1032,18 +1032,18 @@ enum CallStatus {
 
 // Contact - Unified contact information
 model Contact {
-  id              Int      @id @default(autoincrement())
-  phone           String   @unique
-  name            String?
-  email           String?
-  metadata        Json?    // Additional contact info
-  
+  id       Int     @id @default(autoincrement())
+  phone    String  @unique
+  name     String?
+  email    String?
+  metadata Json? // Additional contact info
+
   // Relations
-  messageLogs     MessageLog[]
-  callLogs        CallLog[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  messageLogs MessageLog[]
+  callLogs    CallLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([phone])
   @@map("contacts")
@@ -1051,36 +1051,36 @@ model Contact {
 
 // MessageLog - Track all WhatsApp/SMS messages via Gupshup
 model MessageLog {
-  id              Int             @id @default(autoincrement())
-  contactId       Int?
-  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  
+  id        Int      @id @default(autoincrement())
+  contactId Int?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
   // Message details
-  channel         MessageChannel
-  direction       MessageDirection
-  status          MessageStatus  @default(PENDING)
-  phone           String          // Phone number (normalized)
-  message         String?         @db.Text
-  templateId      String?         // Gupshup template ID
-  templateParams  Json?           // Template parameters
-  
+  channel        MessageChannel
+  direction      MessageDirection
+  status         MessageStatus    @default(PENDING)
+  phone          String // Phone number (normalized)
+  message        String?          @db.Text
+  templateId     String? // Gupshup template ID
+  templateParams Json? // Template parameters
+
   // Provider info
-  provider        String          @default("GUPSHUP")
-  providerMessageId String?       @unique // External message ID from Gupshup
-  providerStatus  String?         // Provider-specific status
-  
+  provider          String  @default("GUPSHUP")
+  providerMessageId String? @unique // External message ID from Gupshup
+  providerStatus    String? // Provider-specific status
+
   // Metadata
-  metadata        Json?           // Additional provider metadata
-  errorMessage    String?         @db.Text
-  
+  metadata     Json? // Additional provider metadata
+  errorMessage String? @db.Text
+
   // Relations
-  bookingId       Int?            // Link to booking if message is booking-related
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  readAt          DateTime?
+  bookingId Int? // Link to booking if message is booking-related
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
 
   @@index([contactId])
   @@index([phone])
@@ -1094,39 +1094,39 @@ model MessageLog {
 
 // CallLog - Track all voice calls via Exotel
 model CallLog {
-  id              Int           @id @default(autoincrement())
-  contactId       Int?
-  contact         Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  
+  id        Int      @id @default(autoincrement())
+  contactId Int?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
   // Call details
-  direction       CallDirection
-  status          CallStatus    @default(INITIATED)
-  fromNumber      String        // Caller number
-  toNumber        String        // Called number
-  duration        Int?          // Call duration in seconds
-  
+  direction  CallDirection
+  status     CallStatus    @default(INITIATED)
+  fromNumber String // Caller number
+  toNumber   String // Called number
+  duration   Int? // Call duration in seconds
+
   // Provider info
-  provider        String        @default("EXOTEL")
-  providerCallId  String?       @unique // External call ID from Exotel
-  providerStatus  String?       // Provider-specific status
-  
+  provider       String  @default("EXOTEL")
+  providerCallId String? @unique // External call ID from Exotel
+  providerStatus String? // Provider-specific status
+
   // IVR/Flow info
-  flowId          String?       // Exotel flow ID if applicable
-  ivrData         Json?         // IVR interaction data
-  
+  flowId  String? // Exotel flow ID if applicable
+  ivrData Json? // IVR interaction data
+
   // Metadata
-  metadata        Json?         // Additional provider metadata
-  errorMessage    String?       @db.Text
-  recordingUrl     String?       // Call recording URL if available
-  
+  metadata     Json? // Additional provider metadata
+  errorMessage String? @db.Text
+  recordingUrl String? // Call recording URL if available
+
   // Relations
-  bookingId       Int?          // Link to booking if call is booking-related
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  initiatedAt     DateTime?
-  answeredAt      DateTime?
-  completedAt     DateTime?
+  bookingId Int? // Link to booking if call is booking-related
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  initiatedAt DateTime?
+  answeredAt  DateTime?
+  completedAt DateTime?
 
   @@index([contactId])
   @@index([fromNumber])
@@ -1137,4 +1137,47 @@ model CallLog {
   @@index([createdAt])
   @@index([bookingId])
   @@map("call_logs")
+}
+
+// Third-Party Integration Configuration
+model ThirdPartyIntegration {
+  id       Int     @id @default(autoincrement())
+  provider String // e.g., "RAZORPAY", "POSTMARK", "GUPSHUP", "EXOTEL", "GO_MMT", "BOOKING_COM", "EASEMYTRIP", "CLEARTRIP"
+  name     String // Display name, e.g., "Razorpay Payment Gateway"
+  category String // "PAYMENT", "EMAIL", "MESSAGING", "VOICE", "OTA"
+  enabled  Boolean @default(false)
+
+  // Configuration stored as JSON (encrypted sensitive fields)
+  config Json // Provider-specific configuration
+  // Example structure:
+  // {
+  //   "apiKey": "encrypted_value",
+  //   "apiSecret": "encrypted_value",
+  //   "webhookSecret": "encrypted_value",
+  //   "hotelId": "value",
+  //   "subdomain": "value",
+  //   etc.
+  // }
+
+  // Metadata
+  description      String? @db.Text
+  documentationUrl String?
+  webhookUrl       String? // Webhook URL for this integration
+  testMode         Boolean @default(false) // For payment gateways
+
+  // Status tracking
+  lastTestedAt DateTime?
+  lastError    String?   @db.Text
+  status       String    @default("INACTIVE") // "ACTIVE", "INACTIVE", "ERROR", "TESTING"
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String? // User ID who created/updated
+
+  @@unique([provider])
+  @@index([category])
+  @@index([enabled])
+  @@index([status])
+  @@map("third_party_integrations")
 }
