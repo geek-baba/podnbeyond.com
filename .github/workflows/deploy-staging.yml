@@ -39,6 +39,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
+          NEXT_PUBLIC_BACKEND_URL: ${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}
         run: npm run build
@@ -60,6 +61,7 @@ jobs:
             export POSTMARK_TOKEN='${{ secrets.STAGING_POSTMARK_TOKEN }}'
             export RAZORPAY_KEY_ID='${{ secrets.STAGING_RAZORPAY_KEY_ID }}'
             export RAZORPAY_KEY_SECRET='${{ secrets.STAGING_RAZORPAY_KEY_SECRET }}'
+            export NEXT_PUBLIC_BACKEND_URL='${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}'
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
 

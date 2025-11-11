@@ -9,21 +9,6 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
-  ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
-  : '';
-
-const resolveApiUrl = (path: string) => {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  if (API_BASE_URL) {
-    return `${API_BASE_URL}${normalizedPath}`;
-  }
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return `${window.location.origin}${normalizedPath}`;
-  }
-  return normalizedPath;
-};
-
 interface AdminDashboardProps {
   brands: any[];
   properties: any[];
@@ -155,7 +140,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       try {
         const results = await Promise.all(
           properties.map(async (property) => {
-            const response = await fetch(resolveApiUrl(`/api/admin/properties/${property.id}/room-types`), {
+            const response = await fetch(`/api/admin/properties/${property.id}/room-types`, {
               credentials: 'include',
               headers: {
                 Accept: 'application/json',
@@ -293,7 +278,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
     });
 
     try {
-      const response = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`), {
+      const response = await fetch(`/api/admin/properties/${propertyId}/room-types`, {
         credentials: 'include',
         headers: {
           Accept: 'application/json',
@@ -445,7 +430,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
         currency: propertyForm.currency || 'INR',
       };
 
-      const propertyResponse = await fetch(resolveApiUrl(`/api/properties/${propertyId}`), {
+      const propertyResponse = await fetch(`/api/properties/${propertyId}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -475,7 +460,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
             : Number(roomType.ratePlanPrice),
       }));
 
-      const roomTypeResponse = await fetch(resolveApiUrl(`/api/admin/properties/${propertyId}/room-types`), {
+      const roomTypeResponse = await fetch(`/api/admin/properties/${propertyId}/room-types`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -656,7 +641,7 @@ useEffect(() => {
           end: end.toISOString(),
         });
 
-        const url = resolveApiUrl(`/api/inventory/availability?${params.toString()}`);
+        const url = `/api/inventory/availability?${params.toString()}`;
 
         const response = await fetch(url, {
           signal: controller.signal,
@@ -3058,7 +3043,7 @@ useEffect(() => {
 
 // Server-side data fetching - Using API with better error handling
 export async function getServerSideProps() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:4000';
   
   try {
     console.log('Fetching admin data from:', API_URL);

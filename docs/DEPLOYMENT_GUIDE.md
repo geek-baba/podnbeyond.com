@@ -161,6 +161,7 @@ Click **"New repository secret"** for each of these:
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://podnbeyond_user:password@localhost:5432/podnbeyond_hotel` |
 | `RAZORPAY_KEY_ID` | Razorpay key (placeholder OK) | `rzp_test_placeholder123456` |
 | `RAZORPAY_KEY_SECRET` | Razorpay secret (placeholder OK) | `placeholder_secret_change_later` |
+| `NEXT_PUBLIC_BACKEND_URL` | Internal API base for Next.js rewrites | `http://127.0.0.1:4000` |
 | `NEXT_PUBLIC_API_URL` | API URL for frontend | `https://api.capsulepodhotel.com` |
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Same as RAZORPAY_KEY_ID | `rzp_test_placeholder123456` |
 | `HEALTH_CHECK_URL` | Health check endpoint | `https://api.capsulepodhotel.com/api/health` |
@@ -310,6 +311,7 @@ UPLOAD_PATH="/home/capsulepodhotel/htdocs/capsulepodhotel.com/backend/uploads"
 **Frontend `.env.local`** (`/home/capsulepodhotel/htdocs/capsulepodhotel.com/frontend/.env.local`):
 ```bash
 # API Configuration
+NEXT_PUBLIC_BACKEND_URL="http://127.0.0.1:4000"
 NEXT_PUBLIC_API_URL="https://api.capsulepodhotel.com"
 NEXT_PUBLIC_RAZORPAY_KEY_ID="rzp_live_your_production_key_id"
 
