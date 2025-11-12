@@ -331,7 +331,6 @@ export default function AnalyticsPage() {
                   Apply Filters
                 </Button>
               </div>
-              </div>
             </Card>
 
             {/* Overview Cards */}
