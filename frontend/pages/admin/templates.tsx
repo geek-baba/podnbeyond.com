@@ -284,7 +284,7 @@ export default function TemplatesPage() {
       </Head>
       
       <div className="min-h-screen bg-neutral-50">
-        <Header session={session} signOut={signOut} />
+        <Header />
         
         <Container>
           <div className="py-8">
