@@ -355,16 +355,17 @@ export default function TemplatesPage() {
                         </div>
                         <div className="flex gap-2 ml-4">
                           <Button
-                            variant="neutral"
+                            variant="secondary"
                             size="sm"
                             onClick={() => handleEdit(template)}
                           >
                             Edit
                           </Button>
                           <Button
-                            variant="error"
+                            variant="secondary"
                             size="sm"
                             onClick={() => handleDelete(template.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white border-red-600"
                           >
                             Delete
                           </Button>
