@@ -601,7 +601,7 @@ export default function CommunicationHub() {
                                   {getChannelIcon(conv.primaryChannel)} {conv.subject}
                                 </h4>
                                 {conv.unreadCount > 0 && (
-                                  <Badge variant="primary" size="sm">
+                                  <Badge variant="warning" size="sm">
                                     {conv.unreadCount}
                                   </Badge>
                                 )}
