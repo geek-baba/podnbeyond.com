@@ -12,12 +12,14 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const { data: session, status } = useAuth();
   const [showLoginFallback, setShowLoginFallback] = useState(false);
 
-  // If auth check takes more than 2 seconds, show login button anyway
+  // If auth check takes more than 1 second, show login button anyway
+  // This ensures users can always access login, even if auth is slow
   useEffect(() => {
     if (status === 'loading') {
+      // Show loading indicator for max 1 second, then show login button
       const timeout = setTimeout(() => {
         setShowLoginFallback(true);
-      }, 2000);
+      }, 1000);
       return () => clearTimeout(timeout);
     } else {
       setShowLoginFallback(false);
@@ -56,6 +58,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             </Link>
             
             {/* Login/Account Button */}
+            {/* Show login button if: not loading, OR loading but fallback triggered, OR no session */}
             {status === 'loading' && !showLoginFallback ? (
               <div className={`px-5 py-2 ${textStyle} opacity-50`}>...</div>
             ) : session?.user ? (
