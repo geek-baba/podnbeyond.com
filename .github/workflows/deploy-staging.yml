@@ -7,19 +7,10 @@ on:
   workflow_dispatch:
 
 # Cancel previous deployments when a new one starts
-# Wait 30 seconds before starting to allow batching of rapid commits
+# This allows batching: if multiple commits are pushed quickly, only the latest deploys
 concurrency:
   group: deploy-staging
   cancel-in-progress: true
-
-# Add a delay to batch rapid commits together
-jobs:
-  wait-for-batch:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Wait for batch window
-        run: sleep 30
 
 jobs:
   build-and-deploy:
