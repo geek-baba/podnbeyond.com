@@ -181,26 +181,77 @@ jobs:
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
 
-            # Use restart instead of reload to avoid multiple restart loops
-            # Restart is more reliable than reload for Next.js apps
-            echo "Restarting PM2 processes..."
+            # Smart restart: Only restart if code/dependencies changed or process is errored
+            echo "Checking if restart is needed..."
             
-            # Backend: restart if exists, start if not
-            if pm2 list | grep -q "staging-backend"; then
-              echo "Restarting backend process..."
-              pm2 restart staging-backend --update-env
-            else
-              echo "Backend process not found, starting..."
-              pm2 start ecosystem.config.js --only staging-backend --update-env
+            # Get the last commit hash that triggered a restart (stored in a file)
+            LAST_RESTART_FILE="/home/${{ secrets.STAGING_DEPLOY_USER }}/.last-staging-restart"
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            LAST_RESTART_COMMIT=$(cat "$LAST_RESTART_FILE" 2>/dev/null || echo "")
+            
+            # Check if backend/frontend code or dependencies changed
+            NEEDS_RESTART=false
+            if [ -z "$LAST_RESTART_COMMIT" ] || [ "$CURRENT_COMMIT" != "$LAST_RESTART_COMMIT" ]; then
+              # Check what files changed since last restart
+              if [ -n "$LAST_RESTART_COMMIT" ]; then
+                CHANGED_FILES=$(git diff --name-only "$LAST_RESTART_COMMIT" HEAD 2>/dev/null || echo "")
+              else
+                CHANGED_FILES="all" # First deployment, restart everything
+              fi
+              
+              # Check if backend code or dependencies changed
+              if [ "$CHANGED_FILES" = "all" ] || echo "$CHANGED_FILES" | grep -qE "(backend/|package\.json|package-lock\.json|\.env|ecosystem\.config\.js)"; then
+                echo "Backend code or dependencies changed, restart needed"
+                NEEDS_RESTART=true
+              fi
+              
+              # Check if frontend code or dependencies changed
+              if [ "$CHANGED_FILES" = "all" ] || echo "$CHANGED_FILES" | grep -qE "(frontend/|package\.json|package-lock\.json|\.env|next\.config\.js)"; then
+                echo "Frontend code or dependencies changed, restart needed"
+                NEEDS_RESTART=true
+              fi
             fi
             
-            # Frontend: restart if exists, start if not
-            if pm2 list | grep -q "staging-frontend"; then
-              echo "Restarting frontend process..."
-              pm2 restart staging-frontend --update-env
+            # Check if processes are errored or stopped (always restart in this case)
+            if pm2 list | grep -qE "staging-backend.*(errored|stopped)"; then
+              echo "Backend process is errored or stopped, restart needed"
+              NEEDS_RESTART=true
+            fi
+            
+            if pm2 list | grep -qE "staging-frontend.*(errored|stopped)"; then
+              echo "Frontend process is errored or stopped, restart needed"
+              NEEDS_RESTART=true
+            fi
+            
+            # Restart or skip based on need
+            if [ "$NEEDS_RESTART" = true ]; then
+              echo "Restarting PM2 processes..."
+              
+              # Backend: restart if exists, start if not
+              if pm2 list | grep -q "staging-backend"; then
+                echo "Restarting backend process..."
+                pm2 restart staging-backend --update-env
+              else
+                echo "Backend process not found, starting..."
+                pm2 start ecosystem.config.js --only staging-backend --update-env
+              fi
+              
+              # Frontend: restart if exists, start if not
+              if pm2 list | grep -q "staging-frontend"; then
+                echo "Restarting frontend process..."
+                pm2 restart staging-frontend --update-env
+              else
+                echo "Frontend process not found, starting..."
+                pm2 start ecosystem.config.js --only staging-frontend --update-env
+              fi
+              
+              # Save current commit as last restart commit
+              echo "$CURRENT_COMMIT" > "$LAST_RESTART_FILE"
+              echo "Saved restart commit: $CURRENT_COMMIT"
             else
-              echo "Frontend process not found, starting..."
-              pm2 start ecosystem.config.js --only staging-frontend --update-env
+              echo "✓ No restart needed - code and dependencies unchanged, processes are healthy"
+              echo "Current commit: $CURRENT_COMMIT"
+              echo "Last restart commit: $LAST_RESTART_COMMIT"
             fi
             
             echo "Waiting 5 seconds for processes to stabilize..."
