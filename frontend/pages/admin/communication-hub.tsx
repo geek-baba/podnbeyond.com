@@ -370,10 +370,10 @@ export default function CommunicationHub() {
     }
   };
 
-  const getStatusColor = (status: ConversationStatus) => {
+  const getStatusColor = (status: ConversationStatus): 'neutral' | 'success' | 'warning' | 'error' => {
     switch (status) {
       case 'NEW': return 'neutral';
-      case 'IN_PROGRESS': return 'primary';
+      case 'IN_PROGRESS': return 'neutral'; // Changed from 'primary' to 'neutral'
       case 'WAITING_FOR_GUEST': return 'warning';
       case 'RESOLVED': return 'success';
       case 'ARCHIVED': return 'neutral';
@@ -381,10 +381,10 @@ export default function CommunicationHub() {
     }
   };
 
-  const getPriorityColor = (priority: Priority) => {
+  const getPriorityColor = (priority: Priority): 'neutral' | 'success' | 'warning' | 'error' => {
     switch (priority) {
       case 'LOW': return 'neutral';
-      case 'NORMAL': return 'primary';
+      case 'NORMAL': return 'neutral'; // Changed from 'primary' to 'neutral'
       case 'HIGH': return 'warning';
       case 'URGENT': return 'error';
       default: return 'neutral';
@@ -607,10 +607,10 @@ export default function CommunicationHub() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant={getStatusColor(conv.status) as any} size="sm">
+                                <Badge variant={getStatusColor(conv.status)} size="sm">
                                   {conv.status.replace(/_/g, ' ')}
                                 </Badge>
-                                <Badge variant={getPriorityColor(conv.priority) as any} size="sm">
+                                <Badge variant={getPriorityColor(conv.priority)} size="sm">
                                   {conv.priority}
                                 </Badge>
                                 {conv.sla.breached && (
@@ -655,10 +655,10 @@ export default function CommunicationHub() {
                             {getChannelIcon(selectedConversation.primaryChannel)} {selectedConversation.subject}
                           </h3>
                           <div className="flex flex-wrap gap-2 mb-3">
-                            <Badge variant={getStatusColor(selectedConversation.status) as any}>
+                            <Badge variant={getStatusColor(selectedConversation.status)}>
                               {selectedConversation.status.replace(/_/g, ' ')}
                             </Badge>
-                            <Badge variant={getPriorityColor(selectedConversation.priority) as any}>
+                            <Badge variant={getPriorityColor(selectedConversation.priority)}>
                               {selectedConversation.priority}
                             </Badge>
                             {selectedConversation.sla.breached && (
