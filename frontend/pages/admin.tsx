@@ -1700,8 +1700,29 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Payment Gateway Tab */}
+          {/* Payment Gateway Tab - Redirected to Integrations */}
           {activeTab === 'payment' && (
+            <div className="space-y-6 animate-fade-in">
+              <Card variant="default" padding="lg">
+                <div className="text-center py-8">
+                  <h2 className="text-2xl font-bold text-neutral-900 mb-4">Payment Gateway Settings</h2>
+                  <p className="text-neutral-600 mb-6">
+                    Payment gateway configuration has been moved to the unified Integrations page.
+                    All payment settings including Razorpay can now be managed from there.
+                  </p>
+                  <Button 
+                    variant="primary"
+                    onClick={() => setActiveTab('integrations')}
+                  >
+                    Go to Integrations
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Payment Gateway Tab - OLD (keeping for reference, will be removed) */}
+          {false && activeTab === 'payment-old' && (
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">Payment Gateway Settings</h2>
               
@@ -1794,8 +1815,12 @@ useEffect(() => {
                   variant="primary"
                   onClick={() => router.push('/admin/integrations')}
                 >
-                  Open Integrations Manager
+                  Open Full Page View
                 </Button>
+              </div>
+
+              <div className="text-sm text-neutral-500 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <strong>Note:</strong> Payment and OTA integrations have been moved here. Use this unified interface to manage all third-party services including Razorpay, Postmark, Gupshup, Exotel, and OTA channels.
               </div>
 
               <Card variant="default" padding="lg">
@@ -1818,8 +1843,29 @@ useEffect(() => {
             </div>
           )}
 
-          {/* OTA Integration Tab */}
+          {/* OTA Integration Tab - Redirected to Integrations */}
           {activeTab === 'ota' && (
+            <div className="space-y-6 animate-fade-in">
+              <Card variant="default" padding="lg">
+                <div className="text-center py-8">
+                  <h2 className="text-2xl font-bold text-neutral-900 mb-4">OTA Channel Integration</h2>
+                  <p className="text-neutral-600 mb-6">
+                    OTA channel configuration has been moved to the unified Integrations page.
+                    All OTA settings including Booking.com, Go-MMT, EaseMyTrip, and Cleartrip can now be managed from there.
+                  </p>
+                  <Button 
+                    variant="primary"
+                    onClick={() => setActiveTab('integrations')}
+                  >
+                    Go to Integrations
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* OTA Integration Tab - OLD (keeping for reference, will be removed) */}
+          {false && activeTab === 'ota-old' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between mb-6">
                 <div>

@@ -171,14 +171,27 @@ export default function IntegrationsAdmin() {
   const loadIntegrations = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/integrations');
+      setError(null);
+      const response = await fetch('/api/integrations', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       if (data.success) {
         setIntegrations(data.integrations || []);
+      } else {
+        setError(data.error || 'Failed to load integrations');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load integrations:', error);
-      setError('Failed to load integrations');
+      setError(`Failed to load integrations: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -353,11 +366,21 @@ export default function IntegrationsAdmin() {
       <Container>
         <div className="py-8">
           <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">Third-Party Integrations</h1>
-              <p className="text-gray-600 mt-2">
-                Manage API keys, credentials, and enable/disable integrations
-              </p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/admin')}
+                className="flex items-center gap-2"
+              >
+                ← Back to Admin Dashboard
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold">Third-Party Integrations</h1>
+                <p className="text-gray-600 mt-2">
+                  Manage API keys, credentials, and enable/disable integrations
+                </p>
+              </div>
             </div>
           </div>
 
