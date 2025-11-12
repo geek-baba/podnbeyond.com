@@ -144,11 +144,15 @@ jobs:
             
             # Wait for server to be ready
             echo "Waiting for server to start..."
-            sleep 10
+            sleep 15
             
             # Check PM2 status
             echo "PM2 Status:"
             pm2 list
+            
+            # Wait a bit more for services to fully initialize
+            echo "Waiting for services to initialize..."
+            sleep 5
 
       - name: Staging health check
         uses: appleboy/ssh-action@v1.0.0
@@ -165,7 +169,22 @@ jobs:
             pm2 list || echo "PM2 list failed (non-critical)"
             
             echo "Waiting additional time for services to be ready..."
-            sleep 5
+            sleep 10
+            
+            # Check if backend is listening on port first
+            echo "Checking if backend is listening on port 8080..."
+            for i in {1..10}; do
+              if netstat -tlnp 2>/dev/null | grep -q ':8080' || ss -tlnp 2>/dev/null | grep -q ':8080'; then
+                echo "✓ Backend is listening on port 8080"
+                break
+              fi
+              if [ $i -eq 10 ]; then
+                echo "⚠️  Backend not listening on port 8080 after 10 attempts"
+              else
+                echo "  Attempt $i/10: Backend not ready yet, waiting 2 seconds..."
+                sleep 2
+              fi
+            done
             
             echo "Checking server health..."
             HEALTH_CHECK_URL="${{ secrets.STAGING_HEALTHCHECK_URL }}"
