@@ -52,7 +52,7 @@ interface EmailDetail {
 }
 
 export default function CommunicationHub() {
-  const { data: session, status } = useAuth();
+  const { data: session, status, signOut } = useAuth();
   const router = useRouter();
   
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -188,29 +188,69 @@ export default function CommunicationHub() {
 
       <Header />
 
-      {/* Communication Hub Header */}
-      <section className="pt-24 pb-10 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
+      {/* Admin Header - Matching Admin Dashboard */}
+      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
         <Container>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-3xl">
-              <h1 className="text-4xl font-bold mb-3">Communication Hub</h1>
-              <p className="text-neutral-300 leading-relaxed">
-                Centralize conversations across email, WhatsApp, and voice so your team can support guests in real time.
-                This workspace is designed for multi-agent collaboration and will evolve as new channels come online.
-              </p>
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+            {/* Left: User Info */}
+            <div className="flex items-start gap-6">
+              {/* User Info - Top Left */}
+              <div className="flex items-center gap-4">
+                <div className="text-left">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
+                  <p className="text-white font-semibold text-sm mt-0.5">{session?.user?.email || 'Loading...'}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
+                  </p>
+                </div>
+                <div className="h-12 w-px bg-neutral-700"></div>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => router.push('/admin')}
-                className="border-white text-white hover:bg-white hover:text-neutral-900 focus:ring-white focus:ring-offset-neutral-900"
-              >
-                ← Back to Admin
-              </Button>
-              <Button variant="primary" onClick={loadThreads}>
-                Refresh Inbox
-              </Button>
+
+            {/* Right: Title */}
+            <div className="text-right">
+              <h1 className="text-3xl font-bold mb-1">Communication Hub</h1>
+              <p className="text-neutral-300 text-sm">Centralize conversations across email, WhatsApp, and voice</p>
             </div>
+          </div>
+
+          {/* Header Tabs - Like Communication Hub */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <a href="/admin/email">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/email')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                💬 Communication Hub
+              </button>
+            </a>
+            <a href="/admin/integrations">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/integrations')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                ⚙️ Integrations
+              </button>
+            </a>
+            <a href="/admin">
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                ← Admin Dashboard
+              </button>
+            </a>
+            <button 
+              onClick={loadThreads}
+              className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900"
+            >
+              🔄 Refresh Inbox
+            </button>
           </div>
         </Container>
       </section>

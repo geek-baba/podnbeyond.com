@@ -755,47 +755,66 @@ useEffect(() => {
       <Header />
 
       {/* Admin Header */}
-      <section className="pt-24 pb-8 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
+      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
         <Container>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-              <p className="text-neutral-300">POD N BEYOND Group Management</p>
-            </div>
-            <div className="flex items-center space-x-6">
-              {/* User Info */}
-              <div className="text-right">
-                <p className="text-sm text-neutral-400">Signed in as</p>
-                <p className="text-white font-semibold">{session?.user?.email || 'Loading...'}</p>
-                <p className="text-xs text-neutral-500 mt-1">
-                  {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                </p>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex space-x-3">
-                <a href="/admin/email">
-                  <button className="px-6 py-2 bg-white text-neutral-900 rounded-button font-semibold hover:bg-neutral-100 transition-all">
-                    💬 Communication Hub
-                  </button>
-                </a>
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+            {/* Left: User Info and Title */}
+            <div className="flex items-start gap-6">
+              {/* User Info - Top Left */}
+              <div className="flex items-center gap-4">
+                <div className="text-left">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
+                  <p className="text-white font-semibold text-sm mt-0.5">{session?.user?.email || 'Loading...'}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
+                  </p>
+                </div>
+                <div className="h-12 w-px bg-neutral-700"></div>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-6 py-2 bg-white/10 border-2 border-white text-white rounded-button font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
                 >
                   Sign Out
                 </button>
               </div>
             </div>
+
+            {/* Right: Title */}
+            <div className="text-right">
+              <h1 className="text-3xl font-bold mb-1">Admin Dashboard</h1>
+              <p className="text-neutral-300 text-sm">POD N BEYOND Group Management</p>
+            </div>
+          </div>
+
+          {/* Header Tabs - Like Communication Hub */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <a href="/admin/email">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/email')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                💬 Communication Hub
+              </button>
+            </a>
+            <a href="/admin/integrations">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/integrations')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                ⚙️ Integrations
+              </button>
+            </a>
           </div>
         </Container>
       </section>
 
-      {/* Tabs */}
+      {/* Tabs - Removed Payment, OTA, Integrations */}
       <section className="bg-white border-b border-neutral-200 sticky top-0 z-20">
         <Container>
           <div className="flex space-x-8 overflow-x-auto py-4">
-            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms', 'payment', 'ota', 'integrations'].map((tab) => (
+            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -805,7 +824,7 @@ useEffect(() => {
                     : 'border-transparent text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                {tab === 'cms' ? 'CMS' : tab === 'ota' ? 'OTA' : tab === 'integrations' ? 'Integrations' : tab}
+                {tab === 'cms' ? 'CMS' : tab}
               </button>
             ))}
           </div>
@@ -1700,29 +1719,8 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Payment Gateway Tab - Redirected to Integrations */}
-          {activeTab === 'payment' && (
-            <div className="space-y-6 animate-fade-in">
-              <Card variant="default" padding="lg">
-                <div className="text-center py-8">
-                  <h2 className="text-2xl font-bold text-neutral-900 mb-4">Payment Gateway Settings</h2>
-                  <p className="text-neutral-600 mb-6">
-                    Payment gateway configuration has been moved to the unified Integrations page.
-                    All payment settings including Razorpay can now be managed from there.
-                  </p>
-                  <Button 
-                    variant="primary"
-                    onClick={() => setActiveTab('integrations')}
-                  >
-                    Go to Integrations
-                  </Button>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* Payment Gateway Tab - OLD (keeping for reference, will be removed) */}
-          {false && activeTab === 'payment-old' && (
+          {/* Payment Gateway Tab - Removed, use Integrations header tab */}
+          {false && activeTab === 'payment' && (
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">Payment Gateway Settings</h2>
               
@@ -1803,69 +1801,20 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Integrations Tab */}
-          {activeTab === 'integrations' && (
+          {/* Integrations Tab - Removed, use Integrations header tab */}
+          {false && activeTab === 'integrations' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-neutral-900">Third-Party Integrations</h2>
                   <p className="text-neutral-600 mt-1">Manage all third-party service configurations</p>
                 </div>
-                <Button 
-                  variant="primary"
-                  onClick={() => router.push('/admin/integrations')}
-                >
-                  Open Full Page View
-                </Button>
               </div>
-
-              <div className="text-sm text-neutral-500 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <strong>Note:</strong> Payment and OTA integrations have been moved here. Use this unified interface to manage all third-party services including Razorpay, Postmark, Gupshup, Exotel, and OTA channels.
-              </div>
-
-              <Card variant="default" padding="lg">
-                <div className="text-center py-8">
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-2">
-                    Unified Integration Management
-                  </h3>
-                  <p className="text-neutral-600 mb-6">
-                    Manage all third-party integrations including Payment, Email, Messaging, Voice, and OTA channels
-                    from a single interface with secure credential storage and connection testing.
-                  </p>
-                  <Button 
-                    variant="primary"
-                    onClick={() => router.push('/admin/integrations')}
-                  >
-                    Go to Integrations Page
-                  </Button>
-                </div>
-              </Card>
             </div>
           )}
 
-          {/* OTA Integration Tab - Redirected to Integrations */}
-          {activeTab === 'ota' && (
-            <div className="space-y-6 animate-fade-in">
-              <Card variant="default" padding="lg">
-                <div className="text-center py-8">
-                  <h2 className="text-2xl font-bold text-neutral-900 mb-4">OTA Channel Integration</h2>
-                  <p className="text-neutral-600 mb-6">
-                    OTA channel configuration has been moved to the unified Integrations page.
-                    All OTA settings including Booking.com, Go-MMT, EaseMyTrip, and Cleartrip can now be managed from there.
-                  </p>
-                  <Button 
-                    variant="primary"
-                    onClick={() => setActiveTab('integrations')}
-                  >
-                    Go to Integrations
-                  </Button>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* OTA Integration Tab - OLD (keeping for reference, will be removed) */}
-          {false && activeTab === 'ota-old' && (
+          {/* OTA Integration Tab - Removed, use Integrations header tab */}
+          {false && activeTab === 'ota' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between mb-6">
                 <div>

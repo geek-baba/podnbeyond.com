@@ -130,7 +130,7 @@ const INTEGRATION_TEMPLATES = {
 };
 
 export default function IntegrationsAdmin() {
-  const { data: session, status } = useAuth();
+  const { data: session, status, signOut } = useAuth();
   const router = useRouter();
   
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -364,26 +364,70 @@ export default function IntegrationsAdmin() {
         <title>Third-Party Integrations - Admin</title>
       </Head>
       <Header />
-      <Container>
-        <div className="py-8">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/admin')}
-                className="flex items-center gap-2"
-              >
-                ← Back to Admin Dashboard
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold">Third-Party Integrations</h1>
-                <p className="text-gray-600 mt-2">
-                  Manage API keys, credentials, and enable/disable integrations
-                </p>
+
+      {/* Admin Header - Matching Admin Dashboard */}
+      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
+        <Container>
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+            {/* Left: User Info */}
+            <div className="flex items-start gap-6">
+              {/* User Info - Top Left */}
+              <div className="flex items-center gap-4">
+                <div className="text-left">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
+                  <p className="text-white font-semibold text-sm mt-0.5">{session?.user?.email || 'Loading...'}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
+                  </p>
+                </div>
+                <div className="h-12 w-px bg-neutral-700"></div>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
+
+            {/* Right: Title */}
+            <div className="text-right">
+              <h1 className="text-3xl font-bold mb-1">Third-Party Integrations</h1>
+              <p className="text-neutral-300 text-sm">Manage API keys, credentials, and enable/disable integrations</p>
+            </div>
           </div>
+
+          {/* Header Tabs - Like Communication Hub */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <a href="/admin/email">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/email')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                💬 Communication Hub
+              </button>
+            </a>
+            <a href="/admin/integrations">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/integrations')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                ⚙️ Integrations
+              </button>
+            </a>
+            <a href="/admin">
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                ← Admin Dashboard
+              </button>
+            </a>
+          </div>
+        </Container>
+      </section>
+
+      <Container>
+        <div className="py-8">
 
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
