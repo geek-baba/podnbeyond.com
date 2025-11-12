@@ -6,7 +6,14 @@ const {
   releaseInventory,
 } = require('../lib/inventoryUtils');
 
-const prisma = new PrismaClient();
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // Environment-specific queue prefix (to separate staging/prod on same Redis instance)
 const QUEUE_PREFIX = process.env.QUEUE_PREFIX || process.env.NODE_ENV || 'default';
@@ -29,7 +36,7 @@ function getRedisConnection() {
 async function processExpiredHolds(batchSize = HOLD_RELEASE_BATCH_SIZE) {
   const now = new Date();
 
-  const expiredHolds = await prisma.booking.findMany({
+  const expiredHolds = await getPrisma().booking.findMany({
     where: {
       status: 'HOLD',
       holdExpiresAt: { lt: now },
@@ -47,7 +54,7 @@ async function processExpiredHolds(batchSize = HOLD_RELEASE_BATCH_SIZE) {
 
   for (const booking of expiredHolds) {
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await getPrisma().$transaction(async (tx) => {
         const freshBooking = await tx.booking.findUnique({
           where: { id: booking.id },
           include: {
@@ -136,79 +143,88 @@ async function processExpiredHolds(batchSize = HOLD_RELEASE_BATCH_SIZE) {
 }
 
 function initHoldReleaseJob() {
-  const bufferFeatureEnabled = process.env.FEATURE_BUFFER === 'true';
-  const redisEnabled = process.env.REDIS_ENABLED === 'true';
+  try {
+    const bufferFeatureEnabled = process.env.FEATURE_BUFFER === 'true';
+    const redisEnabled = process.env.REDIS_ENABLED === 'true';
 
-  if (!bufferFeatureEnabled) {
-    console.log('ℹ️  Hold release job skipped (FEATURE_BUFFER disabled).');
-    return;
-  }
+    if (!bufferFeatureEnabled) {
+      console.log('ℹ️  Hold release job skipped (FEATURE_BUFFER disabled).');
+      return;
+    }
 
-  if (!redisEnabled) {
-    console.log('ℹ️  Hold release job skipped (REDIS_ENABLED != true).');
-    return;
-  }
+    if (!redisEnabled) {
+      console.log('ℹ️  Hold release job skipped (REDIS_ENABLED != true).');
+      return;
+    }
 
-  if (holdReleaseQueue || holdReleaseWorker) {
-    return;
-  }
+    if (holdReleaseQueue || holdReleaseWorker) {
+      return;
+    }
 
-  const connection = getRedisConnection();
+    const connection = getRedisConnection();
 
-  holdReleaseQueue = new Queue(HOLD_RELEASE_QUEUE, {
-    connection,
-    defaultJobOptions: {
-      removeOnComplete: true,
-      removeOnFail: {
-        age: 3 * 24 * 3600,
-      },
-    },
-  });
-
-  holdReleaseWorker = new Worker(
-    HOLD_RELEASE_QUEUE,
-    async () => {
-      const summary = await processExpiredHolds();
-      if (summary.released > 0) {
-        console.log(`🔔 Released ${summary.released} expired holds (checked ${summary.processed}).`);
-      }
-      return summary;
-    },
-    {
+    // Try to create Queue and Worker - if Redis is unavailable, this will throw
+    holdReleaseQueue = new Queue(HOLD_RELEASE_QUEUE, {
       connection,
-      concurrency: 1,
-    }
-  );
-
-  holdReleaseWorker.on('failed', (job, err) => {
-    console.error(`❌ Hold release job ${job?.id} failed:`, err);
-  });
-
-  holdReleaseWorker.on('completed', (job) => {
-    const result = job.returnvalue;
-    if (result && result.released) {
-      console.log(`✅ Hold release job ${job.id} completed. Released: ${result.released}`);
-    }
-  });
-
-  holdReleaseQueue.add(
-    HOLD_RELEASE_JOB_NAME,
-    {},
-    {
-      jobId: HOLD_RELEASE_JOB_NAME,
-      repeat: {
-        every: HOLD_RELEASE_INTERVAL_MS,
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 3 * 24 * 3600,
+        },
       },
-      removeOnComplete: true,
-      removeOnFail: {
-        age: 3 * 24 * 3600,
-      },
-    }
-  );
+    });
 
-  console.log(
-    `🕒 Hold release job scheduled every ${Math.round(HOLD_RELEASE_INTERVAL_MS / 1000)} seconds. Queue: ${HOLD_RELEASE_QUEUE}`
-  );
+    holdReleaseWorker = new Worker(
+      HOLD_RELEASE_QUEUE,
+      async () => {
+        const summary = await processExpiredHolds();
+        if (summary.released > 0) {
+          console.log(`🔔 Released ${summary.released} expired holds (checked ${summary.processed}).`);
+        }
+        return summary;
+      },
+      {
+        connection,
+        concurrency: 1,
+      }
+    );
+
+    holdReleaseWorker.on('failed', (job, err) => {
+      console.error(`❌ Hold release job ${job?.id} failed:`, err);
+    });
+
+    holdReleaseWorker.on('completed', (job) => {
+      const result = job.returnvalue;
+      if (result && result.released) {
+        console.log(`✅ Hold release job ${job.id} completed. Released: ${result.released}`);
+      }
+    });
+
+    holdReleaseQueue.add(
+      HOLD_RELEASE_JOB_NAME,
+      {},
+      {
+        jobId: HOLD_RELEASE_JOB_NAME,
+        repeat: {
+          every: HOLD_RELEASE_INTERVAL_MS,
+        },
+        removeOnComplete: true,
+        removeOnFail: {
+          age: 3 * 24 * 3600,
+        },
+      }
+    );
+
+    console.log(
+      `🕒 Hold release job scheduled every ${Math.round(HOLD_RELEASE_INTERVAL_MS / 1000)} seconds. Queue: ${HOLD_RELEASE_QUEUE}`
+    );
+  } catch (error) {
+    console.error('❌ Error initializing hold release job:', error.message);
+    console.error('Hold release job will be disabled. Server will continue to run.');
+    // Don't throw - allow server to continue without hold release job
+    holdReleaseQueue = null;
+    holdReleaseWorker = null;
+  }
 }
 
 module.exports = {
