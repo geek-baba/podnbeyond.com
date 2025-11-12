@@ -492,9 +492,15 @@ router.post('/:id/status', async (req, res) => {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
+    // Get current thread to check resolvedAt
+    const currentThread = await prisma.thread.findUnique({
+      where: { id: threadId },
+      select: { resolvedAt: true },
+    });
+
     const updateData = {
       status,
-      ...(status === 'RESOLVED' && !thread.resolvedAt ? { resolvedAt: new Date() } : {}),
+      ...(status === 'RESOLVED' && !currentThread?.resolvedAt ? { resolvedAt: new Date() } : {}),
     };
 
     const thread = await prisma.thread.update({
