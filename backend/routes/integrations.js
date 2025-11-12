@@ -342,6 +342,94 @@ router.post('/clear-cache', async (req, res) => {
   }
 });
 
+/**
+ * Migrate integrations from environment variables to database
+ */
+router.post('/migrate-from-env', async (req, res) => {
+  try {
+    const { initializeFromEnv } = require('../lib/integrationConfig');
+    const { encryptConfig } = require('../lib/encryption');
+    const prisma = getPrisma();
+    
+    const integrations = await initializeFromEnv();
+    
+    if (integrations.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'No integrations found in environment variables to migrate',
+        migrated: 0,
+        skipped: 0
+      });
+    }
+
+    let migrated = 0;
+    let skipped = 0;
+    const results = [];
+
+    for (const integration of integrations) {
+      // Check if already exists
+      const existing = await prisma.thirdPartyIntegration.findUnique({
+        where: { provider: integration.provider }
+      });
+
+      if (existing) {
+        skipped++;
+        results.push({
+          provider: integration.provider,
+          name: integration.name,
+          status: 'skipped',
+          reason: 'Already exists in database'
+        });
+        continue;
+      }
+
+      // Encrypt sensitive fields
+      const sensitiveFields = SENSITIVE_FIELDS_BY_PROVIDER[integration.provider] || [];
+      const encryptedConfig = encryptConfig(integration.config, sensitiveFields);
+
+      // Create integration
+      await prisma.thirdPartyIntegration.create({
+        data: {
+          provider: integration.provider,
+          name: integration.name,
+          category: integration.category,
+          enabled: integration.enabled || false,
+          config: encryptedConfig,
+          description: integration.description,
+          testMode: integration.testMode || false,
+          status: integration.enabled ? 'ACTIVE' : 'INACTIVE',
+        }
+      });
+
+      migrated++;
+      results.push({
+        provider: integration.provider,
+        name: integration.name,
+        status: 'migrated'
+      });
+    }
+
+    // Clear cache to refresh configs
+    const { clearCache } = require('../lib/integrationConfig');
+    clearCache();
+
+    res.json({ 
+      success: true, 
+      message: `Migration completed: ${migrated} migrated, ${skipped} skipped`,
+      migrated,
+      skipped,
+      results
+    });
+  } catch (error) {
+    console.error('Error migrating integrations:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to migrate integrations',
+      details: error.message 
+    });
+  }
+});
+
 // Test functions for each provider
 async function testRazorpay(config) {
   const Razorpay = require('razorpay');
