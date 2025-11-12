@@ -464,6 +464,16 @@ router.post('/:id/assign', async (req, res) => {
       },
     });
 
+    // Broadcast real-time event
+    if (typeof global.broadcastEvent === 'function') {
+      global.broadcastEvent({
+        type: 'conversation_updated',
+        conversationId: threadId,
+        assignedTo: thread.assignedTo,
+        status: thread.status,
+      }, assignedTo || userId);
+    }
+
     res.json({
       success: true,
       conversation: thread,
@@ -507,6 +517,16 @@ router.post('/:id/status', async (req, res) => {
       where: { id: threadId },
       data: updateData,
     });
+
+    // Broadcast real-time event
+    if (typeof global.broadcastEvent === 'function') {
+      global.broadcastEvent({
+        type: 'conversation_updated',
+        conversationId: threadId,
+        status: thread.status,
+        assignedTo: thread.assignedTo,
+      }, thread.assignedTo || userId);
+    }
 
     res.json({
       success: true,

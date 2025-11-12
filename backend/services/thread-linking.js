@@ -181,10 +181,24 @@ async function linkMessageToThread(messageLogId, threadId) {
       updateData.unreadCount = { increment: 1 };
     }
 
-    await prisma.thread.update({
+    const updatedThread = await prisma.thread.update({
       where: { id: threadId },
       data: updateData,
+      include: {
+        property: { select: { id: true, name: true } },
+        assignedUser: { select: { id: true, name: true } },
+      },
     });
+
+    // Broadcast real-time event
+    if (typeof global.broadcastEvent === 'function') {
+      global.broadcastEvent({
+        type: 'conversation_updated',
+        conversationId: threadId,
+        assignedTo: updatedThread.assignedTo,
+        unreadCount: updatedThread.unreadCount,
+      }, updatedThread.assignedTo);
+    }
 
     return true;
   } catch (error) {
@@ -228,10 +242,24 @@ async function linkCallToThread(callLogId, threadId) {
       updateData.unreadCount = { increment: 1 };
     }
 
-    await prisma.thread.update({
+    const updatedThread = await prisma.thread.update({
       where: { id: threadId },
       data: updateData,
+      include: {
+        property: { select: { id: true, name: true } },
+        assignedUser: { select: { id: true, name: true } },
+      },
     });
+
+    // Broadcast real-time event
+    if (typeof global.broadcastEvent === 'function') {
+      global.broadcastEvent({
+        type: 'conversation_updated',
+        conversationId: threadId,
+        assignedTo: updatedThread.assignedTo,
+        unreadCount: updatedThread.unreadCount,
+      }, updatedThread.assignedTo);
+    }
 
     return true;
   } catch (error) {

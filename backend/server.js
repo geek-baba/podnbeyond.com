@@ -54,7 +54,11 @@ const conversationsRoutes = require('./routes/conversations');
 const guestContextRoutes = require('./routes/guest-context');
 const templatesRoutes = require('./routes/templates');
 const analyticsRoutes = require('./routes/analytics');
+const { router: realtimeRoutes, broadcastEvent } = require('./routes/realtime');
 const { initHoldReleaseJob } = require('./jobs/holdReleaseJob');
+
+// Make broadcastEvent available globally for use in other modules
+global.broadcastEvent = broadcastEvent;
 
 // Import cron service
 const cronService = require('./services/cronService');
@@ -119,6 +123,7 @@ app.use('/api/conversations', apiLimiter, conversationsRoutes);
 app.use('/api/guest-context', apiLimiter, guestContextRoutes);
 app.use('/api/templates', adminLimiter, templatesRoutes);
 app.use('/api/analytics', adminLimiter, analyticsRoutes);
+app.use('/api/realtime', realtimeRoutes); // No rate limit for SSE
 app.use('/webhooks', webhookRoutes); // No rate limit for webhooks
 
 // Health check endpoint for deployment
