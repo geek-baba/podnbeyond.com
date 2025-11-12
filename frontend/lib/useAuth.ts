@@ -33,9 +33,14 @@ let sessionCache: { data: Session | null; timestamp: number } | null = null;
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
 
 export function useAuth() {
-  // Initialize with cache if available and fresh, OR check localStorage immediately
+  // Simple initial state: check localStorage synchronously on client, or 'loading' on server
   const getInitialState = (): AuthState => {
-    // Always check cache first
+    // Server-side: always start as loading
+    if (typeof window === 'undefined') {
+      return { data: null, status: 'loading', error: null };
+    }
+    
+    // Client-side: check cache first
     if (sessionCache && Date.now() - sessionCache.timestamp < CACHE_DURATION) {
       return {
         data: sessionCache.data,
@@ -44,224 +49,113 @@ export function useAuth() {
       };
     }
     
-    // On client-side, check localStorage synchronously
-    // If no token exists, start as unauthenticated (not loading)
-    if (typeof window !== 'undefined') {
-      const hasToken = localStorage.getItem('pod-session-token');
-      if (!hasToken) {
-        // No token = definitely unauthenticated, don't even try to fetch
-        return {
-          data: null,
-          status: 'unauthenticated',
-          error: null
-        };
-      }
-      // Token exists, but we need to verify it - start as loading
-      return {
-        data: null,
-        status: 'loading',
-        error: null
-      };
+    // Client-side: check localStorage
+    const hasToken = localStorage.getItem('pod-session-token');
+    if (!hasToken) {
+      // No token = unauthenticated immediately (no need to fetch)
+      return { data: null, status: 'unauthenticated', error: null };
     }
     
-    // Server-side rendering: start as loading, will be resolved on client
-    return {
-      data: null,
-      status: 'loading',
-      error: null
-    };
+    // Token exists = need to verify, start as loading
+    return { data: null, status: 'loading', error: null };
   };
 
   const [authState, setAuthState] = useState<AuthState>(getInitialState());
-  
-  // On client mount, re-check initial state in case SSR was wrong
-  useEffect(() => {
-    if (typeof window !== 'undefined' && authState.status === 'loading') {
-      const hasToken = localStorage.getItem('pod-session-token');
-      if (!hasToken) {
-        // No token, immediately set to unauthenticated
-        setAuthState({
-          data: null,
-          status: 'unauthenticated',
-          error: null
-        });
-        return;
-      }
+
+  const fetchSession = useCallback(async () => {
+    // Double-check token exists before fetching
+    const sessionToken = localStorage.getItem('pod-session-token');
+    if (!sessionToken) {
+      setAuthState({ data: null, status: 'unauthenticated', error: null });
+      sessionCache = { data: null, timestamp: Date.now() };
+      return;
     }
-  }, []); // Run once on mount
 
-  const fetchSession = useCallback(async (forceRefresh = false) => {
     try {
-      console.log('🔍 [useAuth] Fetching session... forceRefresh:', forceRefresh);
-      
-      // Check cache first (unless force refresh)
-      if (!forceRefresh && sessionCache && Date.now() - sessionCache.timestamp < CACHE_DURATION) {
-        console.log('✅ [useAuth] Using cached session');
-        setAuthState({
-          data: sessionCache.data,
-          status: sessionCache.data ? 'authenticated' : 'unauthenticated',
-          error: null
-        });
-        return;
-      }
-
-      // Get session token from localStorage
-      const sessionToken = localStorage.getItem('pod-session-token');
-      console.log('🔑 [useAuth] Session token from localStorage:', sessionToken ? sessionToken.substring(0, 20) + '...' : 'NULL');
-      
-      if (!sessionToken) {
-        console.log('❌ [useAuth] No session token found');
-        sessionCache = { data: null, timestamp: Date.now() };
-        setAuthState({
-          data: null,
-          status: 'unauthenticated',
-          error: null
-        });
-        return;
-      }
-
-      // Fetch from backend using relative URL (Next.js rewrites handle proxying)
-      // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 5000); // 5 second timeout
-      
-      let response;
-      try {
-        response = await fetch('/api/auth/session', {
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${sessionToken}`,
-            'Content-Type': 'application/json'
-          },
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          throw new Error('TIMEOUT');
-        }
-        throw fetchError;
-      }
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch('/api/auth/session', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
-        
-        // Update cache
         sessionCache = { data: data, timestamp: Date.now() };
-        
-        setAuthState({
-          data: data,
-          status: 'authenticated',
-          error: null
-        });
+        setAuthState({ data: data, status: 'authenticated', error: null });
       } else if (response.status === 401) {
-        // Session invalid or expired, clear it
         localStorage.removeItem('pod-session-token');
         sessionCache = { data: null, timestamp: Date.now() };
-        
-        setAuthState({
-          data: null,
-          status: 'unauthenticated',
-          error: 'Session expired. Please log in again.'
-        });
+        setAuthState({ data: null, status: 'unauthenticated', error: 'Session expired' });
       } else {
-        // Any other error status - clear session and mark as unauthenticated
-        console.error('Session fetch failed with status:', response.status);
         localStorage.removeItem('pod-session-token');
         sessionCache = { data: null, timestamp: Date.now() };
-        
-        setAuthState({
-          data: null,
-          status: 'unauthenticated',
-          error: 'Failed to verify session. Please log in again.'
-        });
+        setAuthState({ data: null, status: 'unauthenticated', error: 'Failed to verify session' });
       }
     } catch (error: any) {
-      console.error('Failed to fetch session:', error);
-      
-      // On network error or timeout, clear session and mark as unauthenticated
-      localStorage.removeItem('pod-session-token');
-      sessionCache = { data: null, timestamp: Date.now() };
-      
-      const errorMessage = error.message === 'TIMEOUT' || error.name === 'AbortError'
-        ? 'Request timeout. Please check your connection.'
-        : 'Connection error. Please check your internet.';
-      
-      setAuthState({
-        data: null,
-        status: 'unauthenticated',
-        error: errorMessage
-      });
+      if (error.name === 'AbortError') {
+        // Timeout - clear token and mark unauthenticated
+        localStorage.removeItem('pod-session-token');
+        sessionCache = { data: null, timestamp: Date.now() };
+        setAuthState({ data: null, status: 'unauthenticated', error: 'Request timeout' });
+      } else {
+        // Network error - clear token and mark unauthenticated
+        localStorage.removeItem('pod-session-token');
+        sessionCache = { data: null, timestamp: Date.now() };
+        setAuthState({ data: null, status: 'unauthenticated', error: 'Connection error' });
+      }
     }
   }, []);
 
+  // Single useEffect: handle client-side initialization and fetching
   useEffect(() => {
-    // Only fetch if we don't have fresh cached data
-    // But also check if we're still in loading state - if so, fetch immediately
-    if (authState.status === 'loading' || !sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
+    // Only run on client
+    if (typeof window === 'undefined') return;
+
+    // If status is 'loading', we need to fetch
+    if (authState.status === 'loading') {
       fetchSession();
+    } else if (authState.status === 'unauthenticated') {
+      // If unauthenticated, make sure there's no stale token
+      const token = localStorage.getItem('pod-session-token');
+      if (token) {
+        // Token exists but we're unauthenticated - clear it
+        localStorage.removeItem('pod-session-token');
+        sessionCache = { data: null, timestamp: Date.now() };
+      }
     }
-  }, [fetchSession, authState.status]);
+  }, [authState.status, fetchSession]);
 
-  // Separate effect for timeout - only runs when status becomes 'loading'
+  // Safety timeout: if still loading after 3 seconds, force unauthenticated
   useEffect(() => {
-    if (authState.status !== 'loading') {
-      return; // Not loading, no timeout needed
-    }
+    if (authState.status !== 'loading') return;
 
-    // Add a safety timeout: if we're still loading after 3 seconds, mark as unauthenticated
     const timeout = setTimeout(() => {
-      // Check current status again (might have changed)
-      setAuthState((currentState) => {
-        if (currentState.status !== 'loading') {
-          return currentState; // Status changed, don't override
-        }
-        
-        const token = localStorage.getItem('pod-session-token');
-        if (!token) {
-          // No token, definitely unauthenticated
-          return {
-            data: null,
-            status: 'unauthenticated',
-            error: null
-          };
-        } else {
-          // Token exists but fetch is hanging - clear it and mark unauthenticated
-          console.warn('[useAuth] Auth check timeout - clearing session');
-          localStorage.removeItem('pod-session-token');
-          sessionCache = { data: null, timestamp: Date.now() };
-          return {
-            data: null,
-            status: 'unauthenticated',
-            error: 'Authentication check timed out. Please try logging in again.'
-          };
-        }
+      setAuthState((current) => {
+        if (current.status !== 'loading') return current;
+        localStorage.removeItem('pod-session-token');
+        sessionCache = { data: null, timestamp: Date.now() };
+        return { data: null, status: 'unauthenticated', error: 'Authentication timeout' };
       });
     }, 3000);
-    
+
     return () => clearTimeout(timeout);
-  }, [authState.status]); // Only re-run when status changes
+  }, [authState.status]);
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
-    // Get token before clearing
     const sessionToken = localStorage.getItem('pod-session-token');
-    
-    // Clear local storage and cache immediately
     localStorage.removeItem('pod-session-token');
     sessionCache = null;
+    setAuthState({ data: null, status: 'unauthenticated', error: null });
 
-    setAuthState({
-      data: null,
-      status: 'unauthenticated',
-      error: null
-    });
-
-    // Try to call signout API with timeout, but don't wait for it
     if (sessionToken) {
-      // Fire and forget - don't wait for response
       fetch('/api/auth/signout', {
         method: 'POST',
         credentials: 'include',
@@ -269,19 +163,17 @@ export function useAuth() {
           'Authorization': `Bearer ${sessionToken}`,
           'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(2000) // 2 second timeout
-      }).catch((error) => {
-        // Ignore errors - we're signing out anyway
-        console.log('Signout API call failed (ignored):', error);
-      });
+        signal: AbortSignal.timeout(2000)
+      }).catch(() => {});
     }
 
-    // Redirect immediately - don't wait for API call
     window.location.href = options?.callbackUrl || '/';
   }, []);
 
   const refreshSession = useCallback(() => {
-    fetchSession(true); // Force refresh, bypass cache
+    sessionCache = null; // Clear cache
+    setAuthState({ data: null, status: 'loading', error: null });
+    fetchSession();
   }, [fetchSession]);
 
   return {

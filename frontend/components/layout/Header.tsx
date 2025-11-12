@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../lib/useAuth';
 import Container from './Container';
@@ -10,28 +10,6 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session, status } = useAuth();
-  const [showLoginFallback, setShowLoginFallback] = useState(false);
-
-  // If auth check takes more than 500ms, show login button anyway
-  // This ensures users can always access login, even if auth is slow
-  useEffect(() => {
-    if (status === 'loading') {
-      // Show loading indicator for max 500ms, then show login button
-      const timeout = setTimeout(() => {
-        setShowLoginFallback(true);
-      }, 500);
-      return () => clearTimeout(timeout);
-    } else {
-      setShowLoginFallback(false);
-    }
-  }, [status]);
-  
-  // Also check on mount - if no session and not loading, show login immediately
-  useEffect(() => {
-    if (status !== 'loading' && !session?.user) {
-      setShowLoginFallback(true);
-    }
-  }, [status, session]);
 
   const bgStyle = transparent
     ? 'bg-transparent absolute top-0 left-0 right-0 z-50'
@@ -39,6 +17,9 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
 
   const textStyle = transparent ? 'text-white' : 'text-neutral-900';
   const logoSrc = transparent ? '/logos/podnbeyond-group.svg' : '/logos/podnbeyond-group.svg';
+
+  // Determine what to show for login/account button
+  const showLoginButton = status === 'unauthenticated' || (status === 'loading' && !session?.user);
 
   return (
     <header className={`${bgStyle} transition-all duration-300`}>
@@ -64,10 +45,18 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
               Membership
             </Link>
             
-            {/* Login/Account Button */}
-            {/* Show login button if: not loading, OR loading but fallback triggered, OR no session */}
-            {status === 'loading' && !showLoginFallback ? (
-              <div className={`px-5 py-2 ${textStyle} opacity-50`}>...</div>
+            {/* Login/Account Button - Simple logic: show login if not authenticated, account if authenticated */}
+            {showLoginButton ? (
+              <Link
+                href="/login"
+                className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
+                  transparent
+                    ? 'border-white text-white hover:bg-white hover:text-neutral-900'
+                    : 'border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white'
+                }`}
+              >
+                Login
+              </Link>
             ) : session?.user ? (
               <Link
                 href="/account"
@@ -80,6 +69,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
                 My Account
               </Link>
             ) : (
+              // Fallback: show login if somehow we have no session but status isn't unauthenticated
               <Link
                 href="/login"
                 className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
@@ -164,30 +154,39 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             </Link>
             
             {/* Login/Account Button (Mobile) */}
-            {status !== 'loading' && (
-              session ? (
-                <Link
-                  href="/account"
-                  className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
-                    transparent
-                      ? 'border-white text-white'
-                      : 'border-neutral-900 text-neutral-900'
-                  }`}
-                >
-                  My Account
-                </Link>
-              ) : (
-                <Link
-                  href="/login"
-                  className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
-                    transparent
-                      ? 'border-white text-white'
-                      : 'border-neutral-900 text-neutral-900'
-                  }`}
-                >
-                  Login
-                </Link>
-              )
+            {showLoginButton ? (
+              <Link
+                href="/login"
+                className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                  transparent
+                    ? 'border-white text-white'
+                    : 'border-neutral-900 text-neutral-900'
+                }`}
+              >
+                Login
+              </Link>
+            ) : session?.user ? (
+              <Link
+                href="/account"
+                className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                  transparent
+                    ? 'border-white text-white'
+                    : 'border-neutral-900 text-neutral-900'
+                }`}
+              >
+                My Account
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                  transparent
+                    ? 'border-white text-white'
+                    : 'border-neutral-900 text-neutral-900'
+                }`}
+              >
+                Login
+              </Link>
             )}
             
             <Link
@@ -208,4 +207,3 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
 };
 
 export default Header;
-
