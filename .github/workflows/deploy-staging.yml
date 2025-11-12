@@ -213,13 +213,18 @@ jobs:
             fi
             
             # Check if processes are errored or stopped (always restart in this case)
+            BACKEND_ERRORED=false
+            FRONTEND_ERRORED=false
+            
             if pm2 list | grep -qE "staging-backend.*(errored|stopped)"; then
               echo "Backend process is errored or stopped, restart needed"
+              BACKEND_ERRORED=true
               NEEDS_RESTART=true
             fi
             
             if pm2 list | grep -qE "staging-frontend.*(errored|stopped)"; then
               echo "Frontend process is errored or stopped, restart needed"
+              FRONTEND_ERRORED=true
               NEEDS_RESTART=true
             fi
             
@@ -227,8 +232,14 @@ jobs:
             if [ "$NEEDS_RESTART" = true ]; then
               echo "Restarting PM2 processes..."
               
-              # Backend: restart if exists, start if not
-              if pm2 list | grep -q "staging-backend"; then
+              # Backend: delete if errored, then restart/start
+              if [ "$BACKEND_ERRORED" = true ]; then
+                echo "Backend is errored - deleting and recreating..."
+                pm2 delete staging-backend 2>/dev/null || true
+                sleep 1
+                echo "Starting fresh backend process..."
+                pm2 start ecosystem.config.js --only staging-backend --update-env
+              elif pm2 list | grep -q "staging-backend"; then
                 echo "Restarting backend process..."
                 pm2 restart staging-backend --update-env
               else
@@ -236,8 +247,14 @@ jobs:
                 pm2 start ecosystem.config.js --only staging-backend --update-env
               fi
               
-              # Frontend: restart if exists, start if not
-              if pm2 list | grep -q "staging-frontend"; then
+              # Frontend: delete if errored, then restart/start
+              if [ "$FRONTEND_ERRORED" = true ]; then
+                echo "Frontend is errored - deleting and recreating..."
+                pm2 delete staging-frontend 2>/dev/null || true
+                sleep 1
+                echo "Starting fresh frontend process..."
+                pm2 start ecosystem.config.js --only staging-frontend --update-env
+              elif pm2 list | grep -q "staging-frontend"; then
                 echo "Restarting frontend process..."
                 pm2 restart staging-frontend --update-env
               else
