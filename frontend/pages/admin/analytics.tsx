@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
       setLoading(true);
       const params = new URLSearchParams();
       // Pass userId with fallbacks (same as communication-hub.tsx)
-      params.append('userId', session?.user?.id || session?.id || session?.user?.email || '');
+      params.append('userId', session?.user?.id || session?.user?.email || '');
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
@@ -114,7 +114,7 @@ export default function AnalyticsPage() {
     try {
       const params = new URLSearchParams();
       // Pass userId with fallbacks (same as communication-hub.tsx)
-      params.append('userId', session?.user?.id || session?.id || session?.user?.email || '');
+      params.append('userId', session?.user?.id || session?.user?.email || '');
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
