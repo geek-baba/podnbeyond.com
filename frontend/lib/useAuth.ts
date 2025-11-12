@@ -158,41 +158,38 @@ export function useAuth() {
   }, [fetchSession]);
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
-    try {
-      const sessionToken = localStorage.getItem('pod-session-token');
-      
-      if (sessionToken) {
-        // Use relative URL (Next.js rewrites handle proxying)
-        await fetch('/api/auth/signout', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${sessionToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-      }
+    // Get token before clearing
+    const sessionToken = localStorage.getItem('pod-session-token');
+    
+    // Clear local storage and cache immediately
+    localStorage.removeItem('pod-session-token');
+    sessionCache = null;
 
-      // Clear local storage and cache
-      localStorage.removeItem('pod-session-token');
-      sessionCache = null;
+    setAuthState({
+      data: null,
+      status: 'unauthenticated',
+      error: null
+    });
 
-      setAuthState({
-        data: null,
-        status: 'unauthenticated',
-        error: null
+    // Try to call signout API with timeout, but don't wait for it
+    if (sessionToken) {
+      // Fire and forget - don't wait for response
+      fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      }).catch((error) => {
+        // Ignore errors - we're signing out anyway
+        console.log('Signout API call failed (ignored):', error);
       });
-
-      // Redirect
-      window.location.href = options?.callbackUrl || '/';
-    } catch (error) {
-      console.error('Failed to sign out:', error);
-      
-      // Still clear local state even if API call fails
-      localStorage.removeItem('pod-session-token');
-      sessionCache = null;
-      window.location.href = options?.callbackUrl || '/';
     }
+
+    // Redirect immediately - don't wait for API call
+    window.location.href = options?.callbackUrl || '/';
   }, []);
 
   const refreshSession = useCallback(() => {
