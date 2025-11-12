@@ -581,7 +581,7 @@ export default function TemplatesPage() {
                 <div className="flex justify-end gap-2 pt-4 border-t">
                   <Button
                     type="button"
-                    variant="neutral"
+                    variant="secondary"
                     onClick={() => {
                       setShowModal(false);
                       resetForm();
