@@ -139,7 +139,9 @@ model User {
   sentInvites    Invite[]        @relation("InvitedBy")
   auditLogs      AuditLog[]
   pointsLedger   PointsLedger[]
-  emailThreads   Thread[] // Email conversations
+  emailThreads   Thread[]        @relation("ThreadOwner") // Email conversations owned by user
+  assignedThreads Thread[]       @relation("AssignedThreads") // Threads assigned to user
+  conversationNotes ConversationNote[] // Internal notes authored by user
 
   @@map("users")
 }
@@ -865,6 +867,21 @@ enum SuppressionReason {
   UNSUBSCRIBE
 }
 
+enum ConversationStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_FOR_GUEST
+  RESOLVED
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model Thread {
   id            Int      @id @default(autoincrement())
   subject       String
@@ -874,7 +891,7 @@ model Thread {
 
   // Relations
   userId String? // User who owns this thread (if applicable)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?   @relation("ThreadOwner", fields: [userId], references: [id], onDelete: SetNull)
 
   bookingId Int? // Link to booking if email is booking-related
   booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
@@ -882,7 +899,27 @@ model Thread {
   propertyId Int? // Link to property if email is property-related
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
-  emails Email[]
+  // Workflow fields (NEW)
+  status          ConversationStatus @default(NEW)
+  assignedTo      String? // User ID (from UserRole)
+  assignedUser    User?   @relation("AssignedThreads", fields: [assignedTo], references: [id], onDelete: SetNull)
+  priority        Priority @default(NORMAL)
+  
+  // SLA Tracking
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  slaBreached     Boolean  @default(false)
+  
+  // Tags for categorization
+  tags            String[] @default([])
+  
+  // Unified message links (NEW)
+  emails          Email[]
+  messageLogs     MessageLog[] // Link WhatsApp/SMS
+  callLogs        CallLog[]    // Link voice calls
+  
+  // Internal notes (NEW)
+  notes           ConversationNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -891,6 +928,10 @@ model Thread {
   @@index([bookingId])
   @@index([propertyId])
   @@index([lastMessageAt])
+  @@index([status])
+  @@index([assignedTo])
+  @@index([priority])
+  @@index([isArchived])
   @@map("email_threads")
 }
 
@@ -1075,6 +1116,8 @@ model MessageLog {
 
   // Relations
   bookingId Int? // Link to booking if message is booking-related
+  threadId  Int? // Link to unified conversation thread
+  thread    Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1089,6 +1132,7 @@ model MessageLog {
   @@index([direction])
   @@index([createdAt])
   @@index([bookingId])
+  @@index([threadId])
   @@map("message_logs")
 }
 
@@ -1121,6 +1165,8 @@ model CallLog {
 
   // Relations
   bookingId Int? // Link to booking if call is booking-related
+  threadId  Int? // Link to unified conversation thread
+  thread    Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1136,7 +1182,28 @@ model CallLog {
   @@index([direction])
   @@index([createdAt])
   @@index([bookingId])
+  @@index([threadId])
   @@map("call_logs")
+}
+
+// Internal notes for conversations (staff-only)
+model ConversationNote {
+  id          Int      @id @default(autoincrement())
+  threadId    Int
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  content     String   @db.Text
+  isInternal  Boolean  @default(true) // Not visible to guest
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([threadId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("conversation_notes")
 }
 
 // Third-Party Integration Configuration

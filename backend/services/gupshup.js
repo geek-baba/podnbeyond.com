@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 const { integrationsConfig, validateGupshupConfig } = require('../lib/integrations');
+const { findOrCreateThread, linkMessageToThread } = require('./thread-linking');
 
 const prisma = new PrismaClient();
 const config = integrationsConfig.gupshup;
@@ -125,6 +126,19 @@ async function sendWhatsAppMessage({
     // Upsert contact
     await upsertContact(normalizedPhone);
 
+    // Link to thread if booking/property metadata exists
+    if (metadata.bookingId || metadata.propertyId) {
+      const contact = await prisma.contact.findUnique({ where: { phone: normalizedPhone } });
+      const thread = await findOrCreateThread({
+        phone: normalizedPhone,
+        email: contact?.email || null,
+        propertyId: metadata.propertyId || null,
+        bookingId: metadata.bookingId || null,
+        subject: `WhatsApp conversation with ${normalizedPhone}`,
+      });
+      await linkMessageToThread(messageLog.id, thread.id);
+    }
+
     return {
       success: true,
       messageId: messageLog.id,
@@ -237,6 +251,19 @@ async function sendSMS({
     // Upsert contact
     await upsertContact(normalizedPhone);
 
+    // Link to thread if booking/property metadata exists
+    if (metadata.bookingId || metadata.propertyId) {
+      const contact = await prisma.contact.findUnique({ where: { phone: normalizedPhone } });
+      const thread = await findOrCreateThread({
+        phone: normalizedPhone,
+        email: contact?.email || null,
+        propertyId: metadata.propertyId || null,
+        bookingId: metadata.bookingId || null,
+        subject: `SMS conversation with ${normalizedPhone}`,
+      });
+      await linkMessageToThread(messageLog.id, thread.id);
+    }
+
     return {
       success: true,
       messageId: messageLog.id,
@@ -330,7 +357,7 @@ async function handleInboundMessage(payload) {
   const normalizedPhone = normalizePhoneNumber(phone);
 
   // Upsert contact
-  await upsertContact(normalizedPhone);
+  const contact = await upsertContact(normalizedPhone);
 
   // Create message log
   const messageLog = await prisma.messageLog.create({
@@ -345,12 +372,50 @@ async function handleInboundMessage(payload) {
       sentAt: timestamp ? new Date(timestamp) : new Date(),
       deliveredAt: timestamp ? new Date(timestamp) : new Date(),
       metadata: payload,
+      contactId: contact?.id || null,
     },
   });
+
+  // Find or create thread and link message
+  // Try to find booking/property from contact metadata or recent messages
+  let propertyId = null;
+  let bookingId = null;
+
+  if (contact?.metadata) {
+    propertyId = contact.metadata.propertyId || null;
+    bookingId = contact.metadata.bookingId || null;
+  }
+
+  // If not in contact metadata, check recent outbound messages
+  if (!propertyId && !bookingId) {
+    const recentOutbound = await prisma.messageLog.findFirst({
+      where: {
+        phone: normalizedPhone,
+        direction: 'OUTBOUND',
+        metadata: { path: ['propertyId'], not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recentOutbound?.metadata) {
+      propertyId = recentOutbound.metadata.propertyId || null;
+      bookingId = recentOutbound.metadata.bookingId || null;
+    }
+  }
+
+  const thread = await findOrCreateThread({
+    phone: normalizedPhone,
+    email: contact?.email || null,
+    propertyId,
+    bookingId,
+    subject: `Conversation with ${contact?.name || normalizedPhone}`,
+  });
+
+  await linkMessageToThread(messageLog.id, thread.id);
 
   return {
     success: true,
     messageLogId: messageLog.id,
+    threadId: thread.id,
   };
 }
 
