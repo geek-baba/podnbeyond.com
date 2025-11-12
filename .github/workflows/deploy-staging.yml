@@ -92,6 +92,8 @@ jobs:
             # Retry npm ci if it fails due to ENOTEMPTY
             npm ci || (rm -rf node_modules && npm ci)
             cd ..
+            
+            # Run Prisma migrations
             cd backend
             npx prisma migrate deploy || (echo "Migration failed, trying db push..." && npx prisma db push --accept-data-loss --skip-generate)
             npx prisma generate
