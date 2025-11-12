@@ -8,7 +8,9 @@ const {
 
 const prisma = new PrismaClient();
 
-const HOLD_RELEASE_QUEUE = 'hold-release-queue';
+// Environment-specific queue prefix (to separate staging/prod on same Redis instance)
+const QUEUE_PREFIX = process.env.QUEUE_PREFIX || process.env.NODE_ENV || 'default';
+const HOLD_RELEASE_QUEUE = `${QUEUE_PREFIX}-hold-release-queue`;
 const HOLD_RELEASE_JOB_NAME = 'release-expired-holds';
 const HOLD_RELEASE_INTERVAL_MS = parseInt(process.env.HOLD_RELEASE_INTERVAL_MS || '60000', 10);
 const HOLD_RELEASE_BATCH_SIZE = parseInt(process.env.HOLD_RELEASE_BATCH_SIZE || '50', 10);
@@ -205,7 +207,7 @@ function initHoldReleaseJob() {
   );
 
   console.log(
-    `🕒 Hold release job scheduled every ${Math.round(HOLD_RELEASE_INTERVAL_MS / 1000)} seconds.`
+    `🕒 Hold release job scheduled every ${Math.round(HOLD_RELEASE_INTERVAL_MS / 1000)} seconds. Queue: ${HOLD_RELEASE_QUEUE}`
   );
 }
 

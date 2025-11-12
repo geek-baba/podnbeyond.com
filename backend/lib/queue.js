@@ -8,6 +8,10 @@ let emailQueue = null;
 let emailWorker = null;
 let queueEnabled = false;
 
+// Environment-specific queue prefix (to separate staging/prod on same Redis instance)
+const QUEUE_PREFIX = process.env.QUEUE_PREFIX || process.env.NODE_ENV || 'default';
+const EMAIL_QUEUE_NAME = `${QUEUE_PREFIX}-email-queue`;
+
 // Check if Redis is available before initializing BullMQ
 if (process.env.REDIS_ENABLED === 'true') {
   try {
@@ -18,7 +22,7 @@ if (process.env.REDIS_ENABLED === 'true') {
       port: parseInt(process.env.REDIS_PORT || '6379'),
     };
 
-    emailQueue = new Queue('email-queue', {
+    emailQueue = new Queue(EMAIL_QUEUE_NAME, {
       connection,
       defaultJobOptions: {
         attempts: 3,
@@ -37,7 +41,7 @@ if (process.env.REDIS_ENABLED === 'true') {
     });
 
     emailWorker = new Worker(
-      'email-queue',
+      EMAIL_QUEUE_NAME,
       async (job) => {
         const { emailId, ...emailData } = job.data;
 
@@ -86,7 +90,7 @@ if (process.env.REDIS_ENABLED === 'true') {
     });
 
     queueEnabled = true;
-    console.log('✅ Email queue initialized (Redis connected)');
+    console.log(`✅ Email queue initialized (Redis connected) - Queue: ${EMAIL_QUEUE_NAME}`);
   } catch (error) {
     console.warn('⚠️  Failed to initialize email queue:', error.message);
     queueEnabled = false;
