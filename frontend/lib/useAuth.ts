@@ -177,6 +177,32 @@ export function useAuth() {
     if (authState.status === 'loading' || !sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
       fetchSession();
     }
+    
+    // Add a safety timeout: if we're still loading after 3 seconds, mark as unauthenticated
+    if (authState.status === 'loading') {
+      const timeout = setTimeout(() => {
+        const token = localStorage.getItem('pod-session-token');
+        if (!token) {
+          // No token, definitely unauthenticated
+          setAuthState({
+            data: null,
+            status: 'unauthenticated',
+            error: null
+          });
+        } else {
+          // Token exists but fetch is hanging - clear it and mark unauthenticated
+          console.warn('[useAuth] Auth check timeout - clearing session');
+          localStorage.removeItem('pod-session-token');
+          sessionCache = { data: null, timestamp: Date.now() };
+          setAuthState({
+            data: null,
+            status: 'unauthenticated',
+            error: 'Authentication check timed out. Please try logging in again.'
+          });
+        }
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
   }, [fetchSession, authState.status]);
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
