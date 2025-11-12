@@ -129,7 +129,21 @@ function calculateSLA(thread, channel) {
  */
 router.get('/', async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId; // Get from session/auth
+    let userId = req.user?.id || req.query.userId; // Get from session/auth
+    
+    // If userId is an email, look up the user ID
+    if (userId && userId.includes('@')) {
+      const user = await prisma.user.findUnique({
+        where: { email: userId },
+        select: { id: true },
+      });
+      if (user) {
+        userId = user.id;
+      } else {
+        return res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
+      }
+    }
+    
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized', message: 'User ID is required' });
     }
