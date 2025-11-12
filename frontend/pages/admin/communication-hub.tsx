@@ -79,6 +79,7 @@ export default function CommunicationHub() {
   const [guestContext, setGuestContext] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [properties, setProperties] = useState<Array<{ id: number; name: string; slug: string }>>([]);
   const [filters, setFilters] = useState({
     status: '' as ConversationStatus | '',
     assignedTo: '',
@@ -122,6 +123,7 @@ export default function CommunicationHub() {
     if (authStatus === 'authenticated') {
       loadConversations();
       loadIntegrations();
+      loadProperties();
     }
   }, [authStatus, filters]);
 
@@ -139,6 +141,18 @@ export default function CommunicationHub() {
       }
     } catch (error) {
       console.error('Failed to load integrations:', error);
+    }
+  };
+
+  const loadProperties = async () => {
+    try {
+      const response = await fetch('/api/properties');
+      const data = await response.json();
+      if (data.success && data.properties) {
+        setProperties(data.properties.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug })));
+      }
+    } catch (error) {
+      console.error('Failed to load properties:', error);
     }
   };
 
@@ -553,13 +567,18 @@ export default function CommunicationHub() {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Property</label>
-                    <input
-                      type="number"
+                    <select
                       value={filters.propertyId}
                       onChange={(e) => setFilters({...filters, propertyId: e.target.value})}
-                      placeholder="Property ID"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                    />
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 bg-white"
+                    >
+                      <option value="">All Properties</option>
+                      {properties.map((property) => (
+                        <option key={property.id} value={property.id.toString()}>
+                          {property.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
