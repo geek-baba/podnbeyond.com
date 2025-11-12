@@ -43,10 +43,10 @@ export default function AnalyticsPage() {
   const [properties, setProperties] = useState<Array<{ id: number; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
+    viewBy: 'last30days' as 'last7days' | 'last30days' | 'last3months' | 'lastyear' | 'custom', // View by preset or custom
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 30 days
     endDate: new Date().toISOString().split('T')[0],
     propertyId: '',
-    timePeriod: 'day' as 'day' | 'week' | 'month' | 'year', // Time period for grouping
   });
 
   // Check authorization
@@ -78,13 +78,52 @@ export default function AnalyticsPage() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
+      
+      // Calculate date range and time period based on viewBy
+      let startDate = filters.startDate;
+      let endDate = filters.endDate;
+      let timePeriod: 'day' | 'week' | 'month' | 'year' = 'day';
+      
+      if (filters.viewBy === 'last7days') {
+        startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        timePeriod = 'day';
+      } else if (filters.viewBy === 'last30days') {
+        startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        timePeriod = 'day';
+      } else if (filters.viewBy === 'last3months') {
+        startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        timePeriod = 'week';
+      } else if (filters.viewBy === 'lastyear') {
+        startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        endDate = new Date().toISOString().split('T')[0];
+        timePeriod = 'month';
+      } else {
+        // Custom date range - determine time period based on range
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff <= 7) {
+          timePeriod = 'day';
+        } else if (daysDiff <= 90) {
+          timePeriod = 'week';
+        } else if (daysDiff <= 365) {
+          timePeriod = 'month';
+        } else {
+          timePeriod = 'year';
+        }
+      }
+      
       const params = new URLSearchParams();
-          // Pass userId with fallbacks (same as communication-hub.tsx)
-          params.append('userId', session?.user?.id || session?.user?.email || '');
-          if (filters.startDate) params.append('startDate', filters.startDate);
-          if (filters.endDate) params.append('endDate', filters.endDate);
-          if (filters.propertyId) params.append('propertyId', filters.propertyId);
-          if (filters.timePeriod) params.append('timePeriod', filters.timePeriod);
+      // Pass userId with fallbacks (same as communication-hub.tsx)
+      params.append('userId', session?.user?.id || session?.user?.email || '');
+      params.append('startDate', startDate);
+      params.append('endDate', endDate);
+      params.append('timePeriod', timePeriod);
+      if (filters.propertyId) params.append('propertyId', filters.propertyId);
 
           const response = await fetch(`/api/analytics/conversations?${params.toString()}`);
       const data = await response.json();
@@ -440,45 +479,59 @@ export default function AnalyticsPage() {
               ) : (
                 <>
                   <div className="h-64 flex items-end gap-2 bg-white p-4 rounded-lg border border-neutral-200">
-                    {dailyStatsArray.map(({ date, count }) => {
-                      const barHeight = maxDailyCount > 0 ? Math.max((count / maxDailyCount) * 100, 3) : 3;
-                      const formatDateLabel = (dateStr: string) => {
-                        if (dateStr.startsWith('Week of ')) {
-                          return dateStr.replace('Week of ', '');
-                        }
-                        if (dateStr.match(/^\d{4}-\d{2}$/)) {
-                          // Month format YYYY-MM
-                          const [year, month] = dateStr.split('-');
-                          return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                        }
-                        if (dateStr.match(/^\d{4}$/)) {
-                          // Year format
-                          return dateStr;
-                        }
-                        // Day format YYYY-MM-DD
-                        try {
-                          return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        } catch {
-                          return dateStr;
-                        }
-                      };
-                      return (
-                        <div
-                          key={date}
-                          className="flex-1 bg-neutral-900 rounded-t hover:bg-neutral-700 transition-colors relative group min-h-[4px] flex flex-col justify-end"
-                          style={{ height: `${barHeight}%` }}
-                          title={`${date}: ${count} ${count === 1 ? 'conversation' : 'conversations'}`}
-                        >
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-neutral-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 shadow-lg">
-                            {date}: {count} {count === 1 ? 'conversation' : 'conversations'}
+                    {dailyStatsArray.length === 0 ? (
+                      <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                        <p>No data for selected period</p>
+                      </div>
+                    ) : (
+                      dailyStatsArray.map(({ date, count }) => {
+                        const barHeight = maxDailyCount > 0 ? Math.max((count / maxDailyCount) * 100, 5) : 5;
+                        const formatDateLabel = (dateStr: string) => {
+                          if (dateStr.startsWith('Week of ')) {
+                            const weekDate = dateStr.replace('Week of ', '');
+                            try {
+                              return new Date(weekDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            } catch {
+                              return weekDate;
+                            }
+                          }
+                          if (dateStr.match(/^\d{4}-\d{2}$/)) {
+                            // Month format YYYY-MM
+                            const [year, month] = dateStr.split('-');
+                            return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                          }
+                          if (dateStr.match(/^\d{4}$/)) {
+                            // Year format
+                            return dateStr;
+                          }
+                          // Day format YYYY-MM-DD
+                          try {
+                            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          } catch {
+                            return dateStr;
+                          }
+                        };
+                        return (
+                          <div
+                            key={date}
+                            className="flex-1 bg-neutral-900 rounded-t hover:bg-neutral-700 transition-colors relative group flex flex-col justify-end"
+                            style={{ 
+                              height: `${barHeight}%`,
+                              minHeight: '8px' // Ensure bars are always visible
+                            }}
+                            title={`${date}: ${count} ${count === 1 ? 'conversation' : 'conversations'}`}
+                          >
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-neutral-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 shadow-lg">
+                              {date}: {count} {count === 1 ? 'conversation' : 'conversations'}
+                            </div>
+                            {/* Bar label at bottom */}
+                            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-neutral-600 whitespace-nowrap">
+                              {formatDateLabel(date)}
+                            </div>
                           </div>
-                          {/* Bar label at bottom */}
-                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-neutral-600 whitespace-nowrap">
-                            {formatDateLabel(date)}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                   <div className="mt-10 text-xs text-neutral-500 text-center">
                     {dailyStatsArray.length > 0 && (
