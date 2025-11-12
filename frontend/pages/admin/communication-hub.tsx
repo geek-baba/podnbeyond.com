@@ -210,9 +210,11 @@ export default function CommunicationHub() {
       const response = await fetch('/api/integrations');
       const data = await response.json();
       if (data.success && data.integrations) {
+        const postmark = data.integrations.find((i: any) => i.provider === 'POSTMARK');
         const gupshup = data.integrations.find((i: any) => i.provider === 'GUPSHUP');
         const exotel = data.integrations.find((i: any) => i.provider === 'EXOTEL');
         setIntegrations({
+          postmark: postmark ? { enabled: postmark.enabled, status: postmark.status } : undefined,
           gupshup: gupshup ? { enabled: gupshup.enabled, status: gupshup.status } : undefined,
           exotel: exotel ? { enabled: exotel.enabled, status: exotel.status } : undefined,
         });
@@ -686,7 +688,28 @@ export default function CommunicationHub() {
 
             <div className="text-right">
               <h1 className="text-3xl font-bold mb-1">Communication Hub</h1>
-              <p className="text-neutral-300 text-sm">Unified conversations across email, WhatsApp, SMS, and voice</p>
+              <p className="text-neutral-300 text-sm mb-3">Unified conversations across email, WhatsApp, SMS, and voice</p>
+              {/* Integration Status Indicators */}
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-neutral-300">Email (Postmark)</span>
+                  <span className={`inline-block w-2 h-2 rounded-full ${
+                    integrations.postmark?.enabled ? 'bg-green-500' : 'bg-amber-500'
+                  }`} title={integrations.postmark?.enabled ? 'Active' : 'Not Configured'}></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-neutral-300">💬 WhatsApp (Gupshup)</span>
+                  <span className={`inline-block w-2 h-2 rounded-full ${
+                    integrations.gupshup?.enabled ? 'bg-green-500' : 'bg-amber-500'
+                  }`} title={integrations.gupshup?.enabled ? 'Active' : 'Not Configured'}></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-neutral-300">📞 Voice & SMS (Exotel)</span>
+                  <span className={`inline-block w-2 h-2 rounded-full ${
+                    integrations.exotel?.enabled ? 'bg-green-500' : 'bg-amber-500'
+                  }`} title={integrations.exotel?.enabled ? 'Active' : 'Not Configured'}></span>
+                </div>
+              </div>
             </div>
           </div>
 
