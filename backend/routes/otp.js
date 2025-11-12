@@ -96,7 +96,18 @@ router.post('/send', async (req, res) => {
     // Check if email was sent successfully
     if (!emailResult.success) {
       console.error('❌ Failed to send OTP email:', emailResult.error);
-      throw new Error(`Email delivery failed: ${emailResult.error}`);
+      console.error('Postmark error details:', {
+        error: emailResult.error,
+        code: emailResult.code,
+        email,
+      });
+      
+      // Return a more user-friendly error message
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send email. Please check your email address and try again.',
+        details: process.env.NODE_ENV === 'development' ? emailResult.error : undefined,
+      });
     }
 
     console.log(`✅ OTP sent successfully to: ${email} (MessageID: ${emailResult.messageId})`);
@@ -109,9 +120,11 @@ router.post('/send', async (req, res) => {
 
   } catch (error) {
     console.error('OTP send error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
-      error: 'Failed to send OTP',
-      details: error.message,
+      success: false,
+      error: 'Failed to send OTP. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
