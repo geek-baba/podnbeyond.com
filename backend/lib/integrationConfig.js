@@ -6,7 +6,14 @@
 const { PrismaClient } = require('@prisma/client');
 const { decryptConfig } = require('./encryption');
 
-const prisma = new PrismaClient();
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // Cache for integration configs (refreshed every 5 minutes)
 const configCache = new Map();
@@ -40,7 +47,7 @@ async function getIntegrationConfig(provider, forceRefresh = false) {
   }
 
   try {
-    const integration = await prisma.thirdPartyIntegration.findUnique({
+    const integration = await getPrisma().thirdPartyIntegration.findUnique({
       where: { provider: cacheKey }
     });
 
