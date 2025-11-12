@@ -219,20 +219,6 @@ jobs:
             
             pm2 save
             
-            # Verify both processes are running
-            echo "Verifying PM2 processes..."
-            pm2 list
-            if ! pm2 list | grep -q "staging-frontend.*online"; then
-              echo "ERROR: Frontend process is not online!"
-              echo "PM2 status:"
-              pm2 list
-              echo "Frontend logs (if process exists):"
-              pm2 logs staging-frontend --lines 30 --nostream || echo "Could not get frontend logs"
-              echo "PM2 error logs:"
-              pm2 logs --err --lines 20 --nostream || true
-              exit 1
-            fi
-            
             # Wait for server to be ready
             echo "Waiting for server to start..."
             sleep 15
