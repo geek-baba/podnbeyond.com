@@ -46,6 +46,7 @@ export default function AnalyticsPage() {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 30 days
     endDate: new Date().toISOString().split('T')[0],
     propertyId: '',
+    timePeriod: 'day' as 'day' | 'week' | 'month' | 'year', // Time period for grouping
   });
 
   // Check authorization
@@ -164,7 +165,10 @@ export default function AnalyticsPage() {
   // Prepare chart data - sort by date and format
   const dailyStatsArray = Object.entries(analytics?.trends?.dailyStats || {})
     .map(([date, count]) => ({ date, count: count as number }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort((a, b) => {
+      // Sort by date string (works for YYYY-MM-DD, YYYY-MM, YYYY, and "Week of..." formats)
+      return a.date.localeCompare(b.date);
+    });
   const maxDailyCount = dailyStatsArray.length > 0 ? Math.max(...dailyStatsArray.map(d => d.count), 1) : 1;
 
   return (

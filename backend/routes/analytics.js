@@ -177,8 +177,8 @@ router.get('/conversations', async (req, res) => {
     const avgResolutionTime = resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0;
     const slaBreachRate = slaMetrics.length > 0 ? (slaBreachedCount / slaMetrics.length) * 100 : 0;
 
-    // Get conversations over time (daily)
-    // Fetch all threads and group by day in JavaScript (Prisma groupBy doesn't support date truncation)
+    // Get conversations over time (grouped by time period)
+    const timePeriod = req.query.timePeriod || 'day'; // day, week, month, year
     const allThreads = await prisma.thread.findMany({
       where,
       select: {
@@ -187,11 +187,26 @@ router.get('/conversations', async (req, res) => {
       },
     });
 
-    // Group by day
+    // Group by time period
     const dailyStats = {};
     allThreads.forEach((thread) => {
-      const date = new Date(thread.createdAt).toISOString().split('T')[0];
-      dailyStats[date] = (dailyStats[date] || 0) + 1;
+      const date = new Date(thread.createdAt);
+      let key = '';
+      
+      if (timePeriod === 'day') {
+        key = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      } else if (timePeriod === 'week') {
+        // Get week start (Monday)
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay() + 1); // Monday
+        key = `Week of ${weekStart.toISOString().split('T')[0]}`;
+      } else if (timePeriod === 'month') {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+      } else if (timePeriod === 'year') {
+        key = String(date.getFullYear()); // YYYY
+      }
+      
+      dailyStats[key] = (dailyStats[key] || 0) + 1;
     });
 
     // Get top assignees
