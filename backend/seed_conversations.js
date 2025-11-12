@@ -166,6 +166,7 @@ async function seedConversations() {
       });
 
       // Create thread
+      const threadCreatedAt = new Date(Date.now() - (i * 3600000)); // Stagger timestamps
       const thread = await prisma.thread.create({
         data: {
           subject: `Booking Inquiry - ${booking.guestName}`,
@@ -175,7 +176,8 @@ async function seedConversations() {
           status: i % 3 === 0 ? 'NEW' : i % 3 === 1 ? 'IN_PROGRESS' : 'WAITING_FOR_GUEST',
           priority: i % 4 === 0 ? 'URGENT' : i % 4 === 1 ? 'HIGH' : i % 4 === 2 ? 'NORMAL' : 'LOW',
           assignedTo: assignableUsers.length > 0 ? assignableUsers[i % assignableUsers.length].id : null,
-          lastMessageAt: new Date(Date.now() - (i * 3600000)), // Stagger timestamps
+          createdAt: threadCreatedAt, // Set createdAt to match conversation timeline
+          lastMessageAt: threadCreatedAt, // Stagger timestamps
         },
       });
 
