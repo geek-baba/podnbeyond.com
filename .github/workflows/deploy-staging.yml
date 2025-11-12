@@ -89,9 +89,11 @@ jobs:
             # Clean install frontend dependencies (handle npm ENOTEMPTY errors)
             cd frontend
             # Clean up everything that might cause issues
+            echo "Cleaning up frontend dependencies..."
             rm -rf node_modules
             rm -rf .next
             rm -rf .next/cache
+            npm cache clean --force || true
             # Ensure package-lock.json exists
             if [ ! -f "package-lock.json" ]; then
               echo "WARNING: package-lock.json not found, generating it..."
@@ -99,7 +101,14 @@ jobs:
             fi
             # Clean install with retry logic
             echo "Installing frontend dependencies..."
-            npm ci || (echo "First npm ci failed, retrying..." && rm -rf node_modules && npm ci)
+            npm ci || (echo "First npm ci failed, cleaning and retrying..." && rm -rf node_modules && npm cache clean --force && npm ci)
+            # If still failing, try npm install as fallback
+            if [ ! -d "node_modules/next" ]; then
+              echo "npm ci failed, trying npm install as fallback..."
+              rm -rf node_modules
+              npm cache clean --force
+              npm install --legacy-peer-deps
+            fi
             # Verify critical Next.js files exist
             if [ ! -d "node_modules/next" ]; then
               echo "ERROR: Next.js not installed properly!"
@@ -109,6 +118,11 @@ jobs:
               echo "ERROR: Next.js jest-worker module missing! Reinstalling..."
               rm -rf node_modules/next
               npm install next --no-save
+            fi
+            # Verify napi-postinstall is properly installed (common issue)
+            if [ ! -f "node_modules/napi-postinstall/package.json" ]; then
+              echo "WARNING: napi-postinstall missing, reinstalling..."
+              npm install napi-postinstall --no-save || true
             fi
             cd ..
             
