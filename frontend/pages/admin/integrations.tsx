@@ -568,12 +568,27 @@ export default function IntegrationsAdmin() {
             </Card>
           )}
 
-          {/* Configured Integrations by Category */}
-          {Object.keys(groupedIntegrations).length === 0 && integrations.length === 0 && (
+          {/* Empty State */}
+          {Object.keys(groupedIntegrations).length === 0 && integrations.length === 0 && !loading && (
             <Card>
-              <p className="text-gray-500 text-center py-8">
-                No integrations configured yet. Add one from the available integrations above.
-              </p>
+              <div className="text-center py-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Integrations Configured</h3>
+                <p className="text-gray-500 mb-4">
+                  You haven't configured any integrations yet. Add one from the available integrations above, or migrate existing configurations from environment variables.
+                </p>
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                  <h4 className="font-semibold text-blue-900 mb-2">💡 Migrate Existing Configurations</h4>
+                  <p className="text-sm text-blue-800 mb-3">
+                    If you have integrations configured via environment variables (Razorpay, Postmark, etc.), you can migrate them to the database:
+                  </p>
+                  <code className="block text-xs bg-blue-100 p-2 rounded mb-2">
+                    cd backend && node scripts/migrate-integrations-from-env.js
+                  </code>
+                  <p className="text-xs text-blue-700">
+                    This will automatically import your existing configurations into this unified management system.
+                  </p>
+                </div>
+              </div>
             </Card>
           )}
 
