@@ -182,6 +182,7 @@ async function seedConversations() {
       conversationCount++;
 
       // Create email conversation
+      const emailThreadCreatedAt = new Date(Date.now() - (i * 3600000) - 1800000);
       const emailThread = await prisma.thread.create({
         data: {
           subject: sampleMessages.email[i % sampleMessages.email.length].inbound.subject,
@@ -191,7 +192,8 @@ async function seedConversations() {
           status: 'IN_PROGRESS',
           priority: 'NORMAL',
           assignedTo: assignableUsers.length > 0 ? assignableUsers[i % assignableUsers.length].id : null,
-          lastMessageAt: new Date(Date.now() - (i * 3600000) - 1800000),
+          createdAt: emailThreadCreatedAt, // Set createdAt to match conversation timeline
+          lastMessageAt: emailThreadCreatedAt,
         },
       });
 
