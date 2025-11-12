@@ -74,9 +74,6 @@ router.get('/conversations', async (req, res) => {
         dateFilter.createdAt.lte = end;
       }
     }
-    
-    // Debug: Log the filter being used
-    console.log('Analytics query filter:', JSON.stringify({ dateFilter, propertyFilter, accessiblePropertyIds }, null, 2));
 
     // Build property filter
     const propertyFilter = {};
