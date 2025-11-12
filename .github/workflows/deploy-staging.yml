@@ -80,8 +80,18 @@ jobs:
               . "$NVM_DIR/nvm.sh"
             fi
 
-            npm ci --prefix backend
-            npm ci --prefix frontend
+            # Clean install backend dependencies
+            cd backend
+            rm -rf node_modules package-lock.json
+            npm ci
+            cd ..
+            
+            # Clean install frontend dependencies (handle npm ENOTEMPTY errors)
+            cd frontend
+            rm -rf node_modules package-lock.json
+            # Retry npm ci if it fails due to ENOTEMPTY
+            npm ci || (rm -rf node_modules && npm ci)
+            cd ..
             cd backend
             npx prisma migrate deploy || (echo "Migration failed, trying db push..." && npx prisma db push --accept-data-loss --skip-generate)
             npx prisma generate
