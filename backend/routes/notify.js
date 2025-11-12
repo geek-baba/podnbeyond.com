@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { sendWhatsAppMessage, sendSMS } = require('../services/gupshup');
+const { renderTemplate } = require('../services/template-engine');
 const { createHash } = require('crypto');
 
 const router = express.Router();
@@ -96,8 +97,57 @@ router.post('/booking', async (req, res) => {
       }
     }
 
-    // Prepare message content
+    // Prepare message content - use template if templateId provided or auto-find booking confirmation template
     let messageContent = message;
+    let templateUsed = null;
+    
+    if (templateId && bookingId) {
+      // Use specific template
+      const template = await prisma.messageTemplate.findUnique({
+        where: { id: parseInt(templateId) },
+      });
+      
+      if (template && template.isActive) {
+        try {
+          const rendered = await renderTemplate(template.body, template.subject, bookingId);
+          messageContent = rendered.body;
+          templateUsed = template;
+        } catch (error) {
+          console.error('Error rendering template:', error);
+          // Fall back to default message
+        }
+      }
+    } else if (bookingId && !message) {
+      // Auto-find booking confirmation template
+      const template = await prisma.messageTemplate.findFirst({
+        where: {
+          type: 'BOOKING_CONFIRMATION',
+          channel: channel === 'whatsapp' ? 'WHATSAPP' : 'SMS',
+          isActive: true,
+          OR: [
+            { propertyId: propertyId },
+            { propertyId: null }, // Global templates
+          ],
+        },
+        orderBy: [
+          { propertyId: 'desc' }, // Property-specific first
+          { createdAt: 'desc' },
+        ],
+      });
+      
+      if (template) {
+        try {
+          const rendered = await renderTemplate(template.body, template.subject, bookingId);
+          messageContent = rendered.body;
+          templateUsed = template;
+        } catch (error) {
+          console.error('Error rendering auto-template:', error);
+          // Fall back to default message
+        }
+      }
+    }
+    
+    // Fallback to default message if no template was used
     if (!messageContent && booking) {
       messageContent = `Your booking #${booking.id} at ${booking.property.name} is confirmed.\n\n` +
         `Check-in: ${new Date(booking.checkIn).toLocaleDateString()}\n` +
@@ -168,6 +218,7 @@ router.post('/booking', async (req, res) => {
         message: 'Notification sent successfully',
         messageId: result.messageId,
         providerMessageId: result.providerMessageId,
+        templateUsed: templateUsed ? { id: templateUsed.id, name: templateUsed.name } : null,
       });
     } else {
       return res.status(500).json({
