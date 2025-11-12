@@ -105,7 +105,18 @@ jobs:
             sleep 5
 
       - name: Staging health check
-        run: |
-          echo "Checking server health..."
-          curl --fail --max-time 10 --retry 3 --retry-delay 2 -L ${{ secrets.STAGING_HEALTHCHECK_URL }} || (echo "Health check failed, checking PM2 status..." && pm2 list && exit 1)
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_DEPLOY_HOST }}
+          username: ${{ secrets.STAGING_DEPLOY_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            echo "Checking server health..."
+            if curl --fail --max-time 10 --retry 3 --retry-delay 2 -L ${{ secrets.STAGING_HEALTHCHECK_URL }}; then
+              echo "Health check passed!"
+            else
+              echo "Health check failed, checking PM2 status..."
+              pm2 list
+              exit 1
+            fi
 
