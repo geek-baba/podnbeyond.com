@@ -182,7 +182,15 @@ jobs:
 
             # Ensure PM2 daemon is running
             echo "Starting PM2 daemon if not running..."
-            pm2 ping || pm2 kill && sleep 2 && pm2 ping || echo "PM2 daemon check"
+            if ! pm2 ping 2>/dev/null; then
+              echo "PM2 daemon not running, starting it..."
+              pm2 kill 2>/dev/null || true
+              sleep 2
+              # Start PM2 daemon by running a simple command
+              pm2 list > /dev/null 2>&1 || true
+              sleep 1
+            fi
+            pm2 ping || (echo "ERROR: PM2 daemon failed to start" && exit 1)
             
             # Stop and remove existing processes to ensure clean state
             echo "Stopping existing PM2 processes..."
