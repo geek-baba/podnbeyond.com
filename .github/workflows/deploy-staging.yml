@@ -212,30 +212,77 @@ jobs:
             # Verify processes are running and stable
             BACKEND_ONLINE=false
             FRONTEND_ONLINE=false
+            BACKEND_ERRORED=false
+            FRONTEND_ERRORED=false
             
             for i in {1..5}; do
+              # Check for errored status first (this is critical)
+              if pm2 list | grep -q "staging-backend.*errored"; then
+                BACKEND_ERRORED=true
+              fi
+              if pm2 list | grep -q "staging-frontend.*errored"; then
+                FRONTEND_ERRORED=true
+              fi
+              
+              # Check for online status
               if pm2 list | grep -q "staging-backend.*online"; then
                 BACKEND_ONLINE=true
               fi
               if pm2 list | grep -q "staging-frontend.*online"; then
                 FRONTEND_ONLINE=true
               fi
-              if [ "$BACKEND_ONLINE" = true ] && [ "$FRONTEND_ONLINE" = true ]; then
+              
+              if [ "$BACKEND_ONLINE" = true ] && [ "$FRONTEND_ONLINE" = true ] && [ "$BACKEND_ERRORED" != true ] && [ "$FRONTEND_ERRORED" != true ]; then
                 break
               fi
               echo "Waiting for processes to come online... ($i/5)"
               sleep 2
             done
             
+            # Check for errored status first (fail immediately if errored)
+            if [ "$BACKEND_ERRORED" = true ]; then
+              echo "❌ ERROR: Backend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Backend logs (last 50 lines):"
+              pm2 logs staging-backend --lines 50 --nostream || true
+              echo ""
+              echo "Backend error logs:"
+              pm2 logs staging-backend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            if [ "$FRONTEND_ERRORED" = true ]; then
+              echo "❌ ERROR: Frontend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Frontend logs (last 50 lines):"
+              pm2 logs staging-frontend --lines 50 --nostream || true
+              echo ""
+              echo "Frontend error logs:"
+              pm2 logs staging-frontend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
             if [ "$BACKEND_ONLINE" != true ]; then
-              echo "ERROR: Backend process is not online!"
-              pm2 logs staging-backend --lines 30 --nostream || true
+              echo "❌ ERROR: Backend process is not online!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Backend logs (last 50 lines):"
+              pm2 logs staging-backend --lines 50 --nostream || true
               exit 1
             fi
             
             if [ "$FRONTEND_ONLINE" != true ]; then
-              echo "ERROR: Frontend process is not online!"
-              pm2 logs staging-frontend --lines 30 --nostream || true
+              echo "❌ ERROR: Frontend process is not online!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Frontend logs (last 50 lines):"
+              pm2 logs staging-frontend --lines 50 --nostream || true
               exit 1
             fi
             
@@ -292,7 +339,35 @@ jobs:
             echo "Waiting for services to be ready..."
             sleep 5
             
-            # Check if services are listening on ports first
+            # First check PM2 status - if any process is errored, fail immediately
+            echo "Checking PM2 process status..."
+            if pm2 list | grep -q "staging-backend.*errored"; then
+              echo "❌ ERROR: Backend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Backend logs (last 50 lines):"
+              pm2 logs staging-backend --lines 50 --nostream || true
+              echo ""
+              echo "Backend error logs:"
+              pm2 logs staging-backend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            if pm2 list | grep -q "staging-frontend.*errored"; then
+              echo "❌ ERROR: Frontend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Frontend logs (last 50 lines):"
+              pm2 logs staging-frontend --lines 50 --nostream || true
+              echo ""
+              echo "Frontend error logs:"
+              pm2 logs staging-frontend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            # Check if services are listening on ports
             echo "Checking if services are listening on ports..."
             BACKEND_PORT_OK=false
             FRONTEND_PORT_OK=false
@@ -316,14 +391,24 @@ jobs:
             if curl --fail --max-time 10 --retry 2 --retry-delay 2 -L "$HEALTH_CHECK_URL" 2>/dev/null; then
               echo "✓ Health check passed!"
             else
-              echo "⚠️  Health check failed, but checking if services are running..."
+              echo "⚠️  Health check failed"
               echo "PM2 Status:"
               pm2 list || echo "PM2 not available in PATH"
               
-              # If ports are listening, consider it a success
+              # Only consider it successful if ports are listening AND processes are online
               if [ "$BACKEND_PORT_OK" = true ] && [ "$FRONTEND_PORT_OK" = true ]; then
-                echo "✓ Services are listening on ports, deployment successful"
-                echo "Note: Health check endpoint may not be responding, but services are up"
+                # Double-check PM2 status one more time
+                if pm2 list | grep -q "staging-backend.*online" && pm2 list | grep -q "staging-frontend.*online"; then
+                  echo "✓ Services are listening on ports and PM2 shows them as online"
+                  echo "Note: Health check endpoint may not be responding, but services appear to be up"
+                else
+                  echo "✗ Services are listening on ports but PM2 shows them as not online"
+                  echo "PM2 Status:"
+                  pm2 list
+                  echo "PM2 Logs (last 50 lines):"
+                  pm2 logs --lines 50 --nostream || echo "PM2 logs not available"
+                  exit 1
+                fi
               else
                 echo "✗ Services are not listening on expected ports"
                 echo "PM2 Logs (last 50 lines):"
