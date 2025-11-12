@@ -3,7 +3,14 @@ const { PrismaClient } = require('@prisma/client');
 const { encryptConfig, decryptConfig } = require('../lib/encryption');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // Sensitive fields that should be encrypted for each provider
 const SENSITIVE_FIELDS_BY_PROVIDER = {
@@ -22,7 +29,7 @@ const SENSITIVE_FIELDS_BY_PROVIDER = {
  */
 router.get('/', async (req, res) => {
   try {
-    const integrations = await prisma.thirdPartyIntegration.findMany({
+    const integrations = await getPrisma().thirdPartyIntegration.findMany({
       orderBy: [
         { category: 'asc' },
         { name: 'asc' }
@@ -67,7 +74,7 @@ router.get('/:provider', async (req, res) => {
   try {
     const { provider } = req.params;
     
-    const integration = await prisma.thirdPartyIntegration.findUnique({
+    const integration = await getPrisma().thirdPartyIntegration.findUnique({
       where: { provider: provider.toUpperCase() }
     });
 
@@ -123,7 +130,7 @@ router.post('/', async (req, res) => {
     const encryptedConfig = encryptConfig(config || {}, sensitiveFields);
 
     // Check if integration already exists
-    const existing = await prisma.thirdPartyIntegration.findUnique({
+      const existing = await getPrisma().thirdPartyIntegration.findUnique({
       where: { provider: providerUpper }
     });
 
@@ -131,7 +138,7 @@ router.post('/', async (req, res) => {
     
     if (existing) {
       // Update existing
-      integration = await prisma.thirdPartyIntegration.update({
+      integration = await getPrisma().thirdPartyIntegration.update({
         where: { provider: providerUpper },
         data: {
           name,
@@ -149,7 +156,7 @@ router.post('/', async (req, res) => {
       });
     } else {
       // Create new
-      integration = await prisma.thirdPartyIntegration.create({
+      integration = await getPrisma().thirdPartyIntegration.create({
         data: {
           provider: providerUpper,
           name,
@@ -202,7 +209,7 @@ router.patch('/:provider/toggle', async (req, res) => {
     const { enabled } = req.body;
 
     // Get current integration first
-    const current = await prisma.thirdPartyIntegration.findUnique({
+    const current = await getPrisma().thirdPartyIntegration.findUnique({
       where: { provider: provider.toUpperCase() }
     });
 
@@ -212,7 +219,7 @@ router.patch('/:provider/toggle', async (req, res) => {
 
     const newEnabled = enabled !== undefined ? enabled : !current.enabled;
 
-    const integration = await prisma.thirdPartyIntegration.update({
+    const integration = await getPrisma().thirdPartyIntegration.update({
       where: { provider: provider.toUpperCase() },
       data: {
         enabled: newEnabled,
@@ -235,7 +242,7 @@ router.post('/:provider/test', async (req, res) => {
   try {
     const { provider } = req.params;
     
-    const integration = await prisma.thirdPartyIntegration.findUnique({
+    const integration = await getPrisma().thirdPartyIntegration.findUnique({
       where: { provider: provider.toUpperCase() }
     });
 
@@ -247,7 +254,7 @@ router.post('/:provider/test', async (req, res) => {
     const config = decryptConfig(integration.config, SENSITIVE_FIELDS_BY_PROVIDER[integration.provider] || []);
 
     // Update status to testing
-    await prisma.thirdPartyIntegration.update({
+    await getPrisma().thirdPartyIntegration.update({
       where: { id: integration.id },
       data: {
         status: 'TESTING',
@@ -280,7 +287,7 @@ router.post('/:provider/test', async (req, res) => {
     }
 
     // Update integration with test result
-    await prisma.thirdPartyIntegration.update({
+    await getPrisma().thirdPartyIntegration.update({
       where: { id: integration.id },
       data: {
         status: testResult.success ? 'ACTIVE' : 'ERROR',
@@ -303,7 +310,7 @@ router.delete('/:provider', async (req, res) => {
   try {
     const { provider } = req.params;
     
-    await prisma.thirdPartyIntegration.delete({
+    await getPrisma().thirdPartyIntegration.delete({
       where: { provider: provider.toUpperCase() }
     });
 
