@@ -19,7 +19,9 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const logoSrc = transparent ? '/logos/podnbeyond-group.svg' : '/logos/podnbeyond-group.svg';
 
   // Determine what to show for login/account button
-  const showLoginButton = status === 'unauthenticated' || (status === 'loading' && !session?.user);
+  // Default to showing login button unless we're definitely authenticated
+  // This ensures the button shows immediately on page load
+  const showLoginButton = status !== 'authenticated' || !session?.user;
 
   return (
     <header className={`${bgStyle} transition-all duration-300`}>

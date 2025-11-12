@@ -133,10 +133,13 @@ jobs:
             # Restart backend
             pm2 restart staging-backend || pm2 start ecosystem.config.js --only staging-backend
             
-            # Full restart of frontend to ensure it picks up new build
-            pm2 stop staging-frontend || true
-            pm2 delete staging-frontend || true
-            pm2 start ecosystem.config.js --only staging-frontend --update-env
+            # Reload frontend (reload works fine if build is correct)
+            # Only do full restart if reload fails
+            pm2 reload ecosystem.config.js --only staging-frontend --update-env || (
+              pm2 stop staging-frontend || true
+              pm2 delete staging-frontend || true
+              pm2 start ecosystem.config.js --only staging-frontend --update-env
+            )
             pm2 save
             
             # Wait for server to be ready
