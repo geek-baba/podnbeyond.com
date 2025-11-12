@@ -162,13 +162,80 @@ export default function AnalyticsPage() {
       
       <div className="min-h-screen bg-neutral-50">
         <Header />
+
+        {/* Communication Hub Header */}
+        <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
+          <Container>
+            <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+              <div className="flex items-start gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="text-left">
+                    <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
+                    <p className="text-white font-semibold text-sm mt-0.5">
+                      {session?.user?.email || 'Not signed in'}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-0.5">
+                      {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
+                    </p>
+                  </div>
+                  <div className="h-12 w-px bg-neutral-700"></div>
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <h1 className="text-3xl font-bold mb-1">Analytics Dashboard</h1>
+                <p className="text-neutral-300 text-sm">Performance metrics and insights for your communication hub</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <a href="/admin/communication-hub">
+                <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                  router.asPath?.startsWith('/admin/communication-hub')
+                    ? 'bg-white text-neutral-900'
+                    : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+                }`}>
+                  💬 Communication Hub
+                </button>
+              </a>
+              <a href="/admin/templates">
+                <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                  router.asPath?.startsWith('/admin/templates')
+                    ? 'bg-white text-neutral-900'
+                    : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+                }`}>
+                  📝 Templates
+                </button>
+              </a>
+              <a href="/admin/analytics">
+                <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                  router.asPath?.startsWith('/admin/analytics')
+                    ? 'bg-white text-neutral-900'
+                    : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+                }`}>
+                  📊 Analytics
+                </button>
+              </a>
+              <a href="/admin">
+                <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                  ← Admin Dashboard
+                </button>
+              </a>
+            </div>
+          </Container>
+        </section>
         
         <Container>
           <div className="py-8">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-neutral-900">Communication Analytics</h1>
-                <p className="text-neutral-600 mt-1">Performance metrics and insights for your communication hub</p>
+                {/* Title removed - already in header */}
               </div>
               <div className="flex gap-2">
                 <Button

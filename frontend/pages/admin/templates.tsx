@@ -358,8 +358,7 @@ export default function TemplatesPage() {
           <div className="py-8">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-neutral-900">Message Templates</h1>
-                <p className="text-neutral-600 mt-1">Manage reusable message templates for bookings and communications</p>
+                {/* Title removed - already in header */}
               </div>
               <Button
                 onClick={() => {
