@@ -180,43 +180,43 @@ jobs:
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
 
-            # Restart backend
-            pm2 restart staging-backend || pm2 start ecosystem.config.js --only staging-backend
+            # Stop and remove existing processes to ensure clean state
+            echo "Stopping existing PM2 processes..."
+            pm2 delete staging-backend 2>/dev/null || true
+            pm2 delete staging-frontend 2>/dev/null || true
+            sleep 2
             
-            # Restart frontend - ensure it's running
-            # First try reload, but if process doesn't exist, start it
-            if pm2 list | grep -q "staging-frontend"; then
-              echo "Frontend process exists, reloading..."
-              pm2 reload staging-frontend --update-env || pm2 restart staging-frontend --update-env
-            else
-              echo "Frontend process not found, starting..."
-              # Check if ecosystem.config.js exists
-              if [ ! -f "ecosystem.config.js" ]; then
-                echo "ERROR: ecosystem.config.js not found!"
-                exit 1
-              fi
-              # Show what apps are defined in ecosystem.config.js
-              echo "Checking ecosystem.config.js for staging-frontend app..."
-              grep -A 10 "staging-frontend" ecosystem.config.js || echo "WARNING: staging-frontend not found in ecosystem.config.js"
-              # Try to start frontend and capture output
-              echo "Starting frontend process..."
-              pm2 start ecosystem.config.js --only staging-frontend --update-env 2>&1
-              START_EXIT_CODE=$?
-              echo "PM2 start exit code: $START_EXIT_CODE"
-              echo "Waiting 5 seconds for process to initialize..."
-              sleep 5
-              echo "PM2 list after start attempt:"
-              pm2 list
-              # Check if process actually started
-              if ! pm2 list | grep -q "staging-frontend"; then
-                echo "ERROR: Frontend process did not appear in PM2 list after start!"
-                echo "Checking PM2 describe for staging-frontend:"
-                pm2 describe staging-frontend 2>&1 || echo "Process does not exist"
-                echo "Checking PM2 logs for any errors:"
-                pm2 logs --lines 10 --nostream 2>&1 | tail -20 || true
-                exit 1
-              fi
+            # Start backend
+            echo "Starting backend process..."
+            pm2 start ecosystem.config.js --only staging-backend --update-env
+            
+            # Start frontend
+            echo "Starting frontend process..."
+            if [ ! -f "ecosystem.config.js" ]; then
+              echo "ERROR: ecosystem.config.js not found!"
+              exit 1
             fi
+            pm2 start ecosystem.config.js --only staging-frontend --update-env
+            
+            echo "Waiting 5 seconds for processes to initialize..."
+            sleep 5
+            
+            echo "PM2 list after start:"
+            pm2 list
+            
+            # Verify processes started
+            if ! pm2 list | grep -q "staging-backend.*online"; then
+              echo "ERROR: Backend process is not online!"
+              pm2 logs staging-backend --lines 30 --nostream || true
+              exit 1
+            fi
+            
+            if ! pm2 list | grep -q "staging-frontend.*online"; then
+              echo "ERROR: Frontend process is not online!"
+              pm2 logs staging-frontend --lines 30 --nostream || true
+              exit 1
+            fi
+            
             pm2 save
             
             # Verify both processes are running
