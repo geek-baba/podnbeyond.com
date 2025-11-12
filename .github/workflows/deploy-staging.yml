@@ -88,9 +88,28 @@ jobs:
             
             # Clean install frontend dependencies (handle npm ENOTEMPTY errors)
             cd frontend
+            # Clean up everything that might cause issues
             rm -rf node_modules
-            # Retry npm ci if it fails due to ENOTEMPTY
-            npm ci || (rm -rf node_modules && npm ci)
+            rm -rf .next
+            rm -rf .next/cache
+            # Ensure package-lock.json exists
+            if [ ! -f "package-lock.json" ]; then
+              echo "WARNING: package-lock.json not found, generating it..."
+              npm install --package-lock-only
+            fi
+            # Clean install with retry logic
+            echo "Installing frontend dependencies..."
+            npm ci || (echo "First npm ci failed, retrying..." && rm -rf node_modules && npm ci)
+            # Verify critical Next.js files exist
+            if [ ! -d "node_modules/next" ]; then
+              echo "ERROR: Next.js not installed properly!"
+              exit 1
+            fi
+            if [ ! -f "node_modules/next/dist/compiled/jest-worker/processChild.js" ]; then
+              echo "ERROR: Next.js jest-worker module missing! Reinstalling..."
+              rm -rf node_modules/next
+              npm install next --no-save
+            fi
             cd ..
             
             # Run Prisma migrations
