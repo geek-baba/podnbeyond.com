@@ -97,6 +97,16 @@ jobs:
             NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}' \
             npm run build --prefix frontend
 
+            # Verify build completed successfully
+            if [ ! -d "frontend/.next" ]; then
+              echo "ERROR: frontend/.next directory not found after build!"
+              echo "Build may have failed. Checking for errors..."
+              exit 1
+            fi
+            
+            echo "✓ Frontend build completed successfully"
+            echo "Build directory size: $(du -sh frontend/.next | cut -f1)"
+
             # Export env vars from .env.local for PM2 process
             export NEXT_PUBLIC_BACKEND_URL='${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}'
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
