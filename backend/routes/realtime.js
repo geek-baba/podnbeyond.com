@@ -1,7 +1,15 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // Store active SSE connections
 const clients = new Map();
@@ -10,7 +18,7 @@ const clients = new Map();
  * Get user's accessible property IDs based on RBAC
  */
 async function getAccessiblePropertyIds(userId) {
-  const userRoles = await prisma.userRole.findMany({
+  const userRoles = await getPrisma().userRole.findMany({
     where: { userId },
     include: { role: true },
   });
@@ -65,7 +73,7 @@ router.get('/events', async (req, res) => {
       } : {}),
     };
 
-    const unreadCount = await prisma.thread.count({ where });
+    const unreadCount = await getPrisma().thread.count({ where });
     res.write(`data: ${JSON.stringify({ type: 'unread_count', count: unreadCount })}\n\n`);
   } catch (error) {
     console.error('Error sending initial unread count:', error);

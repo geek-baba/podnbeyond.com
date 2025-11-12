@@ -1,13 +1,21 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * Get user's accessible property IDs based on RBAC
  */
 async function getAccessiblePropertyIds(userId) {
-  const userRoles = await prisma.userRole.findMany({
+  const userRoles = await getPrisma().userRole.findMany({
     where: { userId },
     include: { role: true },
   });
@@ -47,7 +55,7 @@ async function autoAssignConversation(thread, propertyId) {
   if (!propertyId) return null;
 
   // Try to find property manager
-  const propertyManager = await prisma.userRole.findFirst({
+  const propertyManager = await getPrisma().userRole.findFirst({
     where: {
       scopeType: 'PROPERTY',
       scopeId: propertyId,
@@ -61,7 +69,7 @@ async function autoAssignConversation(thread, propertyId) {
   }
 
   // Fallback: Round-robin from property staff
-  const propertyStaff = await prisma.userRole.findMany({
+  const propertyStaff = await getPrisma().userRole.findMany({
     where: {
       scopeType: 'PROPERTY',
       scopeId: propertyId,
@@ -75,7 +83,7 @@ async function autoAssignConversation(thread, propertyId) {
   // Get conversations assigned to each staff member
   const assignmentCounts = await Promise.all(
     propertyStaff.map(async (staff) => {
-      const count = await prisma.thread.count({
+      const count = await getPrisma().thread.count({
         where: {
           assignedTo: staff.userId,
           status: { in: ['NEW', 'IN_PROGRESS'] },
@@ -133,7 +141,7 @@ router.get('/', async (req, res) => {
     
     // If userId is an email, look up the user ID
     if (userId && userId.includes('@')) {
-      const user = await prisma.user.findUnique({
+      const user = await getPrisma().user.findUnique({
         where: { email: userId },
         select: { id: true },
       });
@@ -212,7 +220,7 @@ router.get('/', async (req, res) => {
     }
 
     // Fetch threads
-    const threads = await prisma.thread.findMany({
+    const threads = await getPrisma().thread.findMany({
       where,
       include: {
         property: {
@@ -308,7 +316,7 @@ router.get('/:id', async (req, res) => {
     // Get accessible property IDs
     const accessiblePropertyIds = await getAccessiblePropertyIds(userId);
 
-    const thread = await prisma.thread.findUnique({
+    const thread = await getPrisma().thread.findUnique({
       where: { id: threadId },
       include: {
         property: true,
@@ -441,7 +449,7 @@ router.post('/:id/assign', async (req, res) => {
     const { assignedTo } = req.body;
 
     // Check permissions
-    const userRoles = await prisma.userRole.findMany({
+    const userRoles = await getPrisma().userRole.findMany({
       where: { userId },
       include: { role: true },
     });
@@ -451,7 +459,7 @@ router.post('/:id/assign', async (req, res) => {
     }
 
     // Update assignment
-    const thread = await prisma.thread.update({
+    const thread = await getPrisma().thread.update({
       where: { id: threadId },
       data: {
         assignedTo: assignedTo || null,
@@ -503,7 +511,7 @@ router.post('/:id/status', async (req, res) => {
     }
 
     // Get current thread to check resolvedAt
-    const currentThread = await prisma.thread.findUnique({
+    const currentThread = await getPrisma().thread.findUnique({
       where: { id: threadId },
       select: { resolvedAt: true },
     });
@@ -513,7 +521,7 @@ router.post('/:id/status', async (req, res) => {
       ...(status === 'RESOLVED' && !currentThread?.resolvedAt ? { resolvedAt: new Date() } : {}),
     };
 
-    const thread = await prisma.thread.update({
+    const thread = await getPrisma().thread.update({
       where: { id: threadId },
       data: updateData,
     });
@@ -556,7 +564,7 @@ router.post('/:id/notes', async (req, res) => {
       return res.status(400).json({ error: 'Note content is required' });
     }
 
-    const note = await prisma.conversationNote.create({
+    const note = await getPrisma().conversationNote.create({
       data: {
         threadId,
         authorId: userId,
@@ -598,7 +606,7 @@ router.post('/:id/priority', async (req, res) => {
       return res.status(400).json({ error: 'Invalid priority' });
     }
 
-    const thread = await prisma.thread.update({
+    const thread = await getPrisma().thread.update({
       where: { id: threadId },
       data: { priority },
     });
@@ -626,7 +634,7 @@ router.post('/:id/mark-read', async (req, res) => {
 
     const threadId = parseInt(req.params.id);
 
-    const thread = await prisma.thread.update({
+    const thread = await getPrisma().thread.update({
       where: { id: threadId },
       data: { unreadCount: 0 },
     });
@@ -675,7 +683,7 @@ router.post('/bulk', async (req, res) => {
     }
 
     // Verify all conversations are accessible
-    const accessibleThreads = await prisma.thread.findMany({
+    const accessibleThreads = await getPrisma().thread.findMany({
       where,
       select: { id: true },
     });
@@ -714,7 +722,7 @@ router.post('/bulk', async (req, res) => {
         break;
     }
 
-    const result = await prisma.thread.updateMany({
+    const result = await getPrisma().thread.updateMany({
       where,
       data: updateData,
     });

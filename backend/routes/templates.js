@@ -1,7 +1,16 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
+
 const { renderTemplate, getAvailableVariables, extractVariables } = require('../services/template-engine');
 
 /**
@@ -25,7 +34,7 @@ router.get('/', async (req, res) => {
       where.isActive = isActive === 'true';
     }
 
-    const templates = await prisma.messageTemplate.findMany({
+    const templates = await getPrisma().messageTemplate.findMany({
       where,
       include: {
         property: {
@@ -78,7 +87,7 @@ router.get('/:id', async (req, res) => {
   try {
     const templateId = parseInt(req.params.id);
     
-    const template = await prisma.messageTemplate.findUnique({
+    const template = await getPrisma().messageTemplate.findUnique({
       where: { id: templateId },
       include: {
         property: {
@@ -138,7 +147,7 @@ router.post('/', async (req, res) => {
     }
     const uniqueVariables = [...new Set(variables)];
 
-    const template = await prisma.messageTemplate.create({
+    const template = await getPrisma().messageTemplate.create({
       data: {
         name,
         type,
@@ -192,7 +201,7 @@ router.put('/:id', async (req, res) => {
     } = req.body;
 
     // Check if template exists
-    const existing = await prisma.messageTemplate.findUnique({
+    const existing = await getPrisma().messageTemplate.findUnique({
       where: { id: templateId },
     });
 
@@ -223,7 +232,7 @@ router.put('/:id', async (req, res) => {
     if (isActive !== undefined) updateData.isActive = isActive;
     if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
 
-    const template = await prisma.messageTemplate.update({
+    const template = await getPrisma().messageTemplate.update({
       where: { id: templateId },
       data: updateData,
       include: {
@@ -255,7 +264,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const templateId = parseInt(req.params.id);
 
-    const existing = await prisma.messageTemplate.findUnique({
+    const existing = await getPrisma().messageTemplate.findUnique({
       where: { id: templateId },
     });
 
@@ -263,7 +272,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Template not found' });
     }
 
-    await prisma.messageTemplate.delete({
+    await getPrisma().messageTemplate.delete({
       where: { id: templateId },
     });
 
@@ -293,7 +302,7 @@ router.post('/:id/preview', async (req, res) => {
       });
     }
 
-    const template = await prisma.messageTemplate.findUnique({
+    const template = await getPrisma().messageTemplate.findUnique({
       where: { id: templateId },
     });
 

@@ -1,13 +1,21 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * Get user's accessible property IDs based on RBAC
  */
 async function getAccessiblePropertyIds(userId) {
-  const userRoles = await prisma.userRole.findMany({
+  const userRoles = await getPrisma().userRole.findMany({
     where: { userId },
     include: { role: true },
   });
@@ -42,7 +50,7 @@ router.get('/conversations', async (req, res) => {
 
     // If userId is an email, look up the user ID
     if (userId && userId.includes('@')) {
-      const user = await prisma.user.findUnique({
+      const user = await getPrisma().user.findUnique({
         where: { email: userId },
         select: { id: true },
       });
@@ -89,17 +97,17 @@ router.get('/conversations', async (req, res) => {
     };
 
     // Get total conversations
-    const totalConversations = await prisma.thread.count({ where });
+    const totalConversations = await getPrisma().thread.count({ where });
 
     // Get conversations by status
-    const byStatus = await prisma.thread.groupBy({
+    const byStatus = await getPrisma().thread.groupBy({
       by: ['status'],
       where,
       _count: { id: true },
     });
 
     // Get conversations by channel
-    const threads = await prisma.thread.findMany({
+    const threads = await getPrisma().thread.findMany({
       where,
       select: {
         id: true,
@@ -126,14 +134,14 @@ router.get('/conversations', async (req, res) => {
     });
 
     // Get conversations by priority
-    const byPriority = await prisma.thread.groupBy({
+    const byPriority = await getPrisma().thread.groupBy({
       by: ['priority'],
       where,
       _count: { id: true },
     });
 
     // Get SLA metrics
-    const slaMetrics = await prisma.thread.findMany({
+    const slaMetrics = await getPrisma().thread.findMany({
       where: {
         ...where,
         status: { not: 'ARCHIVED' },
@@ -182,7 +190,7 @@ router.get('/conversations', async (req, res) => {
     const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
     
-    const allThreads = await prisma.thread.findMany({
+    const allThreads = await getPrisma().thread.findMany({
       where,
       select: {
         id: true,
@@ -249,7 +257,7 @@ router.get('/conversations', async (req, res) => {
     }
 
     // Get top assignees
-    const topAssignees = await prisma.thread.groupBy({
+    const topAssignees = await getPrisma().thread.groupBy({
       by: ['assignedTo'],
       where: {
         ...where,
@@ -262,7 +270,7 @@ router.get('/conversations', async (req, res) => {
 
     // Get user names for assignees
     const assigneeIds = topAssignees.map(a => a.assignedTo).filter(Boolean);
-    const users = await prisma.user.findMany({
+    const users = await getPrisma().user.findMany({
       where: { id: { in: assigneeIds } },
       select: { id: true, name: true, email: true },
     });
@@ -330,7 +338,7 @@ router.get('/response-times', async (req, res) => {
 
     // If userId is an email, look up the user ID
     if (userId && userId.includes('@')) {
-      const user = await prisma.user.findUnique({
+      const user = await getPrisma().user.findUnique({
         where: { email: userId },
         select: { id: true },
       });
@@ -359,7 +367,7 @@ router.get('/response-times', async (req, res) => {
       } : {}),
     };
 
-    const threads = await prisma.thread.findMany({
+    const threads = await getPrisma().thread.findMany({
       where,
       select: {
         id: true,
@@ -429,7 +437,7 @@ router.get('/export', async (req, res) => {
 
     // If userId is an email, look up the user ID
     if (userId && userId.includes('@')) {
-      const user = await prisma.user.findUnique({
+      const user = await getPrisma().user.findUnique({
         where: { email: userId },
         select: { id: true },
       });
@@ -464,7 +472,7 @@ router.get('/export', async (req, res) => {
     };
 
     // Get all conversations with details
-    const conversations = await prisma.thread.findMany({
+    const conversations = await getPrisma().thread.findMany({
       where,
       include: {
         property: {

@@ -1,7 +1,15 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * GET /api/guest-context/:identifier
@@ -16,20 +24,20 @@ router.get('/:identifier', async (req, res) => {
     // Find contact by email or phone
     let contact = null;
     if (isEmail) {
-      contact = await prisma.contact.findFirst({
+      contact = await getPrisma().contact.findFirst({
         where: { email: identifier },
       });
     } else {
       // Normalize phone number
       const normalizedPhone = identifier.replace(/\D/g, '');
       const phoneWithCountry = normalizedPhone.length === 10 ? '91' + normalizedPhone : normalizedPhone;
-      contact = await prisma.contact.findUnique({
+      contact = await getPrisma().contact.findUnique({
         where: { phone: phoneWithCountry },
       });
     }
 
     // Find bookings by email or phone
-    const bookings = await prisma.booking.findMany({
+    const bookings = await getPrisma().booking.findMany({
       where: isEmail
         ? { email: identifier }
         : {
@@ -64,7 +72,7 @@ router.get('/:identifier', async (req, res) => {
     });
 
     // Find all conversations for this guest
-    const conversations = await prisma.thread.findMany({
+    const conversations = await getPrisma().thread.findMany({
       where: {
         OR: [
           { participants: { has: identifier } },
@@ -121,19 +129,19 @@ router.get('/:identifier', async (req, res) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const recentActivity = {
-      messages: await prisma.messageLog.count({
+      messages: await getPrisma().messageLog.count({
         where: {
           ...(contact ? { contactId: contact.id } : { phone: { contains: identifier.replace(/\D/g, '').slice(-10) } }),
           createdAt: { gte: thirtyDaysAgo },
         },
       }),
-      calls: await prisma.callLog.count({
+      calls: await getPrisma().callLog.count({
         where: {
           ...(contact ? { contactId: contact.id } : { fromNumber: { contains: identifier.replace(/\D/g, '').slice(-10) } }),
           createdAt: { gte: thirtyDaysAgo },
         },
       }),
-      emails: await prisma.email.count({
+      emails: await getPrisma().email.count({
         where: {
           OR: [
             { fromEmail: identifier },
@@ -177,7 +185,7 @@ router.get('/booking/:bookingId', async (req, res) => {
   try {
     const bookingId = parseInt(req.params.bookingId);
 
-    const booking = await prisma.booking.findUnique({
+    const booking = await getPrisma().booking.findUnique({
       where: { id: bookingId },
       include: {
         property: {
@@ -211,7 +219,7 @@ router.get('/booking/:bookingId', async (req, res) => {
     }
 
     // Get all conversations for this booking
-    const conversations = await prisma.thread.findMany({
+    const conversations = await getPrisma().thread.findMany({
       where: {
         OR: [
           { bookingId: booking.id },
@@ -238,7 +246,7 @@ router.get('/booking/:bookingId', async (req, res) => {
     if (booking.phone) {
       const normalizedPhone = booking.phone.replace(/\D/g, '');
       const phoneWithCountry = normalizedPhone.length === 10 ? '91' + normalizedPhone : normalizedPhone;
-      contact = await prisma.contact.findUnique({
+      contact = await getPrisma().contact.findUnique({
         where: { phone: phoneWithCountry },
       });
     }
