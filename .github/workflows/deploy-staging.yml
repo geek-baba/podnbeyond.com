@@ -6,6 +6,11 @@ on:
       - main
   workflow_dispatch:
 
+# Cancel previous deployments when a new one starts
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
