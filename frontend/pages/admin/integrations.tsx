@@ -515,7 +515,15 @@ export default function IntegrationsAdmin() {
                                 <Button
                                   variant="primary"
                                   size="sm"
-                                  onClick={() => handleCreate(providerKey)}
+                                  onClick={() => {
+                                    if (isEditing) {
+                                      setShowForm(false);
+                                      setFormData(null);
+                                      setSelectedIntegration(null);
+                                    } else {
+                                      handleCreate(providerKey);
+                                    }
+                                  }}
                                 >
                                   {isEditing ? 'Cancel' : 'Enable & Configure'}
                                 </Button>
@@ -765,7 +773,15 @@ export default function IntegrationsAdmin() {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => handleEdit(integration)}
+                            onClick={() => {
+                              if (selectedIntegration?.id === integration.id) {
+                                setShowForm(false);
+                                setFormData(null);
+                                setSelectedIntegration(null);
+                              } else {
+                                handleEdit(integration);
+                              }
+                            }}
                           >
                             {selectedIntegration?.id === integration.id ? 'Cancel' : 'Edit'}
                           </Button>
