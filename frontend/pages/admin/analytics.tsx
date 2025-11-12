@@ -87,7 +87,15 @@ export default function AnalyticsPage() {
       const response = await fetch(`/api/analytics/conversations?${params.toString()}`);
       const data = await response.json();
       console.log('Analytics API response:', data); // Debug log
-      if (data.success) {
+      console.log('Analytics performance data:', data.analytics?.performance); // Debug performance metrics
+      if (data.success && data.analytics) {
+        console.log('Setting analytics data:', {
+          totalConversations: data.analytics.overview?.totalConversations,
+          avgResponseTime: data.analytics.performance?.avgResponseTime,
+          avgResolutionTime: data.analytics.performance?.avgResolutionTime,
+          respondedCount: data.analytics.performance?.respondedCount,
+          resolvedCount: data.analytics.performance?.resolvedCount,
+        });
         setAnalytics(data.analytics);
       } else {
         console.error('Analytics API error:', data.error, data.details);
