@@ -201,6 +201,7 @@ async function seedConversations() {
       const inboundEmail = await prisma.email.create({
         data: {
           threadId: emailThread.id,
+          messageId: `seed-inbound-${emailThread.id}-${Date.now()}-${i}`,
           fromEmail: booking.email || guest.email,
           fromName: booking.guestName || guest.name,
           toEmails: [property.email || 'support@capsulepodhotel.com'],
@@ -219,6 +220,7 @@ async function seedConversations() {
       const outboundEmail = await prisma.email.create({
         data: {
           threadId: emailThread.id,
+          messageId: `seed-outbound-${emailThread.id}-${Date.now()}-${i}`,
           fromEmail: property.email || 'support@capsulepodhotel.com',
           fromName: property.name,
           toEmails: [booking.email || guest.email],
