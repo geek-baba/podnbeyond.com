@@ -277,7 +277,7 @@ router.get('/', async (req, res) => {
         primaryChannel,
         lastActivity,
         sla,
-        unreadCount: 0, // TODO: Implement unread tracking
+        unreadCount: thread.unreadCount || 0,
       };
     });
 
