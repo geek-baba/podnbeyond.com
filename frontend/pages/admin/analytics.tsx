@@ -79,13 +79,14 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      // Pass userId with fallbacks (same as communication-hub.tsx)
-      params.append('userId', session?.user?.id || session?.user?.email || '');
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-      if (filters.propertyId) params.append('propertyId', filters.propertyId);
+          // Pass userId with fallbacks (same as communication-hub.tsx)
+          params.append('userId', session?.user?.id || session?.user?.email || '');
+          if (filters.startDate) params.append('startDate', filters.startDate);
+          if (filters.endDate) params.append('endDate', filters.endDate);
+          if (filters.propertyId) params.append('propertyId', filters.propertyId);
+          if (filters.timePeriod) params.append('timePeriod', filters.timePeriod);
 
-      const response = await fetch(`/api/analytics/conversations?${params.toString()}`);
+          const response = await fetch(`/api/analytics/conversations?${params.toString()}`);
       const data = await response.json();
       console.log('Analytics API response:', data); // Debug log
       console.log('Analytics performance data:', data.analytics?.performance); // Debug performance metrics
