@@ -55,6 +55,12 @@ jobs:
             cd ${{ secrets.STAGING_DEPLOY_PATH }}
             git fetch --all
             git checkout main
+            
+            # Discard any local changes to .next directory and other build artifacts
+            git reset --hard HEAD || true
+            git clean -fd frontend/.next backend/.next || true
+            
+            # Now pull the latest changes
             git pull origin main
 
             export DATABASE_URL='${{ secrets.STAGING_DATABASE_URL }}'
