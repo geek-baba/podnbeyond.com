@@ -295,18 +295,18 @@ export default function IntegrationsAdmin() {
 
   const getStatusBadge = (integration: Integration) => {
     if (!integration.enabled) {
-      return <Badge variant="gray">Disabled</Badge>;
+      return <Badge variant="neutral">Disabled</Badge>;
     }
     
     switch (integration.status) {
       case 'ACTIVE':
-        return <Badge variant="green">Active</Badge>;
+        return <Badge variant="success">Active</Badge>;
       case 'ERROR':
-        return <Badge variant="red">Error</Badge>;
+        return <Badge variant="error">Error</Badge>;
       case 'TESTING':
-        return <Badge variant="yellow">Testing</Badge>;
+        return <Badge variant="warning">Testing</Badge>;
       default:
-        return <Badge variant="gray">Inactive</Badge>;
+        return <Badge variant="neutral">Inactive</Badge>;
     }
   };
 
@@ -576,7 +576,7 @@ export default function IntegrationsAdmin() {
                           <h3 className="font-semibold text-lg">{integration.name}</h3>
                           {getStatusBadge(integration)}
                           {integration.testMode && (
-                            <Badge variant="yellow">Test Mode</Badge>
+                            <Badge variant="warning">Test Mode</Badge>
                           )}
                         </div>
                         {integration.description && (
@@ -602,7 +602,7 @@ export default function IntegrationsAdmin() {
                           Edit
                         </Button>
                         <Button
-                          variant={integration.enabled ? 'danger' : 'primary'}
+                          variant={integration.enabled ? 'secondary' : 'primary'}
                           size="sm"
                           onClick={() => handleToggle(integration.provider, integration.enabled)}
                         >
