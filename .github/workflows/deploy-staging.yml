@@ -133,14 +133,25 @@ jobs:
             # Restart backend
             pm2 restart staging-backend || pm2 start ecosystem.config.js --only staging-backend
             
-            # Reload frontend (reload works fine if build is correct)
-            # Only do full restart if reload fails
-            pm2 reload ecosystem.config.js --only staging-frontend --update-env || (
-              pm2 stop staging-frontend || true
-              pm2 delete staging-frontend || true
+            # Restart frontend - ensure it's running
+            # First try reload, but if process doesn't exist, start it
+            if pm2 list | grep -q "staging-frontend"; then
+              echo "Frontend process exists, reloading..."
+              pm2 reload staging-frontend --update-env || pm2 restart staging-frontend --update-env
+            else
+              echo "Frontend process not found, starting..."
               pm2 start ecosystem.config.js --only staging-frontend --update-env
-            )
+            fi
             pm2 save
+            
+            # Verify both processes are running
+            echo "Verifying PM2 processes..."
+            pm2 list
+            if ! pm2 list | grep -q "staging-frontend.*online"; then
+              echo "ERROR: Frontend process is not online!"
+              pm2 logs staging-frontend --lines 20 --nostream || true
+              exit 1
+            fi
             
             # Wait for server to be ready
             echo "Waiting for server to start..."
