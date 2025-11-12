@@ -7,9 +7,19 @@ on:
   workflow_dispatch:
 
 # Cancel previous deployments when a new one starts
+# Wait 30 seconds before starting to allow batching of rapid commits
 concurrency:
   group: deploy-staging
   cancel-in-progress: true
+
+# Add a delay to batch rapid commits together
+jobs:
+  wait-for-batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Wait for batch window
+        run: sleep 30
 
 jobs:
   build-and-deploy:
@@ -180,43 +190,41 @@ jobs:
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
 
-            # Ensure PM2 daemon is running
-            echo "Starting PM2 daemon if not running..."
-            if ! pm2 ping 2>/dev/null; then
-              echo "PM2 daemon not running, starting it..."
-              pm2 kill 2>/dev/null || true
-              sleep 2
-              # Start PM2 daemon by running a simple command
-              pm2 list > /dev/null 2>&1 || true
-              sleep 1
+            # Use zero-downtime reload instead of delete/recreate
+            echo "Reloading PM2 processes (zero-downtime)..."
+            
+            # Try to reload existing processes (zero-downtime)
+            if pm2 list | grep -q "staging-backend"; then
+              echo "Reloading backend process..."
+              pm2 reload staging-backend --update-env || pm2 restart staging-backend --update-env || {
+                echo "Reload failed, starting fresh..."
+                pm2 delete staging-backend 2>/dev/null || true
+                pm2 start ecosystem.config.js --only staging-backend --update-env
+              }
+            else
+              echo "Backend process not found, starting..."
+              pm2 start ecosystem.config.js --only staging-backend --update-env
             fi
-            pm2 ping || (echo "ERROR: PM2 daemon failed to start" && exit 1)
             
-            # Stop and remove existing processes to ensure clean state
-            echo "Stopping existing PM2 processes..."
-            pm2 delete staging-backend 2>/dev/null || true
-            pm2 delete staging-frontend 2>/dev/null || true
-            sleep 2
-            
-            # Start backend
-            echo "Starting backend process..."
-            pm2 start ecosystem.config.js --only staging-backend --update-env
-            
-            # Start frontend
-            echo "Starting frontend process..."
-            if [ ! -f "ecosystem.config.js" ]; then
-              echo "ERROR: ecosystem.config.js not found!"
-              exit 1
+            if pm2 list | grep -q "staging-frontend"; then
+              echo "Reloading frontend process..."
+              pm2 reload staging-frontend --update-env || pm2 restart staging-frontend --update-env || {
+                echo "Reload failed, starting fresh..."
+                pm2 delete staging-frontend 2>/dev/null || true
+                pm2 start ecosystem.config.js --only staging-frontend --update-env
+              }
+            else
+              echo "Frontend process not found, starting..."
+              pm2 start ecosystem.config.js --only staging-frontend --update-env
             fi
-            pm2 start ecosystem.config.js --only staging-frontend --update-env
             
-            echo "Waiting 5 seconds for processes to initialize..."
-            sleep 5
+            echo "Waiting 3 seconds for processes to stabilize..."
+            sleep 3
             
-            echo "PM2 list after start:"
+            echo "PM2 status:"
             pm2 list
             
-            # Verify processes started
+            # Verify processes are running
             if ! pm2 list | grep -q "staging-backend.*online"; then
               echo "ERROR: Backend process is not online!"
               pm2 logs staging-backend --lines 30 --nostream || true
