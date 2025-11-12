@@ -102,7 +102,11 @@ jobs:
             
             # Wait for server to be ready
             echo "Waiting for server to start..."
-            sleep 5
+            sleep 10
+            
+            # Check PM2 status
+            echo "PM2 Status:"
+            pm2 list
 
       - name: Staging health check
         uses: appleboy/ssh-action@v1.0.0
@@ -111,12 +115,24 @@ jobs:
           username: ${{ secrets.STAGING_DEPLOY_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
+            echo "Checking PM2 status first..."
+            pm2 list
+            
+            echo "Waiting additional time for services to be ready..."
+            sleep 5
+            
             echo "Checking server health..."
-            if curl --fail --max-time 10 --retry 3 --retry-delay 2 -L ${{ secrets.STAGING_HEALTHCHECK_URL }}; then
-              echo "Health check passed!"
+            HEALTH_CHECK_URL="${{ secrets.STAGING_HEALTHCHECK_URL }}"
+            if curl --fail --max-time 15 --retry 3 --retry-delay 3 -L "$HEALTH_CHECK_URL"; then
+              echo "✓ Health check passed!"
             else
-              echo "Health check failed, checking PM2 status..."
+              echo "✗ Health check failed!"
+              echo "PM2 Status:"
               pm2 list
+              echo "PM2 Logs (last 50 lines):"
+              pm2 logs --lines 50 --nostream || true
+              echo "Checking if services are listening on ports..."
+              netstat -tlnp | grep -E ':(3000|3001|8080|8081)' || ss -tlnp | grep -E ':(3000|3001|8080|8081)' || true
               exit 1
             fi
 
