@@ -98,7 +98,13 @@ app.use('/api/cron', apiLimiter, cronRoutes);
 app.use('/api/cms', apiLimiter, cmsRoutes);
 app.use('/api/gallery', apiLimiter, require('./routes/gallery'));
 app.use('/api/properties', apiLimiter, require('./routes/properties'));
-app.use('/api/integrations', adminLimiter, require('./routes/integrations'));
+// Integrations route - wrapped in try-catch to prevent startup failures
+try {
+  app.use('/api/integrations', adminLimiter, require('./routes/integrations'));
+} catch (error) {
+  console.error('Warning: Failed to load integrations route:', error.message);
+  // Server will continue to start even if integrations route fails to load
+}
 app.use('/api/brands', apiLimiter, require('./routes/brands'));
 app.use('/api/admin/ota-mappings', adminLimiter, otaMappingRoutes);
 
