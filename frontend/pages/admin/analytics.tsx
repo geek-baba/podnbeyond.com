@@ -316,37 +316,49 @@ export default function AnalyticsPage() {
             <Card variant="default" padding="lg" className="mb-6">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => setFilters({...filters, startDate: e.target.value})}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => setFilters({...filters, endDate: e.target.value})}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Time Period</label>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">View By</label>
                   <select
-                    value={filters.timePeriod}
-                    onChange={(e) => setFilters({...filters, timePeriod: e.target.value as 'day' | 'week' | 'month' | 'year'})}
+                    value={filters.viewBy}
+                    onChange={(e) => {
+                      const newViewBy = e.target.value as 'last7days' | 'last30days' | 'last3months' | 'lastyear' | 'custom';
+                      setFilters({...filters, viewBy: newViewBy});
+                      if (newViewBy !== 'custom') {
+                        // Auto-apply when preset is selected
+                        setTimeout(() => loadAnalytics(), 100);
+                      }
+                    }}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 bg-white"
                   >
-                    <option value="day">Day</option>
-                    <option value="week">Week</option>
-                    <option value="month">Month</option>
-                    <option value="year">Year</option>
+                    <option value="last7days">Last 7 Days (Daily)</option>
+                    <option value="last30days">Last 30 Days (Daily)</option>
+                    <option value="last3months">Last 3 Months (Weekly)</option>
+                    <option value="lastyear">Last Year (Monthly)</option>
+                    <option value="custom">Custom Date Range</option>
                   </select>
                 </div>
-                <div>
+                {filters.viewBy === 'custom' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">Start Date</label>
+                      <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => setFilters({...filters, startDate: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">End Date</label>
+                      <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => setFilters({...filters, endDate: e.target.value})}
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                    </div>
+                  </>
+                )}
+                <div className={filters.viewBy === 'custom' ? '' : 'sm:col-span-2'}>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">Property</label>
                   <select
                     value={filters.propertyId}
