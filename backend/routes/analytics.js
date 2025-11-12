@@ -191,7 +191,7 @@ router.get('/conversations', async (req, res) => {
     });
 
     // Group by time period
-    const dailyStats = {};
+    const rawStats = {};
     allThreads.forEach((thread) => {
       const date = new Date(thread.createdAt);
       let key = '';
@@ -212,11 +212,11 @@ router.get('/conversations', async (req, res) => {
         key = String(date.getFullYear()); // YYYY
       }
       
-      dailyStats[key] = (dailyStats[key] || 0) + 1;
+      rawStats[key] = (rawStats[key] || 0) + 1;
     });
 
-    // Fill in missing periods with 0 counts
-    const filledStats = {};
+    // Fill in missing periods with 0 counts to show full timeline
+    const dailyStats = {};
     const current = new Date(startDate);
     current.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
@@ -245,11 +245,8 @@ router.get('/conversations', async (req, res) => {
         current.setFullYear(current.getFullYear() + 1);
       }
       
-      filledStats[key] = dailyStats[key] || 0;
+      dailyStats[key] = rawStats[key] || 0;
     }
-
-    // Use filled stats instead of dailyStats
-    const dailyStats = filledStats;
 
     // Get top assignees
     const topAssignees = await prisma.thread.groupBy({
