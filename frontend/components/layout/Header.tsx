@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../lib/useAuth';
 import Container from './Container';
@@ -10,6 +10,19 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session, status } = useAuth();
+  const [showLoginFallback, setShowLoginFallback] = useState(false);
+
+  // If auth check takes more than 2 seconds, show login button anyway
+  useEffect(() => {
+    if (status === 'loading') {
+      const timeout = setTimeout(() => {
+        setShowLoginFallback(true);
+      }, 2000);
+      return () => clearTimeout(timeout);
+    } else {
+      setShowLoginFallback(false);
+    }
+  }, [status]);
 
   const bgStyle = transparent
     ? 'bg-transparent absolute top-0 left-0 right-0 z-50'
@@ -43,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             </Link>
             
             {/* Login/Account Button */}
-            {status === 'loading' ? (
+            {status === 'loading' && !showLoginFallback ? (
               <div className={`px-5 py-2 ${textStyle} opacity-50`}>...</div>
             ) : session?.user ? (
               <Link
