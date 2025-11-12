@@ -89,7 +89,11 @@ export default function CommunicationHub() {
     search: '',
     channel: '' as MessageChannel | '',
   });
-  const [integrations, setIntegrations] = useState<{ gupshup?: { enabled: boolean; status: string }; exotel?: { enabled: boolean; status: string } }>({});
+  const [integrations, setIntegrations] = useState<{ 
+    postmark?: { enabled: boolean; status?: string };
+    gupshup?: { enabled: boolean; status?: string };
+    exotel?: { enabled: boolean; status?: string };
+  }>({});
   const [quickReplyTemplates, setQuickReplyTemplates] = useState<Array<{ id: number; name: string; type: string; channel: MessageChannel; body: string; subject: string | null }>>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
