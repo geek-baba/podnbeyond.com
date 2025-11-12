@@ -43,17 +43,24 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
   const router = useRouter();
   const [authTimeout, setAuthTimeout] = useState(false);
 
-  // Add timeout fallback - if auth check takes more than 6 seconds, show page anyway
+  // Add timeout fallback - if auth check takes more than 3 seconds, show page anyway
   useEffect(() => {
     if (authStatus === 'loading') {
       const timeout = setTimeout(() => {
         setAuthTimeout(true);
-      }, 6000);
+      }, 3000); // Reduced to 3 seconds to match useAuth timeout
       return () => clearTimeout(timeout);
     } else {
       setAuthTimeout(false);
     }
   }, [authStatus]);
+
+  // Redirect to login if unauthenticated
+  useEffect(() => {
+    if (authStatus === 'unauthenticated') {
+      router.push('/admin/login');
+    }
+  }, [authStatus, router]);
   const [properties, setProperties] = useState(initialProperties || []);
   const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
   const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
@@ -757,14 +764,25 @@ useEffect(() => {
   };
 
   // Show loading state only if auth is loading AND we haven't timed out
+  // Also redirect if unauthenticated (but show loading during redirect)
   if (authStatus === 'loading' && !authTimeout) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto mb-4"></div>
-          <p className="text-neutral-600">
-            {authStatus === 'loading' ? 'Checking authentication...' : 'Loading dashboard...'}
-          </p>
+          <p className="text-neutral-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If unauthenticated, show loading while redirecting
+  if (authStatus === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Redirecting to login...</p>
         </div>
       </div>
     );
