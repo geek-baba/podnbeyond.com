@@ -185,6 +185,21 @@ export default function CommunicationHub() {
       if (data.success) {
         setSelectedConversation(data.conversation);
         
+        // Mark as read when viewing
+        if (data.conversation.unreadCount > 0) {
+          try {
+            await fetch(`/api/conversations/${conversationId}/mark-read?userId=${session?.user?.id || ''}`, {
+              method: 'POST',
+            });
+            // Update local state
+            setConversations(prev => prev.map(c => 
+              c.id === conversationId ? { ...c, unreadCount: 0 } : c
+            ));
+          } catch (error) {
+            console.error('Failed to mark as read:', error);
+          }
+        }
+        
         // Load guest context if we have a participant email or booking
         const identifier = data.conversation.participants[0] || 
                           (data.conversation.booking?.email) ||

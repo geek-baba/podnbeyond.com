@@ -151,26 +151,40 @@ async function autoAssignToProperty(propertyId) {
  */
 async function linkMessageToThread(messageLogId, threadId) {
   try {
+    const messageLog = await prisma.messageLog.findUnique({
+      where: { id: messageLogId },
+      select: { createdAt: true, direction: true },
+    });
+
+    if (!messageLog) return false;
+
+    // Update message log with thread link
     await prisma.messageLog.update({
       where: { id: messageLogId },
       data: { threadId },
     });
 
-    // Update thread's lastMessageAt
-    const messageLog = await prisma.messageLog.findUnique({
-      where: { id: messageLogId },
-      select: { createdAt: true },
+    // Get thread to check assigned user
+    const thread = await prisma.thread.findUnique({
+      where: { id: threadId },
+      select: { assignedTo: true },
     });
 
-    if (messageLog) {
-      await prisma.thread.update({
-        where: { id: threadId },
-        data: {
-          lastMessageAt: messageLog.createdAt,
-          status: 'IN_PROGRESS', // Mark as in progress when new message arrives
-        },
-      });
+    // Update thread's lastMessageAt and increment unreadCount for inbound messages
+    const updateData = {
+      lastMessageAt: messageLog.createdAt,
+      status: 'IN_PROGRESS', // Mark as in progress when new message arrives
+    };
+
+    // Increment unread count for inbound messages (if thread is assigned)
+    if (messageLog.direction === 'INBOUND' && thread?.assignedTo) {
+      updateData.unreadCount = { increment: 1 };
     }
+
+    await prisma.thread.update({
+      where: { id: threadId },
+      data: updateData,
+    });
 
     return true;
   } catch (error) {
@@ -184,26 +198,40 @@ async function linkMessageToThread(messageLogId, threadId) {
  */
 async function linkCallToThread(callLogId, threadId) {
   try {
+    const callLog = await prisma.callLog.findUnique({
+      where: { id: callLogId },
+      select: { createdAt: true, direction: true },
+    });
+
+    if (!callLog) return false;
+
+    // Update call log with thread link
     await prisma.callLog.update({
       where: { id: callLogId },
       data: { threadId },
     });
 
-    // Update thread's lastMessageAt
-    const callLog = await prisma.callLog.findUnique({
-      where: { id: callLogId },
-      select: { createdAt: true },
+    // Get thread to check assigned user
+    const thread = await prisma.thread.findUnique({
+      where: { id: threadId },
+      select: { assignedTo: true },
     });
 
-    if (callLog) {
-      await prisma.thread.update({
-        where: { id: threadId },
-        data: {
-          lastMessageAt: callLog.createdAt,
-          status: 'IN_PROGRESS',
-        },
-      });
+    // Update thread's lastMessageAt and increment unreadCount for inbound calls
+    const updateData = {
+      lastMessageAt: callLog.createdAt,
+      status: 'IN_PROGRESS',
+    };
+
+    // Increment unread count for inbound calls (if thread is assigned)
+    if (callLog.direction === 'INBOUND' && thread?.assignedTo) {
+      updateData.unreadCount = { increment: 1 };
     }
+
+    await prisma.thread.update({
+      where: { id: threadId },
+      data: updateData,
+    });
 
     return true;
   } catch (error) {

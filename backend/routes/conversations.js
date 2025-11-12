@@ -587,5 +587,33 @@ router.post('/:id/priority', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/conversations/:id/mark-read
+ * Mark conversation as read (reset unreadCount)
+ */
+router.post('/:id/mark-read', async (req, res) => {
+  try {
+    const userId = req.user?.id || req.query.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const threadId = parseInt(req.params.id);
+
+    const thread = await prisma.thread.update({
+      where: { id: threadId },
+      data: { unreadCount: 0 },
+    });
+
+    res.json({
+      success: true,
+      conversation: thread,
+    });
+  } catch (error) {
+    console.error('Mark read error:', error);
+    res.status(500).json({ error: 'Failed to mark as read' });
+  }
+});
+
 module.exports = router;
 
