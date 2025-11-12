@@ -99,7 +99,13 @@ jobs:
             pm2 reload ecosystem.config.js --only staging-backend || pm2 restart staging-backend
             pm2 reload ecosystem.config.js --only staging-frontend --update-env || pm2 restart staging-frontend --update-env
             pm2 save
+            
+            # Wait for server to be ready
+            echo "Waiting for server to start..."
+            sleep 5
 
       - name: Staging health check
-        run: curl --fail -L ${{ secrets.STAGING_HEALTHCHECK_URL }}
+        run: |
+          echo "Checking server health..."
+          curl --fail --max-time 10 --retry 3 --retry-delay 2 -L ${{ secrets.STAGING_HEALTHCHECK_URL }} || (echo "Health check failed, checking PM2 status..." && pm2 list && exit 1)
 
