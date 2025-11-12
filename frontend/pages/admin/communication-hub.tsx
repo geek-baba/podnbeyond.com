@@ -154,6 +154,17 @@ export default function CommunicationHub() {
               icon: '/logo-podnbeyond.png',
             });
           }
+        } else if (data.type === 'new_conversation') {
+          // Reload conversations to show new one
+          loadConversations();
+          
+          // Show desktop notification if assigned to current user
+          if (data.assignedTo === session?.user?.id && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('New Conversation', {
+              body: 'A new conversation has been assigned to you',
+              icon: '/logo-podnbeyond.png',
+            });
+          }
         } else if (data.type === 'unread_count') {
           // Update unread count - handled by reloading conversations
         }
