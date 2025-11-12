@@ -410,10 +410,12 @@ export default function IntegrationsAdmin() {
     return acc;
   }, {} as Record<string, Array<{ providerKey: string; provider: string; name: string; category: string; config: Record<string, any>; description?: string; documentationUrl?: string }>>);
 
-  if (status === 'loading' || loading) {
+  if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">
+          {authStatus === 'loading' ? 'Checking authentication...' : 'Loading integrations...'}
+        </div>
       </div>
     );
   }
