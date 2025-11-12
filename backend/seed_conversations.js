@@ -413,6 +413,10 @@ async function seedConversations() {
       });
 
       const standaloneThreadCreatedAt = new Date(Date.now() - (i * 7200000));
+      // Standalone threads are mostly new/unresolved
+      const standaloneHasResponse = i % 3 === 0; // 33% have responses
+      const standaloneFirstResponseAt = standaloneHasResponse ? new Date(standaloneThreadCreatedAt.getTime() + (8 + i) * 60000) : null;
+      
       const thread = await prisma.thread.create({
         data: {
           subject: `General Inquiry - ${guest.name}`,
@@ -422,6 +426,7 @@ async function seedConversations() {
           priority: 'NORMAL',
           createdAt: standaloneThreadCreatedAt, // Set createdAt to match conversation timeline
           lastMessageAt: standaloneThreadCreatedAt,
+          firstResponseAt: standaloneFirstResponseAt,
         },
       });
 
