@@ -787,10 +787,11 @@ export default function CommunicationHub() {
                         <option value="ARCHIVED">Archive</option>
                       </select>
                       <Button
-                        variant="error"
+                        variant="secondary"
                         size="sm"
                         onClick={() => performBulkAction('archive')}
                         disabled={bulkActionLoading}
+                        className="bg-red-600 hover:bg-red-700 text-white"
                       >
                         Archive
                       </Button>
