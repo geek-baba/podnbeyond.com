@@ -140,7 +140,22 @@ jobs:
               pm2 reload staging-frontend --update-env || pm2 restart staging-frontend --update-env
             else
               echo "Frontend process not found, starting..."
-              pm2 start ecosystem.config.js --only staging-frontend --update-env
+              # Check if ecosystem.config.js exists
+              if [ ! -f "ecosystem.config.js" ]; then
+                echo "ERROR: ecosystem.config.js not found!"
+                exit 1
+              fi
+              # Start frontend and capture output
+              if ! pm2 start ecosystem.config.js --only staging-frontend --update-env; then
+                echo "ERROR: Failed to start frontend process!"
+                echo "Checking PM2 status..."
+                pm2 list
+                echo "Checking for any frontend-related processes..."
+                pm2 list | grep -i frontend || echo "No frontend processes found"
+                exit 1
+              fi
+              echo "Frontend start command succeeded, waiting 3 seconds..."
+              sleep 3
             fi
             pm2 save
             
@@ -149,7 +164,12 @@ jobs:
             pm2 list
             if ! pm2 list | grep -q "staging-frontend.*online"; then
               echo "ERROR: Frontend process is not online!"
-              pm2 logs staging-frontend --lines 20 --nostream || true
+              echo "PM2 status:"
+              pm2 list
+              echo "Frontend logs (if process exists):"
+              pm2 logs staging-frontend --lines 30 --nostream || echo "Could not get frontend logs"
+              echo "PM2 error logs:"
+              pm2 logs --err --lines 20 --nostream || true
               exit 1
             fi
             
