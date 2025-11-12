@@ -142,6 +142,7 @@ export default function IntegrationsAdmin() {
   const [formData, setFormData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [migrating, setMigrating] = useState(false);
 
   // Check authorization
   useEffect(() => {
@@ -399,149 +400,174 @@ export default function IntegrationsAdmin() {
           {/* Integration Form Modal */}
           {showForm && formData && (
             <Card className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">
-                  {selectedIntegration ? 'Edit' : 'Create'} Integration
-                </h2>
+              <div className="flex justify-between items-center mb-6 pb-4 border-b">
+                <div>
+                  <h2 className="text-xl font-bold text-neutral-900">
+                    {selectedIntegration ? 'Edit' : 'Configure'} {formData.name}
+                  </h2>
+                  <p className="text-sm text-neutral-500 mt-1">
+                    {formData.category} • {formData.provider}
+                  </p>
+                </div>
                 <button
                   onClick={() => {
                     setShowForm(false);
                     setFormData(null);
                     setSelectedIntegration(null);
                   }}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-neutral-400 hover:text-neutral-600 text-2xl font-light leading-none"
+                  aria-label="Close"
                 >
-                  ✕
+                  ×
                 </button>
               </div>
 
               <form onSubmit={handleSave}>
-                <div className="space-y-4">
+                {/* Basic Info - Compact Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Provider</label>
-                    <Input
-                      type="text"
-                      value={formData.provider}
-                      disabled={!!selectedIntegration}
-                      className="bg-gray-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Name</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wide">
+                      Display Name
+                    </label>
                     <Input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
+                      className="text-sm"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium mb-1">Category</label>
+                    <label className="block text-xs font-semibold text-neutral-700 mb-1.5 uppercase tracking-wide">
+                      Description
+                    </label>
                     <Input
                       type="text"
-                      value={formData.category}
-                      disabled
-                      className="bg-gray-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <textarea
                       value={formData.description || ''}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      rows={2}
+                      placeholder="Brief description (optional)"
+                      className="text-sm"
                     />
                   </div>
+                </div>
 
-                  {/* Configuration Fields */}
-                  <div className="border-t pt-4">
-                    <h3 className="font-semibold mb-3">Configuration</h3>
-                    <div className="space-y-3">
-                      {Object.keys(formData.config || {}).map((key) => (
-                        <div key={key}>
-                          <label className="block text-sm font-medium mb-1">
-                            {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                          </label>
-                          <Input
-                            type={key.toLowerCase().includes('secret') || key.toLowerCase().includes('password') || key.toLowerCase().includes('token') ? 'password' : 'text'}
-                            value={formData.config[key] || ''}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                config: { ...formData.config, [key]: e.target.value },
-                              })
-                            }
-                            placeholder={`Enter ${key}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                {/* Configuration Fields - Compact Grid */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px bg-neutral-200 flex-1"></div>
+                    <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Credentials & Configuration</span>
+                    <div className="h-px bg-neutral-200 flex-1"></div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.keys(formData.config || {}).map((key) => {
+                      const isSecret = key.toLowerCase().includes('secret') || 
+                                      key.toLowerCase().includes('password') || 
+                                      key.toLowerCase().includes('token');
+                      return (
+                        <div key={key} className={isSecret ? 'md:col-span-2' : ''}>
+                          <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                            {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                            {isSecret && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          <div className="relative">
+                            <Input
+                              type={isSecret ? 'password' : 'text'}
+                              value={formData.config[key] || ''}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  config: { ...formData.config, [key]: e.target.value },
+                                })
+                              }
+                              placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+                              className="text-sm pr-10"
+                              required={isSecret}
+                            />
+                            {isSecret && formData.config[key] && (
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
+                                🔒
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                  {/* Additional Fields */}
-                  <div className="border-t pt-4 space-y-3">
+                {/* Settings - Compact Row */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px bg-neutral-200 flex-1"></div>
+                    <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Settings</span>
+                    <div className="h-px bg-neutral-200 flex-1"></div>
+                  </div>
+                  <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Webhook URL</label>
+                      <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                        Webhook URL
+                      </label>
                       <Input
                         type="url"
                         value={formData.webhookUrl || ''}
                         onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
                         placeholder="https://your-domain.com/webhooks/..."
+                        className="text-sm"
                       />
                     </div>
-
-                    {formData.category === 'PAYMENT' && (
-                      <div className="flex items-center">
+                    <div className="flex flex-wrap gap-4">
+                      {formData.category === 'PAYMENT' && (
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={formData.testMode || false}
+                            onChange={(e) =>
+                              setFormData({ ...formData, testMode: e.target.checked })
+                            }
+                            className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-neutral-700 group-hover:text-neutral-900">
+                            Test Mode (Sandbox)
+                          </span>
+                        </label>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer group">
                         <input
                           type="checkbox"
-                          id="testMode"
-                          checked={formData.testMode || false}
+                          checked={formData.enabled || false}
                           onChange={(e) =>
-                            setFormData({ ...formData, testMode: e.target.checked })
+                            setFormData({ ...formData, enabled: e.target.checked })
                           }
-                          className="mr-2"
+                          className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-2 focus:ring-blue-500"
                         />
-                        <label htmlFor="testMode" className="text-sm">
-                          Test Mode (Sandbox)
-                        </label>
-                      </div>
-                    )}
-
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="enabled"
-                        checked={formData.enabled || false}
-                        onChange={(e) =>
-                          setFormData({ ...formData, enabled: e.target.checked })
-                        }
-                        className="mr-2"
-                      />
-                      <label htmlFor="enabled" className="text-sm font-medium">
-                        Enable Integration
+                        <span className="text-sm font-medium text-neutral-700 group-hover:text-neutral-900">
+                          Enable Integration
+                        </span>
                       </label>
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <Button type="submit" disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Integration'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => {
-                        setShowForm(false);
-                        setFormData(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button 
+                    type="submit" 
+                    disabled={saving}
+                    className="flex-1"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowForm(false);
+                      setFormData(null);
+                      setSelectedIntegration(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </form>
             </Card>
