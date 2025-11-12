@@ -76,12 +76,15 @@ export default function CommunicationHub() {
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDetail | null>(null);
+  const [guestContext, setGuestContext] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [filters, setFilters] = useState({
     status: '' as ConversationStatus | '',
     assignedTo: '',
     propertyId: '',
+    search: '',
+    channel: '' as MessageChannel | '',
   });
   const [integrations, setIntegrations] = useState<{ gupshup?: { enabled: boolean; status: string }; exotel?: { enabled: boolean; status: string } }>({});
   
@@ -146,6 +149,8 @@ export default function CommunicationHub() {
       if (filters.status) params.append('status', filters.status);
       if (filters.assignedTo) params.append('assignedTo', filters.assignedTo);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.channel) params.append('channel', filters.channel);
       
       // Get user ID from session - try multiple possible locations
       const userId = (session as any)?.user?.id || (session as any)?.id || session?.user?.email;
@@ -179,11 +184,31 @@ export default function CommunicationHub() {
       const data = await response.json();
       if (data.success) {
         setSelectedConversation(data.conversation);
+        
+        // Load guest context if we have a participant email or booking
+        const identifier = data.conversation.participants[0] || 
+                          (data.conversation.booking?.email) ||
+                          (data.conversation.messages.find((m: any) => m.from)?.from);
+        if (identifier) {
+          loadGuestContext(identifier);
+        }
       } else {
         console.error('Failed to load conversation details:', data.error);
       }
     } catch (error) {
       console.error('Failed to load conversation details:', error);
+    }
+  };
+
+  const loadGuestContext = async (identifier: string) => {
+    try {
+      const response = await fetch(`/api/guest-context/${encodeURIComponent(identifier)}`);
+      const data = await response.json();
+      if (data.success) {
+        setGuestContext(data.guest);
+      }
+    } catch (error) {
+      console.error('Failed to load guest context:', error);
     }
   };
 
@@ -454,52 +479,81 @@ export default function CommunicationHub() {
       <section className="py-10">
         <Container>
           <div className="space-y-6">
-            {/* Filters */}
+            {/* Filters & Search */}
             <Card variant="default" padding="lg">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                {/* Search Bar */}
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters({...filters, status: e.target.value as ConversationStatus | ''})}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="NEW">New</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="WAITING_FOR_GUEST">Waiting for Guest</option>
-                    <option value="RESOLVED">Resolved</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Assignment</label>
-                  <select
-                    value={filters.assignedTo}
-                    onChange={(e) => setFilters({...filters, assignedTo: e.target.value})}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  >
-                    <option value="">All</option>
-                    <option value="me">Assigned to Me</option>
-                    <option value="unassigned">Unassigned</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Property</label>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Search</label>
                   <input
-                    type="number"
-                    value={filters.propertyId}
-                    onChange={(e) => setFilters({...filters, propertyId: e.target.value})}
-                    placeholder="Property ID"
+                    type="text"
+                    value={filters.search}
+                    onChange={(e) => setFilters({...filters, search: e.target.value})}
+                    placeholder="Search conversations, guests, subjects..."
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   />
+                </div>
+                
+                {/* Filter Row */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">Status</label>
+                    <select
+                      value={filters.status}
+                      onChange={(e) => setFilters({...filters, status: e.target.value as ConversationStatus | ''})}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="NEW">New</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="WAITING_FOR_GUEST">Waiting for Guest</option>
+                      <option value="RESOLVED">Resolved</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">Channel</label>
+                    <select
+                      value={filters.channel}
+                      onChange={(e) => setFilters({...filters, channel: e.target.value as MessageChannel | ''})}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    >
+                      <option value="">All Channels</option>
+                      <option value="EMAIL">Email</option>
+                      <option value="WHATSAPP">WhatsApp</option>
+                      <option value="SMS">SMS</option>
+                      <option value="VOICE">Voice</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">Assignment</label>
+                    <select
+                      value={filters.assignedTo}
+                      onChange={(e) => setFilters({...filters, assignedTo: e.target.value})}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    >
+                      <option value="">All</option>
+                      <option value="me">Assigned to Me</option>
+                      <option value="unassigned">Unassigned</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">Property</label>
+                    <input
+                      type="number"
+                      value={filters.propertyId}
+                      onChange={(e) => setFilters({...filters, propertyId: e.target.value})}
+                      placeholder="Property ID"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
 
-            {/* Conversations List and Detail View */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Conversation List */}
-              <div className="lg:col-span-1">
+            {/* 3-Column Layout: Conversations List | Main View | Guest Context */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* Left Sidebar: Conversation List */}
+              <div className="lg:col-span-3">
                 <Card variant="default" padding="lg">
                   <h3 className="text-lg font-bold text-neutral-900 mb-4">
                     Conversations ({conversations.length})
@@ -524,11 +578,18 @@ export default function CommunicationHub() {
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 min-w-0">
-                              <h4 className={`font-semibold text-sm line-clamp-1 mb-1 ${
-                                selectedConversation?.id === conv.id ? 'text-white' : 'text-neutral-900'
-                              }`}>
-                                {getChannelIcon(conv.primaryChannel)} {conv.subject}
-                              </h4>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-semibold text-sm line-clamp-1 flex-1 ${
+                                  selectedConversation?.id === conv.id ? 'text-white' : 'text-neutral-900'
+                                }`}>
+                                  {getChannelIcon(conv.primaryChannel)} {conv.subject}
+                                </h4>
+                                {conv.unreadCount > 0 && (
+                                  <Badge variant="primary" size="sm">
+                                    {conv.unreadCount}
+                                  </Badge>
+                                )}
+                              </div>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <Badge variant={getStatusColor(conv.status) as any} size="sm">
                                   {conv.status.replace(/_/g, ' ')}
@@ -566,8 +627,8 @@ export default function CommunicationHub() {
                 </Card>
               </div>
 
-              {/* Conversation Detail View */}
-              <div className="lg:col-span-2">
+              {/* Center: Main Conversation View */}
+              <div className="lg:col-span-6">
                 {selectedConversation ? (
                   <div className="space-y-4">
                     {/* Conversation Header */}
@@ -791,6 +852,162 @@ export default function CommunicationHub() {
                       </svg>
                       <p className="text-neutral-600 font-semibold mb-2">No conversation selected</p>
                       <p className="text-sm text-neutral-500">Select a conversation to view and reply</p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+
+              {/* Right Sidebar: Guest Context Panel */}
+              <div className="lg:col-span-3">
+                {guestContext ? (
+                  <div className="space-y-4">
+                    {/* Contact Info */}
+                    <Card variant="default" padding="lg">
+                      <h4 className="text-lg font-bold text-neutral-900 mb-4">Guest Information</h4>
+                      {guestContext.contact && (
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-semibold text-neutral-700">Name</p>
+                            <p className="text-neutral-900">{guestContext.contact.name || 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-neutral-700">Email</p>
+                            <p className="text-neutral-900">{guestContext.contact.email || 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-neutral-700">Phone</p>
+                            <p className="text-neutral-900">{guestContext.contact.phone || 'Not provided'}</p>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+
+                    {/* Active Bookings */}
+                    {guestContext.bookings && guestContext.bookings.length > 0 && (
+                      <Card variant="default" padding="lg">
+                        <h4 className="text-lg font-bold text-neutral-900 mb-4">
+                          Bookings ({guestContext.stats?.totalBookings || 0})
+                        </h4>
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                          {guestContext.bookings.slice(0, 5).map((booking: any) => (
+                            <div key={booking.id} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm text-neutral-900">{booking.property?.name}</p>
+                                  <p className="text-xs text-neutral-600">
+                                    {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <Badge variant={booking.status === 'CONFIRMED' ? 'success' : 'neutral'} size="sm">
+                                  {booking.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => window.open(`/admin/bookings/${booking.id}`, '_blank')}
+                                >
+                                  View Booking
+                                </Button>
+                                {booking.status === 'CONFIRMED' && (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={async () => {
+                                      const phone = booking.phone || guestContext.contact?.phone;
+                                      if (!phone) {
+                                        alert('No phone number available');
+                                        return;
+                                      }
+                                      const message = `Hi ${booking.guestName}, your booking #${booking.id} is confirmed. Check-in: ${new Date(booking.checkIn).toLocaleDateString()}. We look forward to hosting you!`;
+                                      try {
+                                        const response = await fetch('/api/notify/booking', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            bookingId: booking.id,
+                                            message,
+                                            channel: 'whatsapp',
+                                          }),
+                                        });
+                                        const data = await response.json();
+                                        if (data.success) {
+                                          alert('Confirmation sent!');
+                                        } else {
+                                          alert(`Failed: ${data.error}`);
+                                        }
+                                      } catch (error) {
+                                        alert('Failed to send confirmation');
+                                      }
+                                    }}
+                                  >
+                                    Send Confirmation
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Statistics */}
+                    {guestContext.stats && (
+                      <Card variant="default" padding="lg">
+                        <h4 className="text-lg font-bold text-neutral-900 mb-4">Statistics</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="text-xs text-neutral-600">Total Bookings</p>
+                            <p className="text-2xl font-bold text-neutral-900">{guestContext.stats.totalBookings}</p>
+                          </div>
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="text-xs text-neutral-600">Active</p>
+                            <p className="text-2xl font-bold text-neutral-900">{guestContext.stats.activeBookings}</p>
+                          </div>
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="text-xs text-neutral-600">Conversations</p>
+                            <p className="text-2xl font-bold text-neutral-900">{guestContext.stats.totalConversations}</p>
+                          </div>
+                          <div className="p-3 bg-neutral-50 rounded-lg">
+                            <p className="text-xs text-neutral-600">Open</p>
+                            <p className="text-2xl font-bold text-neutral-900">{guestContext.stats.openConversations}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Recent Activity */}
+                    {guestContext.recentActivity && (
+                      <Card variant="default" padding="lg">
+                        <h4 className="text-lg font-bold text-neutral-900 mb-4">Recent Activity (30 days)</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-neutral-600">Messages</span>
+                            <span className="font-semibold">{guestContext.recentActivity.messages}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-neutral-600">Calls</span>
+                            <span className="font-semibold">{guestContext.recentActivity.calls}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-neutral-600">Emails</span>
+                            <span className="font-semibold">{guestContext.recentActivity.emails}</span>
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                ) : selectedConversation ? (
+                  <Card variant="default" padding="lg">
+                    <div className="text-center py-8 text-neutral-500">
+                      <p className="text-sm">Loading guest context...</p>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card variant="default" padding="lg">
+                    <div className="text-center py-8 text-neutral-500">
+                      <p className="text-sm">Select a conversation to view guest context</p>
                     </div>
                   </Card>
                 )}

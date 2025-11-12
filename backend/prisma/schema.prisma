@@ -910,6 +910,9 @@ model Thread {
   resolvedAt      DateTime?
   slaBreached     Boolean  @default(false)
   
+  // Unread tracking
+  unreadCount     Int      @default(0) // Unread messages for assigned user
+  
   // Tags for categorization
   tags            String[] @default([])
   
