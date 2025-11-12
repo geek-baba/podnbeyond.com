@@ -90,7 +90,8 @@ export default function AnalyticsPage() {
       if (data.success) {
         setAnalytics(data.analytics);
       } else {
-        console.error('Analytics API error:', data.error);
+        console.error('Analytics API error:', data.error, data.details);
+        alert(`Failed to load analytics: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);

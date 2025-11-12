@@ -254,7 +254,12 @@ router.get('/conversations', async (req, res) => {
     });
   } catch (error) {
     console.error('Analytics error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch analytics' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch analytics',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
