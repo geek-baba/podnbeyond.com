@@ -67,13 +67,19 @@ export default function AnalyticsPage() {
     }
   }, [authStatus, session, router]);
 
-  // Load data
+  // Load properties on mount
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      loadProperties();
+    }
+  }, [authStatus]);
+
+  // Load analytics when filters change
   useEffect(() => {
     if (authStatus === 'authenticated') {
       loadAnalytics();
-      loadProperties();
     }
-  }, [authStatus, filters]);
+  }, [authStatus, filters.viewBy, filters.startDate, filters.endDate, filters.propertyId]);
 
   const loadAnalytics = async () => {
     try {
