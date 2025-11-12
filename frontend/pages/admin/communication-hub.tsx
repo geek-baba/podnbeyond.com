@@ -495,7 +495,7 @@ export default function CommunicationHub() {
                 </div>
                 
                 {/* Filter Row */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Status</label>
                     <select
@@ -551,15 +551,16 @@ export default function CommunicationHub() {
             </Card>
 
             {/* 3-Column Layout: Conversations List | Main View | Guest Context */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Mobile: Stacked, Desktop: 3 columns */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
               {/* Left Sidebar: Conversation List */}
-              <div className="lg:col-span-3">
+              <div className="xl:col-span-3 order-1">
                 <Card variant="default" padding="lg">
                   <h3 className="text-lg font-bold text-neutral-900 mb-4">
                     Conversations ({conversations.length})
                   </h3>
 
-                  <div className="space-y-3 max-h-[700px] overflow-y-auto">
+                  <div className="space-y-3 max-h-[400px] xl:max-h-[700px] overflow-y-auto">
                     {conversations.length === 0 ? (
                       <div className="text-center py-8 text-neutral-500">
                         <p>No conversations yet</p>
@@ -628,7 +629,7 @@ export default function CommunicationHub() {
               </div>
 
               {/* Center: Main Conversation View */}
-              <div className="lg:col-span-6">
+              <div className="xl:col-span-6 order-2">
                 {selectedConversation ? (
                   <div className="space-y-4">
                     {/* Conversation Header */}
@@ -697,7 +698,7 @@ export default function CommunicationHub() {
                     {/* Unified Message Timeline */}
                     <Card variant="default" padding="lg">
                       <h4 className="text-lg font-bold text-neutral-900 mb-4">Message Timeline</h4>
-                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                      <div className="space-y-4 max-h-[300px] xl:max-h-[400px] overflow-y-auto pr-1">
                         {selectedConversation.messages.map((message) => (
                           <div
                             key={message.id}
@@ -858,7 +859,7 @@ export default function CommunicationHub() {
               </div>
 
               {/* Right Sidebar: Guest Context Panel */}
-              <div className="lg:col-span-3">
+              <div className="xl:col-span-3 order-3">
                 {guestContext ? (
                   <div className="space-y-4">
                     {/* Contact Info */}
