@@ -94,13 +94,20 @@ export function useAuth() {
       }
 
       // Fetch from backend using relative URL (Next.js rewrites handle proxying)
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch('/api/auth/session', {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${sessionToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -138,14 +145,18 @@ export function useAuth() {
     } catch (error: any) {
       console.error('Failed to fetch session:', error);
       
-      // On network error, clear session and mark as unauthenticated
+      // On network error or timeout, clear session and mark as unauthenticated
       localStorage.removeItem('pod-session-token');
       sessionCache = { data: null, timestamp: Date.now() };
+      
+      const errorMessage = error.name === 'AbortError' 
+        ? 'Request timeout. Please check your connection.'
+        : 'Connection error. Please check your internet.';
       
       setAuthState({
         data: null,
         status: 'unauthenticated',
-        error: 'Connection error. Please check your internet.'
+        error: errorMessage
       });
     }
   }, []);

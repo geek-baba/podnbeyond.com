@@ -166,21 +166,38 @@ export default function IntegrationsAdmin() {
   useEffect(() => {
     if (status === 'authenticated') {
       loadIntegrations();
+    } else if (status === 'unauthenticated') {
+      // If unauthenticated, don't try to load - redirect will happen
+      setLoading(false);
     }
+    // If status is 'loading', wait for it to resolve
   }, [status]);
 
   const loadIntegrations = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch('/api/integrations', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
         },
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
+        if (response.status === 401) {
+          // Unauthorized - redirect to login
+          router.push('/admin/login');
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -192,7 +209,11 @@ export default function IntegrationsAdmin() {
       }
     } catch (error: any) {
       console.error('Failed to load integrations:', error);
-      setError(`Failed to load integrations: ${error.message || 'Unknown error'}`);
+      if (error.name === 'AbortError') {
+        setError('Request timeout. Please refresh the page.');
+      } else {
+        setError(`Failed to load integrations: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
