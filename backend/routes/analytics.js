@@ -179,6 +179,9 @@ router.get('/conversations', async (req, res) => {
 
     // Get conversations over time (grouped by time period)
     const timePeriod = req.query.timePeriod || 'day'; // day, week, month, year
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
+    
     const allThreads = await prisma.thread.findMany({
       where,
       select: {
@@ -198,8 +201,11 @@ router.get('/conversations', async (req, res) => {
       } else if (timePeriod === 'week') {
         // Get week start (Monday)
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay() + 1); // Monday
-        key = `Week of ${weekStart.toISOString().split('T')[0]}`;
+        const dayOfWeek = date.getDay();
+        const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust when day is Sunday
+        weekStart.setDate(diff);
+        weekStart.setHours(0, 0, 0, 0);
+        key = weekStart.toISOString().split('T')[0]; // YYYY-MM-DD for week start
       } else if (timePeriod === 'month') {
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
       } else if (timePeriod === 'year') {
@@ -208,6 +214,42 @@ router.get('/conversations', async (req, res) => {
       
       dailyStats[key] = (dailyStats[key] || 0) + 1;
     });
+
+    // Fill in missing periods with 0 counts
+    const filledStats = {};
+    const current = new Date(startDate);
+    current.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    while (current <= end) {
+      let key = '';
+      
+      if (timePeriod === 'day') {
+        key = current.toISOString().split('T')[0];
+        current.setDate(current.getDate() + 1);
+      } else if (timePeriod === 'week') {
+        // Get Monday of this week
+        const weekStart = new Date(current);
+        const dayOfWeek = weekStart.getDay();
+        const diff = weekStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        weekStart.setDate(diff);
+        weekStart.setHours(0, 0, 0, 0);
+        key = weekStart.toISOString().split('T')[0];
+        current.setDate(current.getDate() + 7); // Move to next week
+      } else if (timePeriod === 'month') {
+        key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        current.setMonth(current.getMonth() + 1);
+      } else if (timePeriod === 'year') {
+        key = String(current.getFullYear());
+        current.setFullYear(current.getFullYear() + 1);
+      }
+      
+      filledStats[key] = dailyStats[key] || 0;
+    }
+
+    // Use filled stats instead of dailyStats
+    const dailyStats = filledStats;
 
     // Get top assignees
     const topAssignees = await prisma.thread.groupBy({
@@ -262,7 +304,7 @@ router.get('/conversations', async (req, res) => {
           resolvedCount,
         },
         trends: {
-          dailyStats,
+          dailyStats: filledStats,
         },
         topAssignees: topAssigneesWithNames,
       },
