@@ -86,6 +86,7 @@ export default function AnalyticsPage() {
 
       const response = await fetch(`/api/analytics/conversations?${params.toString()}`);
       const data = await response.json();
+      console.log('Analytics API response:', data); // Debug log
       if (data.success) {
         setAnalytics(data.analytics);
       } else {

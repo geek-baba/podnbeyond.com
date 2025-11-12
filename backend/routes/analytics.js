@@ -62,8 +62,16 @@ router.get('/conversations', async (req, res) => {
     const dateFilter = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.gte = new Date(startDate);
-      if (endDate) dateFilter.createdAt.lte = new Date(endDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0); // Start of day
+        dateFilter.createdAt.gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // End of day
+        dateFilter.createdAt.lte = end;
+      }
     }
 
     // Build property filter
