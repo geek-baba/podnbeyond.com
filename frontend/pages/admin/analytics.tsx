@@ -426,28 +426,51 @@ export default function AnalyticsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="h-64 flex items-end gap-1 bg-neutral-50 p-4 rounded-lg border border-neutral-200">
-                    {dailyStatsArray.map(({ date, count }) => (
-                      <div
-                        key={date}
-                        className="flex-1 bg-blue-600 rounded-t hover:bg-blue-700 transition-colors relative group min-h-[8px] flex flex-col justify-end"
-                        style={{ height: `${Math.max((count / maxDailyCount) * 100, 5)}%` }}
-                        title={`${date}: ${count} conversations`}
-                      >
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-neutral-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 shadow-lg">
-                          {date}: {count} {count === 1 ? 'conversation' : 'conversations'}
+                  <div className="h-64 flex items-end gap-2 bg-white p-4 rounded-lg border border-neutral-200">
+                    {dailyStatsArray.map(({ date, count }) => {
+                      const barHeight = maxDailyCount > 0 ? Math.max((count / maxDailyCount) * 100, 3) : 3;
+                      const formatDateLabel = (dateStr: string) => {
+                        if (dateStr.startsWith('Week of ')) {
+                          return dateStr.replace('Week of ', '');
+                        }
+                        if (dateStr.match(/^\d{4}-\d{2}$/)) {
+                          // Month format YYYY-MM
+                          const [year, month] = dateStr.split('-');
+                          return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                        }
+                        if (dateStr.match(/^\d{4}$/)) {
+                          // Year format
+                          return dateStr;
+                        }
+                        // Day format YYYY-MM-DD
+                        try {
+                          return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        } catch {
+                          return dateStr;
+                        }
+                      };
+                      return (
+                        <div
+                          key={date}
+                          className="flex-1 bg-neutral-900 rounded-t hover:bg-neutral-700 transition-colors relative group min-h-[4px] flex flex-col justify-end"
+                          style={{ height: `${barHeight}%` }}
+                          title={`${date}: ${count} ${count === 1 ? 'conversation' : 'conversations'}`}
+                        >
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-neutral-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 shadow-lg">
+                            {date}: {count} {count === 1 ? 'conversation' : 'conversations'}
+                          </div>
+                          {/* Bar label at bottom */}
+                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-neutral-600 whitespace-nowrap">
+                            {formatDateLabel(date)}
+                          </div>
                         </div>
-                        {/* Bar label at bottom */}
-                        <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-neutral-600 whitespace-nowrap">
-                          {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                  <div className="mt-8 text-xs text-neutral-500 text-center">
+                  <div className="mt-10 text-xs text-neutral-500 text-center">
                     {dailyStatsArray.length > 0 && (
                       <>
-                        {new Date(dailyStatsArray[0].date).toLocaleDateString()} - {new Date(dailyStatsArray[dailyStatsArray.length - 1].date).toLocaleDateString()}
+                        {dailyStatsArray[0].date} - {dailyStatsArray[dailyStatsArray.length - 1].date}
                         {' '}({dailyStatsArray.reduce((sum, d) => sum + d.count, 0)} conversations)
                       </>
                     )}
