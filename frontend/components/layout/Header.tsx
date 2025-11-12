@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             {/* Login/Account Button */}
             {status === 'loading' ? (
               <div className={`px-5 py-2 ${textStyle} opacity-50`}>...</div>
-            ) : session ? (
+            ) : session?.user ? (
               <Link
                 href="/account"
                 className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${

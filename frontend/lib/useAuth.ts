@@ -173,10 +173,11 @@ export function useAuth() {
 
   useEffect(() => {
     // Only fetch if we don't have fresh cached data
-    if (!sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
+    // But also check if we're still in loading state - if so, fetch immediately
+    if (authState.status === 'loading' || !sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
       fetchSession();
     }
-  }, [fetchSession]);
+  }, [fetchSession, authState.status]);
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
     // Get token before clearing
