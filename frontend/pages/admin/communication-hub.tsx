@@ -146,10 +146,19 @@ export default function CommunicationHub() {
       if (filters.status) params.append('status', filters.status);
       if (filters.assignedTo) params.append('assignedTo', filters.assignedTo);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
-      if (session?.user?.id) params.append('userId', session.user.id);
+      
+      // Get user ID from session - try multiple possible locations
+      const userId = (session as any)?.user?.id || (session as any)?.id || session?.user?.email;
+      if (userId) {
+        params.append('userId', userId);
+      } else {
+        console.warn('No user ID found in session:', session);
+      }
 
+      console.log('Loading conversations with params:', params.toString());
       const response = await fetch(`/api/conversations?${params.toString()}`);
       const data = await response.json();
+      console.log('Conversations API response:', data);
       if (data.success) {
         setConversations(data.conversations || []);
       } else {
