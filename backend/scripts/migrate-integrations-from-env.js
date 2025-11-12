@@ -23,14 +23,31 @@ const SENSITIVE_FIELDS_BY_PROVIDER = {
 async function migrate() {
   console.log('🔄 Starting migration of integrations from environment variables to database...\n');
 
+  // Debug: Show what env vars are available
+  console.log('📋 Checking environment variables...\n');
+  const envChecks = {
+    'RAZORPAY_KEY_ID': !!process.env.RAZORPAY_KEY_ID,
+    'RAZORPAY_KEY_SECRET': !!process.env.RAZORPAY_KEY_SECRET,
+    'POSTMARK_SERVER_TOKEN': !!process.env.POSTMARK_SERVER_TOKEN,
+    'GUPSHUP_API_KEY': !!process.env.GUPSHUP_API_KEY,
+    'GUPSHUP_ENABLED': process.env.GUPSHUP_ENABLED,
+    'EXOTEL_SID': !!process.env.EXOTEL_SID,
+    'EXOTEL_ENABLED': process.env.EXOTEL_ENABLED,
+  };
+  Object.entries(envChecks).forEach(([key, value]) => {
+    console.log(`  ${key}: ${value ? '✅ Set' : '❌ Not set'}`);
+  });
+  console.log('');
+
   try {
     // Also check directly for Gupshup and Exotel (in case enabled flag logic prevents them)
     const integrations = await initializeFromEnv();
     
-    // Manually check for Gupshup if not in list
+    // Manually check for Gupshup if not in list (check directly, don't rely on enabled flag)
     if (process.env.GUPSHUP_API_KEY) {
       const gupshupExists = integrations.find(i => i.provider === 'GUPSHUP');
       if (!gupshupExists) {
+        console.log('  ℹ️  Found GUPSHUP_API_KEY, adding Gupshup integration...');
         integrations.push({
           provider: 'GUPSHUP',
           name: 'Gupshup WhatsApp/SMS',
@@ -46,12 +63,15 @@ async function migrate() {
           }
         });
       }
+    } else {
+      console.log('  ⚠️  GUPSHUP_API_KEY not found in environment variables');
     }
 
-    // Manually check for Exotel if not in list
+    // Manually check for Exotel if not in list (check directly, don't rely on enabled flag)
     if (process.env.EXOTEL_SID) {
       const exotelExists = integrations.find(i => i.provider === 'EXOTEL');
       if (!exotelExists) {
+        console.log('  ℹ️  Found EXOTEL_SID, adding Exotel integration...');
         integrations.push({
           provider: 'EXOTEL',
           name: 'Exotel Voice/SMS',
@@ -68,7 +88,11 @@ async function migrate() {
           }
         });
       }
+    } else {
+      console.log('  ⚠️  EXOTEL_SID not found in environment variables');
     }
+    
+    console.log('');
     
     if (integrations.length === 0) {
       console.log('⚠️  No integrations found in environment variables to migrate.');
