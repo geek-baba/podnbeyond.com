@@ -210,17 +210,25 @@ async function seedConversations() {
 
       // Create thread
       const threadCreatedAt = new Date(Date.now() - (i * 3600000)); // Stagger timestamps
+      // For some threads, add response and resolution times
+      const hasResponse = i % 2 === 0; // 50% have responses
+      const isResolved = i % 3 === 0; // 33% are resolved
+      const firstResponseAt = hasResponse ? new Date(threadCreatedAt.getTime() + (5 + i) * 60000) : null; // 5-9 minutes after creation
+      const resolvedAt = isResolved ? new Date(threadCreatedAt.getTime() + (30 + i * 10) * 60000) : null; // 30-70 minutes after creation
+      
       const thread = await prisma.thread.create({
         data: {
           subject: `Booking Inquiry - ${booking.guestName}`,
           participants: [booking.email || guest.email],
           propertyId: property.id,
           bookingId: booking.id,
-          status: i % 3 === 0 ? 'NEW' : i % 3 === 1 ? 'IN_PROGRESS' : 'WAITING_FOR_GUEST',
+          status: isResolved ? 'RESOLVED' : (i % 3 === 0 ? 'NEW' : i % 3 === 1 ? 'IN_PROGRESS' : 'WAITING_FOR_GUEST'),
           priority: i % 4 === 0 ? 'URGENT' : i % 4 === 1 ? 'HIGH' : i % 4 === 2 ? 'NORMAL' : 'LOW',
           assignedTo: assignableUsers.length > 0 ? assignableUsers[i % assignableUsers.length].id : null,
           createdAt: threadCreatedAt, // Set createdAt to match conversation timeline
           lastMessageAt: threadCreatedAt, // Stagger timestamps
+          firstResponseAt: firstResponseAt,
+          resolvedAt: resolvedAt,
         },
       });
 
@@ -228,17 +236,24 @@ async function seedConversations() {
 
       // Create email conversation
       const emailThreadCreatedAt = new Date(Date.now() - (i * 3600000) - 1800000);
+      const emailHasResponse = i % 2 === 1; // Alternate with WhatsApp threads
+      const emailIsResolved = i % 4 === 0; // 25% are resolved
+      const emailFirstResponseAt = emailHasResponse ? new Date(emailThreadCreatedAt.getTime() + (10 + i) * 60000) : null; // 10-14 minutes
+      const emailResolvedAt = emailIsResolved ? new Date(emailThreadCreatedAt.getTime() + (45 + i * 5) * 60000) : null; // 45-65 minutes
+      
       const emailThread = await prisma.thread.create({
         data: {
           subject: sampleMessages.email[i % sampleMessages.email.length].inbound.subject,
           participants: [booking.email || guest.email, property.email || 'support@capsulepodhotel.com'],
           propertyId: property.id,
           bookingId: booking.id,
-          status: 'IN_PROGRESS',
+          status: emailIsResolved ? 'RESOLVED' : 'IN_PROGRESS',
           priority: 'NORMAL',
           assignedTo: assignableUsers.length > 0 ? assignableUsers[i % assignableUsers.length].id : null,
           createdAt: emailThreadCreatedAt, // Set createdAt to match conversation timeline
           lastMessageAt: emailThreadCreatedAt,
+          firstResponseAt: emailFirstResponseAt,
+          resolvedAt: emailResolvedAt,
         },
       });
 
