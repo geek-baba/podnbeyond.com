@@ -211,13 +211,13 @@ async function initializeFromEnv() {
     });
   }
 
-  // Gupshup
-  if (process.env.GUPSHUP_API_KEY && process.env.GUPSHUP_ENABLED === 'true') {
+  // Gupshup - Migrate if API key exists (enabled flag is optional, can be toggled in UI)
+  if (process.env.GUPSHUP_API_KEY) {
     integrations.push({
       provider: 'GUPSHUP',
       name: 'Gupshup WhatsApp/SMS',
       category: 'MESSAGING',
-      enabled: true,
+      enabled: process.env.GUPSHUP_ENABLED === 'true', // Use enabled flag if set, otherwise false
       config: {
         apiKey: process.env.GUPSHUP_API_KEY,
         appId: process.env.GUPSHUP_APP_ID || '',
@@ -229,13 +229,13 @@ async function initializeFromEnv() {
     });
   }
 
-  // Exotel
-  if (process.env.EXOTEL_SID && process.env.EXOTEL_ENABLED === 'true') {
+  // Exotel - Migrate if SID exists (enabled flag is optional, can be toggled in UI)
+  if (process.env.EXOTEL_SID) {
     integrations.push({
       provider: 'EXOTEL',
       name: 'Exotel Voice/SMS',
       category: 'VOICE',
-      enabled: true,
+      enabled: process.env.EXOTEL_ENABLED === 'true', // Use enabled flag if set, otherwise false
       config: {
         sid: process.env.EXOTEL_SID,
         apiKey: process.env.EXOTEL_API_KEY || '',
