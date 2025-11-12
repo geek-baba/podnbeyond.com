@@ -161,8 +161,8 @@ export default function AnalyticsPage() {
     );
   }
 
-  // Prepare chart data
-  const dailyStatsArray = Object.entries(analytics.trends.dailyStats)
+  // Prepare chart data - sort by date and format
+  const dailyStatsArray = Object.entries(analytics.trends.dailyStats || {})
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }));
 

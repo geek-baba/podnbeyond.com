@@ -178,17 +178,20 @@ router.get('/conversations', async (req, res) => {
     const slaBreachRate = slaMetrics.length > 0 ? (slaBreachedCount / slaMetrics.length) * 100 : 0;
 
     // Get conversations over time (daily)
-    const conversationsOverTime = await prisma.thread.groupBy({
-      by: ['createdAt'],
+    // Fetch all threads and group by day in JavaScript (Prisma groupBy doesn't support date truncation)
+    const allThreads = await prisma.thread.findMany({
       where,
-      _count: { id: true },
+      select: {
+        id: true,
+        createdAt: true,
+      },
     });
 
     // Group by day
     const dailyStats = {};
-    conversationsOverTime.forEach((item) => {
-      const date = new Date(item.createdAt).toISOString().split('T')[0];
-      dailyStats[date] = (dailyStats[date] || 0) + item._count.id;
+    allThreads.forEach((thread) => {
+      const date = new Date(thread.createdAt).toISOString().split('T')[0];
+      dailyStats[date] = (dailyStats[date] || 0) + 1;
     });
 
     // Get top assignees
