@@ -146,11 +146,14 @@ export default function CommunicationHub() {
       if (filters.status) params.append('status', filters.status);
       if (filters.assignedTo) params.append('assignedTo', filters.assignedTo);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
+      if (session?.user?.id) params.append('userId', session.user.id);
 
       const response = await fetch(`/api/conversations?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setConversations(data.conversations || []);
+      } else {
+        console.error('Failed to load conversations:', data.error);
       }
     } catch (error) {
       console.error('Failed to load conversations:', error);
@@ -161,10 +164,14 @@ export default function CommunicationHub() {
 
   const loadConversationDetails = async (conversationId: number) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}`);
+      const params = new URLSearchParams();
+      if (session?.user?.id) params.append('userId', session.user.id);
+      const response = await fetch(`/api/conversations/${conversationId}?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setSelectedConversation(data.conversation);
+      } else {
+        console.error('Failed to load conversation details:', data.error);
       }
     } catch (error) {
       console.error('Failed to load conversation details:', error);
@@ -173,7 +180,7 @@ export default function CommunicationHub() {
 
   const updateStatus = async (conversationId: number, status: ConversationStatus) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/status`, {
+      const response = await fetch(`/api/conversations/${conversationId}/status?userId=${session?.user?.id || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -191,7 +198,7 @@ export default function CommunicationHub() {
 
   const updatePriority = async (conversationId: number, priority: Priority) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/priority`, {
+      const response = await fetch(`/api/conversations/${conversationId}/priority?userId=${session?.user?.id || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priority }),
@@ -209,7 +216,7 @@ export default function CommunicationHub() {
 
   const assignConversation = async (conversationId: number, assignedTo: string | null) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/assign`, {
+      const response = await fetch(`/api/conversations/${conversationId}/assign?userId=${session?.user?.id || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assignedTo }),
@@ -296,7 +303,7 @@ export default function CommunicationHub() {
     if (!selectedConversation || !noteForm.content) return;
 
     try {
-      const response = await fetch(`/api/conversations/${selectedConversation.id}/notes`, {
+      const response = await fetch(`/api/conversations/${selectedConversation.id}/notes?userId=${session?.user?.id || ''}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: noteForm.content }),

@@ -131,7 +131,7 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user?.id || req.query.userId; // Get from session/auth
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Unauthorized', message: 'User ID is required' });
     }
 
     const {
@@ -158,13 +158,21 @@ router.get('/', async (req, res) => {
       if (propertyId) {
         where.propertyId = parseInt(propertyId);
       }
-    } else {
+      // If no propertyId filter, show all conversations (no propertyId restriction)
+    } else if (accessiblePropertyIds.length > 0) {
       // Property-scoped staff - only their properties
       if (propertyId && accessiblePropertyIds.includes(parseInt(propertyId))) {
         where.propertyId = parseInt(propertyId);
       } else {
         where.propertyId = { in: accessiblePropertyIds };
       }
+    } else {
+      // User has no property access - return empty
+      return res.json({
+        success: true,
+        conversations: [],
+        total: 0,
+      });
     }
 
     // Status filter
