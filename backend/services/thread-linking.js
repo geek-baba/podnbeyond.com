@@ -85,6 +85,16 @@ async function findOrCreateThread({ phone, email, propertyId, bookingId, subject
         thread.status = 'IN_PROGRESS';
       }
     }
+
+    // Broadcast new conversation event
+    if (typeof global.broadcastEvent === 'function') {
+      global.broadcastEvent({
+        type: 'new_conversation',
+        conversationId: thread.id,
+        assignedTo: thread.assignedTo,
+        propertyId: thread.propertyId,
+      });
+    }
   }
 
   return thread;
