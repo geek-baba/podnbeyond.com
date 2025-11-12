@@ -354,6 +354,7 @@ async function seedConversations() {
         },
       });
 
+      const standaloneThreadCreatedAt = new Date(Date.now() - (i * 7200000));
       const thread = await prisma.thread.create({
         data: {
           subject: `General Inquiry - ${guest.name}`,
@@ -361,7 +362,8 @@ async function seedConversations() {
           propertyId: property.id,
           status: 'NEW',
           priority: 'NORMAL',
-          lastMessageAt: new Date(Date.now() - (i * 7200000)),
+          createdAt: standaloneThreadCreatedAt, // Set createdAt to match conversation timeline
+          lastMessageAt: standaloneThreadCreatedAt,
         },
       });
 
