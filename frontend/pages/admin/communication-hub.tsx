@@ -123,26 +123,9 @@ export default function CommunicationHub() {
     }
   }, [authStatus, session, router]);
 
-  // Load conversations and integrations
-  useEffect(() => {
-    if (authStatus === 'authenticated') {
-      loadConversations();
-      loadIntegrations();
-      loadProperties();
-      setupRealtimeUpdates();
-    }
-    
-    return () => {
-      // Cleanup real-time connection on unmount
-      if (eventSource) {
-        eventSource.close();
-      }
-    };
-  }, [authStatus, filters]);
-
   // Real-time updates setup
-  const setupRealtimeUpdates = () => {
-    if (!session?.user?.id) return;
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !session?.user?.id) return;
 
     // Close existing connection if any
     if (eventSource) {
@@ -183,8 +166,10 @@ export default function CommunicationHub() {
       console.error('EventSource error:', error);
       // Reconnect after 5 seconds
       setTimeout(() => {
-        if (authStatus === 'authenticated') {
-          setupRealtimeUpdates();
+        if (authStatus === 'authenticated' && session?.user?.id) {
+          es.close();
+          const newEs = new EventSource(`/api/realtime/events?userId=${session.user.id}`);
+          setEventSource(newEs);
         }
       }, 5000);
     };
@@ -193,7 +178,21 @@ export default function CommunicationHub() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-  };
+
+    // Cleanup on unmount
+    return () => {
+      es.close();
+    };
+  }, [authStatus, session?.user?.id]);
+
+  // Load conversations and integrations
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      loadConversations();
+      loadIntegrations();
+      loadProperties();
+    }
+  }, [authStatus, filters]);
 
   const loadIntegrations = async () => {
     try {
