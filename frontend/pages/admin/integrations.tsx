@@ -350,6 +350,21 @@ export default function IntegrationsAdmin() {
     p => !configuredProviders.has(p)
   );
 
+  // Group available providers by category
+  const groupedAvailableProviders = availableProviders.reduce((acc, provider) => {
+    const template = INTEGRATION_TEMPLATES[provider as keyof typeof INTEGRATION_TEMPLATES];
+    if (!template) return acc;
+    
+    if (!acc[template.category]) {
+      acc[template.category] = [];
+    }
+    acc[template.category].push({ 
+      providerKey: provider,
+      ...template 
+    });
+    return acc;
+  }, {} as Record<string, Array<{ providerKey: string; provider: string; name: string; category: string; config: Record<string, any>; description?: string; documentationUrl?: string }>>);
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -617,25 +632,51 @@ export default function IntegrationsAdmin() {
             </Card>
           )}
 
-          {/* Available Providers to Add */}
-          {availableProviders.length > 0 && (
-            <Card className="mb-6">
-              <h2 className="text-lg font-semibold mb-3">Available Integrations</h2>
-              <div className="flex flex-wrap gap-2">
-                {availableProviders.map((provider) => {
-                  const template = INTEGRATION_TEMPLATES[provider as keyof typeof INTEGRATION_TEMPLATES];
-                  return (
-                    <button
-                      key={provider}
-                      onClick={() => handleCreate(provider)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      + Add {template.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
+          {/* Available Providers to Add - Redesigned as List */}
+          {Object.keys(groupedAvailableProviders).length > 0 && (
+            <>
+              {Object.entries(groupedAvailableProviders).map(([category, providers]) => (
+                <Card key={`available-${category}`} className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">
+                      <span className={`px-2 py-1 rounded text-sm ${getCategoryColor(category)}`}>
+                        {category}
+                      </span>
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {providers.map(({ providerKey, name, description }) => (
+                      <div
+                        key={providerKey}
+                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-semibold text-lg text-gray-900">{name}</h3>
+                              <Badge variant="neutral">Not Configured</Badge>
+                            </div>
+                            {description && (
+                              <p className="text-sm text-gray-600">{description}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleCreate(providerKey)}
+                            >
+                              Enable & Configure
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+            </>
           )}
 
           {/* Empty State */}
