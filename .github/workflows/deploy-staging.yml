@@ -180,6 +180,10 @@ jobs:
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
 
+            # Ensure PM2 daemon is running
+            echo "Starting PM2 daemon if not running..."
+            pm2 ping || pm2 kill && sleep 2 && pm2 ping || echo "PM2 daemon check"
+            
             # Stop and remove existing processes to ensure clean state
             echo "Stopping existing PM2 processes..."
             pm2 delete staging-backend 2>/dev/null || true
