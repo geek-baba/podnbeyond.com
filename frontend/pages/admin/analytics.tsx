@@ -295,6 +295,19 @@ export default function AnalyticsPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">Time Period</label>
+                  <select
+                    value={filters.timePeriod}
+                    onChange={(e) => setFilters({...filters, timePeriod: e.target.value as 'day' | 'week' | 'month' | 'year'})}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 bg-white"
+                  >
+                    <option value="day">Day</option>
+                    <option value="week">Week</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">Property</label>
                   <select
                     value={filters.propertyId}
@@ -309,15 +322,15 @@ export default function AnalyticsPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex items-end">
-                  <Button
-                    variant="primary"
-                    onClick={loadAnalytics}
-                    className="w-full"
-                  >
-                    Apply Filters
-                  </Button>
-                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button
+                  variant="primary"
+                  onClick={loadAnalytics}
+                >
+                  Apply Filters
+                </Button>
+              </div>
               </div>
             </Card>
 
