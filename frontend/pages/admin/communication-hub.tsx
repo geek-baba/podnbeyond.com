@@ -696,19 +696,58 @@ export default function CommunicationHub() {
               {/* Integration Status Indicators */}
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-neutral-300">Email (Postmark)</span>
+                  <a href="/admin/integrations" className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1">
+                    <span>📧</span>
+                    <span>Email</span>
+                  </a>
+                  <span className="text-neutral-400">(</span>
+                  <a 
+                    href="https://account.postmarkapp.com/servers" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-neutral-300 hover:text-white transition-colors"
+                  >
+                    Postmark
+                  </a>
+                  <span className="text-neutral-400">)</span>
                   <span className={`inline-block w-2 h-2 rounded-full ${
                     integrations.postmark?.enabled ? 'bg-green-500' : 'bg-amber-500'
                   }`} title={integrations.postmark?.enabled ? 'Active' : 'Not Configured'}></span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-neutral-300">💬 WhatsApp (Gupshup)</span>
+                  <a href="/admin/integrations" className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1">
+                    <span>💬</span>
+                    <span>WhatsApp</span>
+                  </a>
+                  <span className="text-neutral-400">(</span>
+                  <a 
+                    href="https://apps.gupshup.io/whatsapp/dashboard" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-neutral-300 hover:text-white transition-colors"
+                  >
+                    Gupshup
+                  </a>
+                  <span className="text-neutral-400">)</span>
                   <span className={`inline-block w-2 h-2 rounded-full ${
                     integrations.gupshup?.enabled ? 'bg-green-500' : 'bg-amber-500'
                   }`} title={integrations.gupshup?.enabled ? 'Active' : 'Not Configured'}></span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-neutral-300">📞 Voice & SMS (Exotel)</span>
+                  <a href="/admin/integrations" className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1">
+                    <span>📞</span>
+                    <span>Voice & SMS</span>
+                  </a>
+                  <span className="text-neutral-400">(</span>
+                  <a 
+                    href="https://my.exotel.com/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-neutral-300 hover:text-white transition-colors"
+                  >
+                    Exotel
+                  </a>
+                  <span className="text-neutral-400">)</span>
                   <span className={`inline-block w-2 h-2 rounded-full ${
                     integrations.exotel?.enabled ? 'bg-green-500' : 'bg-amber-500'
                   }`} title={integrations.exotel?.enabled ? 'Active' : 'Not Configured'}></span>
