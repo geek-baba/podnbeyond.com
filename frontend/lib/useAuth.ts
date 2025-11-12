@@ -124,16 +124,29 @@ export function useAuth() {
           error: 'Session expired. Please log in again.'
         });
       } else {
-        throw new Error('Failed to fetch session');
+        // Any other error status - clear session and mark as unauthenticated
+        console.error('Session fetch failed with status:', response.status);
+        localStorage.removeItem('pod-session-token');
+        sessionCache = { data: null, timestamp: Date.now() };
+        
+        setAuthState({
+          data: null,
+          status: 'unauthenticated',
+          error: 'Failed to verify session. Please log in again.'
+        });
       }
     } catch (error: any) {
       console.error('Failed to fetch session:', error);
       
-      setAuthState(prev => ({
-        ...prev,
-        status: prev.data ? 'authenticated' : 'unauthenticated', // Keep previous state if exists
+      // On network error, clear session and mark as unauthenticated
+      localStorage.removeItem('pod-session-token');
+      sessionCache = { data: null, timestamp: Date.now() };
+      
+      setAuthState({
+        data: null,
+        status: 'unauthenticated',
         error: 'Connection error. Please check your internet.'
-      }));
+      });
     }
   }, []);
 

@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/api/auth/[...nextauth]":{},"/brands/[slug]":{},"/locations/[slug]":{},"/locations":{},"/admin":{}}}
+{"version":1,"functions":{"/api/auth/[...nextauth]":{},"/locations":{},"/brands/[slug]":{},"/locations/[slug]":{},"/admin":{}}}
