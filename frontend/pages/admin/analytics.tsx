@@ -78,7 +78,8 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      params.append('userId', session?.user?.id || '');
+      // Pass userId with fallbacks (same as communication-hub.tsx)
+      params.append('userId', session?.user?.id || session?.id || session?.user?.email || '');
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
@@ -87,6 +88,8 @@ export default function AnalyticsPage() {
       const data = await response.json();
       if (data.success) {
         setAnalytics(data.analytics);
+      } else {
+        console.error('Analytics API error:', data.error);
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
@@ -110,7 +113,8 @@ export default function AnalyticsPage() {
   const exportData = async (format: 'csv' | 'json') => {
     try {
       const params = new URLSearchParams();
-      params.append('userId', session?.user?.id || '');
+      // Pass userId with fallbacks (same as communication-hub.tsx)
+      params.append('userId', session?.user?.id || session?.id || session?.user?.email || '');
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);

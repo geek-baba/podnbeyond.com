@@ -35,9 +35,22 @@ async function getAccessiblePropertyIds(userId) {
  */
 router.get('/conversations', async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId;
+    let userId = req.user?.id || req.query.userId;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // If userId is an email, look up the user ID
+    if (userId && userId.includes('@')) {
+      const user = await prisma.user.findUnique({
+        where: { email: userId },
+        select: { id: true },
+      });
+      if (user) {
+        userId = user.id;
+      } else {
+        return res.status(401).json({ success: false, error: 'User not found' });
+      }
     }
 
     const { startDate, endDate, propertyId } = req.query;
@@ -239,9 +252,22 @@ router.get('/conversations', async (req, res) => {
  */
 router.get('/response-times', async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId;
+    let userId = req.user?.id || req.query.userId;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // If userId is an email, look up the user ID
+    if (userId && userId.includes('@')) {
+      const user = await prisma.user.findUnique({
+        where: { email: userId },
+        select: { id: true },
+      });
+      if (user) {
+        userId = user.id;
+      } else {
+        return res.status(401).json({ success: false, error: 'User not found' });
+      }
     }
 
     const { startDate, endDate, propertyId } = req.query;
@@ -325,9 +351,22 @@ router.get('/response-times', async (req, res) => {
  */
 router.get('/export', async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId;
+    let userId = req.user?.id || req.query.userId;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // If userId is an email, look up the user ID
+    if (userId && userId.includes('@')) {
+      const user = await prisma.user.findUnique({
+        where: { email: userId },
+        select: { id: true },
+      });
+      if (user) {
+        userId = user.id;
+      } else {
+        return res.status(401).json({ success: false, error: 'User not found' });
+      }
     }
 
     const { startDate, endDate, propertyId, format = 'json' } = req.query;
