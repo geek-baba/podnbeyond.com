@@ -92,6 +92,7 @@ export default function CommunicationHub() {
   const [integrations, setIntegrations] = useState<{ gupshup?: { enabled: boolean; status: string }; exotel?: { enabled: boolean; status: string } }>({});
   const [quickReplyTemplates, setQuickReplyTemplates] = useState<Array<{ id: number; name: string; type: string; channel: MessageChannel; body: string; subject: string | null }>>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [eventSource, setEventSource] = useState<EventSource | null>(null);
   
   // Reply form
   const [replyForm, setReplyForm] = useState({
@@ -128,8 +129,71 @@ export default function CommunicationHub() {
       loadConversations();
       loadIntegrations();
       loadProperties();
+      setupRealtimeUpdates();
     }
+    
+    return () => {
+      // Cleanup real-time connection on unmount
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, [authStatus, filters]);
+
+  // Real-time updates setup
+  const setupRealtimeUpdates = () => {
+    if (!session?.user?.id) return;
+
+    // Close existing connection if any
+    if (eventSource) {
+      eventSource.close();
+    }
+
+    // Create new EventSource connection
+    const es = new EventSource(`/api/realtime/events?userId=${session.user.id}`);
+    setEventSource(es);
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'conversation_updated') {
+          // Reload conversations if current conversation was updated
+          if (selectedConversation?.id === data.conversationId) {
+            loadConversationDetails(data.conversationId);
+          }
+          loadConversations();
+          
+          // Show desktop notification for new messages
+          if (data.unreadCount > 0 && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('New Message', {
+              body: `You have ${data.unreadCount} unread message(s)`,
+              icon: '/logo-podnbeyond.png',
+            });
+          }
+        } else if (data.type === 'unread_count') {
+          // Update unread count - handled by reloading conversations
+        }
+      } catch (error) {
+        console.error('Error parsing real-time event:', error);
+      }
+    };
+
+    es.onerror = (error) => {
+      console.error('EventSource error:', error);
+      // Reconnect after 5 seconds
+      setTimeout(() => {
+        if (authStatus === 'authenticated') {
+          setupRealtimeUpdates();
+        }
+      }, 5000);
+    };
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  };
 
   const loadIntegrations = async () => {
     try {
