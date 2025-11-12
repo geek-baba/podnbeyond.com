@@ -58,7 +58,8 @@ router.get('/conversations', async (req, res) => {
     // Get accessible property IDs
     const accessiblePropertyIds = await getAccessiblePropertyIds(userId);
 
-    // Build date filter
+    // Build date filter - use lastMessageAt if available, otherwise createdAt
+    // Note: We'll filter by createdAt for now, but seed data might use lastMessageAt
     const dateFilter = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
@@ -73,6 +74,9 @@ router.get('/conversations', async (req, res) => {
         dateFilter.createdAt.lte = end;
       }
     }
+    
+    // Debug: Log the filter being used
+    console.log('Analytics query filter:', JSON.stringify({ dateFilter, propertyFilter, accessiblePropertyIds }, null, 2));
 
     // Build property filter
     const propertyFilter = {};
