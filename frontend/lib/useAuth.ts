@@ -35,6 +35,7 @@ const CACHE_DURATION = 60 * 1000; // 1 minute cache
 export function useAuth() {
   // Initialize with cache if available and fresh, OR check localStorage immediately
   const getInitialState = (): AuthState => {
+    // Always check cache first
     if (sessionCache && Date.now() - sessionCache.timestamp < CACHE_DURATION) {
       return {
         data: sessionCache.data,
@@ -42,18 +43,28 @@ export function useAuth() {
         error: null
       };
     }
-    // Check if there's a session token in localStorage
-    // If not, start as unauthenticated instead of loading
+    
+    // On client-side, check localStorage synchronously
+    // If no token exists, start as unauthenticated (not loading)
     if (typeof window !== 'undefined') {
       const hasToken = localStorage.getItem('pod-session-token');
       if (!hasToken) {
+        // No token = definitely unauthenticated, don't even try to fetch
         return {
           data: null,
           status: 'unauthenticated',
           error: null
         };
       }
+      // Token exists, but we need to verify it - start as loading
+      return {
+        data: null,
+        status: 'loading',
+        error: null
+      };
     }
+    
+    // Server-side rendering: start as loading, will be resolved on client
     return {
       data: null,
       status: 'loading',
@@ -62,6 +73,22 @@ export function useAuth() {
   };
 
   const [authState, setAuthState] = useState<AuthState>(getInitialState());
+  
+  // On client mount, re-check initial state in case SSR was wrong
+  useEffect(() => {
+    if (typeof window !== 'undefined' && authState.status === 'loading') {
+      const hasToken = localStorage.getItem('pod-session-token');
+      if (!hasToken) {
+        // No token, immediately set to unauthenticated
+        setAuthState({
+          data: null,
+          status: 'unauthenticated',
+          error: null
+        });
+        return;
+      }
+    }
+  }, []); // Run once on mount
 
   const fetchSession = useCallback(async (forceRefresh = false) => {
     try {
