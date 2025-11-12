@@ -1,10 +1,1 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/admin/login": "pages/admin/login.js",
-  "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js",
-  "/admin/forbidden": "pages/admin/forbidden.js",
-  "/admin": "pages/admin.js"
-}
+{"/_app":"pages/_app.js","/account":"pages/account.html","/_document":"pages/_document.js","/admin/accept-invite":"pages/admin/accept-invite.html","/admin-old-backup":"pages/admin-old-backup.html","/admin/cms":"pages/admin/cms.html","/admin/communication-hub":"pages/admin/communication-hub.html","/admin/email":"pages/admin/email.html","/admin/forbidden":"pages/admin/forbidden.html","/admin/integrations":"pages/admin/integrations.html","/admin/logout":"pages/admin/logout.html","/admin/verify-email":"pages/admin/verify-email.html","/book":"pages/book.html","/api/test":"pages/api/test.js","/concept":"pages/concept.html","/admin/login":"pages/admin/login.html","/index-old-backup":"pages/index-old-backup.html","/":"pages/index.html","/brands":"pages/brands.html","/login":"pages/login.html","/membership":"pages/membership.html","/properties":"pages/properties.html","/loyalty":"pages/loyalty.html","/search":"pages/search.html","/_error":"pages/_error.js","/api/auth/[...nextauth]":"pages/api/auth/[...nextauth].js","/brands/[slug]":"pages/brands/[slug].js","/locations":"pages/locations.js","/locations/[slug]":"pages/locations/[slug].js","/admin":"pages/admin.js","/404":"pages/404.html"}

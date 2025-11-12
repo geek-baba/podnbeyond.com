@@ -18,6 +18,11 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
   const textStyle = transparent ? 'text-white' : 'text-neutral-900';
   const logoSrc = transparent ? '/logos/podnbeyond-group.svg' : '/logos/podnbeyond-group.svg';
 
+  // Determine what to show for login/account button
+  // Default to showing login button unless we're definitely authenticated
+  // This ensures the button shows immediately on page load
+  const showLoginButton = status !== 'authenticated' || !session?.user;
+
   return (
     <header className={`${bgStyle} transition-all duration-300`}>
       <Container>
@@ -42,10 +47,19 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
               Membership
             </Link>
             
-            {/* Login/Account Button */}
-            {status === 'loading' ? (
-              <div className={`px-5 py-2 ${textStyle} opacity-50`}>...</div>
-            ) : session ? (
+            {/* Login/Account Button - Simple logic: show login if not authenticated, account if authenticated */}
+            {showLoginButton ? (
+              <Link
+                href="/login"
+                className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
+                  transparent
+                    ? 'border-white text-white hover:bg-white hover:text-neutral-900'
+                    : 'border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white'
+                }`}
+              >
+                Login
+              </Link>
+            ) : session?.user ? (
               <Link
                 href="/account"
                 className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
@@ -57,6 +71,7 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
                 My Account
               </Link>
             ) : (
+              // Fallback: show login if somehow we have no session but status isn't unauthenticated
               <Link
                 href="/login"
                 className={`px-5 py-2 rounded-button font-semibold transition-all border-2 ${
@@ -141,30 +156,39 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
             </Link>
             
             {/* Login/Account Button (Mobile) */}
-            {status !== 'loading' && (
-              session ? (
-                <Link
-                  href="/account"
-                  className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
-                    transparent
-                      ? 'border-white text-white'
-                      : 'border-neutral-900 text-neutral-900'
-                  }`}
-                >
-                  My Account
-                </Link>
-              ) : (
-                <Link
-                  href="/login"
-                  className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
-                    transparent
-                      ? 'border-white text-white'
-                      : 'border-neutral-900 text-neutral-900'
-                  }`}
-                >
-                  Login
-                </Link>
-              )
+            {showLoginButton ? (
+              <Link
+                href="/login"
+                className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                  transparent
+                    ? 'border-white text-white'
+                    : 'border-neutral-900 text-neutral-900'
+                }`}
+              >
+                Login
+              </Link>
+            ) : session?.user ? (
+              <Link
+                href="/account"
+                className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                  transparent
+                    ? 'border-white text-white'
+                    : 'border-neutral-900 text-neutral-900'
+                }`}
+              >
+                My Account
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className={`block px-6 py-2 rounded-button font-semibold text-center border-2 ${
+                  transparent
+                    ? 'border-white text-white'
+                    : 'border-neutral-900 text-neutral-900'
+                }`}
+              >
+                Login
+              </Link>
             )}
             
             <Link
@@ -185,4 +209,3 @@ const Header: React.FC<HeaderProps> = ({ transparent = false }) => {
 };
 
 export default Header;
-

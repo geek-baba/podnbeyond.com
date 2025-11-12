@@ -98,6 +98,13 @@ app.use('/api/cron', apiLimiter, cronRoutes);
 app.use('/api/cms', apiLimiter, cmsRoutes);
 app.use('/api/gallery', apiLimiter, require('./routes/gallery'));
 app.use('/api/properties', apiLimiter, require('./routes/properties'));
+// Integrations route - wrapped in try-catch to prevent startup failures
+try {
+  app.use('/api/integrations', adminLimiter, require('./routes/integrations'));
+} catch (error) {
+  console.error('Warning: Failed to load integrations route:', error.message);
+  // Server will continue to start even if integrations route fails to load
+}
 app.use('/api/brands', apiLimiter, require('./routes/brands'));
 app.use('/api/admin/ota-mappings', adminLimiter, otaMappingRoutes);
 
@@ -108,12 +115,21 @@ app.use('/webhooks', webhookRoutes); // No rate limit for webhooks
 
 // Health check endpoint for deployment
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  try {
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0'
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
 });
 
 app.listen(port, () => {

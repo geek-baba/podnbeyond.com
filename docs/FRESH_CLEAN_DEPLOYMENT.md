@@ -110,7 +110,28 @@ ls -la
 # Should see: backend/ frontend/ docs/ etc.
 ```
 
-### Step 4: Create Staging Database
+### Step 4: Install Redis (Required for BullMQ)
+
+```bash
+# Install Redis using the provided script
+cd ~/htdocs/staging.capsulepodhotel.com
+chmod +x scripts/install-redis.sh
+sudo bash scripts/install-redis.sh
+
+# Or install manually:
+sudo apt update
+sudo apt install -y redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+# Verify Redis is running
+redis-cli ping
+# Should return: PONG
+```
+
+**Note:** Redis is required for the BullMQ email queue. The app will work without it (emails sent synchronously), but enabling Redis improves performance.
+
+### Step 5: Create Staging Database
 
 ```bash
 # Switch to postgres user (you'll need sudo)
@@ -137,7 +158,7 @@ psql -h localhost -U podnbeyond_staging -d podnbeyond_staging -c "SELECT 1;"
 
 **Note:** Save the database password! You'll need it in the next step.
 
-### Step 5: Configure Backend
+### Step 6: Configure Backend
 
 ```bash
 cd ~/htdocs/staging.capsulepodhotel.com/backend
@@ -164,14 +185,19 @@ RAZORPAY_KEY_SECRET="placeholder_secret_change_later"
 PORT=4001
 NODE_ENV=production
 
-# Optional
-REDIS_ENABLED=false
+# Redis Configuration (for BullMQ email queue)
+REDIS_ENABLED="true"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+# Queue prefix to separate staging/prod queues on same Redis instance
+QUEUE_PREFIX="staging"
 ENV
 
 echo "✅ Created backend/.env"
 echo "⚠️  EDIT THE FILE and update:"
 echo "   - POSTMARK_SERVER_TOKEN (your NEW token)"
 echo "   - DATABASE PASSWORD"
+echo "   - REDIS_ENABLED should be 'true' if Redis is installed"
 
 # Edit the file
 nano .env
@@ -191,7 +217,7 @@ npx prisma migrate deploy
 npx prisma db pull
 ```
 
-### Step 6: Configure Frontend
+### Step 7: Configure Frontend
 
 ```bash
 cd ~/htdocs/staging.capsulepodhotel.com/frontend
@@ -214,7 +240,7 @@ npm install
 npm run build
 ```
 
-### Step 7: Start Staging Services
+### Step 8: Start Staging Services
 
 ```bash
 cd ~/htdocs/staging.capsulepodhotel.com
@@ -234,7 +260,7 @@ pm2 save
 pm2 list
 ```
 
-### Step 8: Verify Staging Works
+### Step 9: Verify Staging Works
 
 ```bash
 # Test backend API
@@ -252,7 +278,7 @@ curl -X POST http://localhost:4001/api/otp/send \
 # Should return: {"success":true,...}
 ```
 
-### Step 9: Configure DNS
+### Step 10: Configure DNS
 
 **Add A record for staging:**
 - Type: `A`
@@ -266,7 +292,7 @@ curl -X POST http://localhost:4001/api/otp/send \
 curl -I https://staging.capsulepodhotel.com
 ```
 
-### Step 10: SSL Certificate (CloudPanel)
+### Step 11: SSL Certificate (CloudPanel)
 
 1. Log in to CloudPanel
 2. Go to **Sites** → **staging.capsulepodhotel.com**
@@ -274,7 +300,7 @@ curl -I https://staging.capsulepodhotel.com
 4. Click **Let's Encrypt** → **Generate Certificate**
 5. Wait 1-2 minutes
 
-### Step 11: Test Staging OTP Authentication
+### Step 12: Test Staging OTP Authentication
 
 **Browser test:**
 1. Go to: https://staging.capsulepodhotel.com/admin/login
@@ -291,11 +317,30 @@ curl -I https://staging.capsulepodhotel.com
 
 ## 📋 PHASE 3: FRESH PRODUCTION DEPLOYMENT (20 mins)
 
-### Step 1: Backup & Clean Production
+### Step 1: Install Redis on Production (Required for BullMQ)
 
 ```bash
 ssh -i ~/.ssh/github_actions_capsulepodhotel capsulepodhotel@45.76.60.99
 
+# Install Redis using the provided script
+cd ~/htdocs/capsulepodhotel.com
+chmod +x scripts/install-redis.sh
+sudo bash scripts/install-redis.sh
+
+# Or install manually:
+sudo apt update
+sudo apt install -y redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+# Verify Redis is running
+redis-cli ping
+# Should return: PONG
+```
+
+### Step 2: Backup & Clean Production
+
+```bash
 # Already backed up database in BEFORE YOU START section
 
 # Stop all services (already done in Phase 1)
@@ -310,7 +355,7 @@ git checkout main
 git pull origin main
 ```
 
-### Step 2: Configure Production Backend
+### Step 3: Configure Production Backend
 
 ```bash
 cd ~/htdocs/capsulepodhotel.com/backend
@@ -337,11 +382,17 @@ RAZORPAY_KEY_SECRET="placeholder_secret_change_later"
 PORT=4000
 NODE_ENV=production
 
-# Optional
-REDIS_ENABLED=false
+# Redis Configuration (for BullMQ email queue)
+REDIS_ENABLED="true"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+# Queue prefix to separate staging/prod queues on same Redis instance
+QUEUE_PREFIX="production"
 ENV
 
 echo "⚠️  EDIT .env and update POSTMARK_SERVER_TOKEN!"
+echo "   - POSTMARK_SERVER_TOKEN (your NEW token)"
+echo "   - REDIS_ENABLED should be 'true' if Redis is installed"
 nano .env
 # Update POSTMARK_SERVER_TOKEN with your NEW token
 # Save: Ctrl+O, Enter, Ctrl+X
@@ -356,7 +407,7 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-### Step 3: Configure Production Frontend
+### Step 4: Configure Production Frontend
 
 ```bash
 cd ~/htdocs/capsulepodhotel.com/frontend
@@ -375,7 +426,7 @@ npm install
 npm run build
 ```
 
-### Step 4: Start Production Services
+### Step 5: Start Production Services
 
 ```bash
 cd ~/htdocs/capsulepodhotel.com
@@ -399,7 +450,7 @@ pm2 startup
 pm2 list
 ```
 
-### Step 5: Verify Production Works
+### Step 6: Verify Production Works
 
 ```bash
 # Test backend
@@ -412,7 +463,21 @@ curl -I http://localhost:3000
 curl -I https://capsulepodhotel.com
 ```
 
-### Step 6: Test Production OTP Authentication
+### Step 7: Test Production OTP Authentication and Redis
+
+**Verify Redis is working:**
+```bash
+# Check backend logs for Redis connection
+pm2 logs hotel-booking-backend | grep -i redis
+
+# Expected output:
+# ✅ Email queue initialized (Redis connected)
+# 🕒 Hold release job scheduled every 60 seconds. (if FEATURE_BUFFER=true)
+
+# Test queue statistics endpoint
+curl http://localhost:4000/api/email/queue/stats
+# Should return JSON with queueEnabled: true
+```
 
 **Browser test:**
 1. Go to: https://capsulepodhotel.com/admin/login

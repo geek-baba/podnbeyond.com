@@ -1,13 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/useAuth';
 import Head from 'next/head';
 
 export default function AdminLogout() {
   const { signOut } = useAuth();
+  const [redirecting, setRedirecting] = useState(true);
   
   useEffect(() => {
+    // Clear everything immediately
+    localStorage.removeItem('pod-session-token');
+    
+    // Call signOut (which will redirect)
     signOut({ callbackUrl: '/' });
-  }, []);
+    
+    // Fallback: if redirect doesn't happen in 2 seconds, force it
+    const timeout = setTimeout(() => {
+      if (redirecting) {
+        window.location.href = '/';
+      }
+    }, 2000);
+    
+    return () => clearTimeout(timeout);
+  }, [signOut, redirecting]);
 
   return (
     <>

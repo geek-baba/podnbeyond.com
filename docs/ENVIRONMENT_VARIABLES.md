@@ -58,10 +58,14 @@ PORT=4000
 NODE_ENV=production
 
 # ===========================================
-# OPTIONAL: REDIS (for queues)
+# REDIS (for BullMQ email queue)
 # ===========================================
-REDIS_ENABLED=false
-REDIS_URL="redis://localhost:6379"
+# Set to "true" to enable email queue (requires Redis installed and running)
+REDIS_ENABLED="true"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+# Optional: If Redis has password authentication
+# REDIS_PASSWORD="your-redis-password"
 ```
 
 ### Frontend (.env.local)
@@ -120,6 +124,9 @@ NEXTAUTH_URL="https://staging.capsulepodhotel.com"
 RAZORPAY_KEY_ID="rzp_test_xxxxxxxxxxxx"  # Use test keys
 PORT=4001  # Different port!
 NODE_ENV=production
+REDIS_ENABLED="true"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
 ```
 
 **Frontend:**
@@ -140,6 +147,9 @@ NEXTAUTH_URL="https://capsulepodhotel.com"
 RAZORPAY_KEY_ID="rzp_live_xxxxxxxxxxxx"  # Live keys
 PORT=4000
 NODE_ENV=production
+REDIS_ENABLED="true"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
 ```
 
 **Frontend:**

@@ -1,0 +1,21 @@
+name: Run Integration Migration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate-integrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run migration on staging
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_DEPLOY_HOST }}
+          username: ${{ secrets.STAGING_DEPLOY_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.STAGING_DEPLOY_PATH }}/backend
+            export DATABASE_URL='${{ secrets.STAGING_DATABASE_URL }}'
+            node scripts/migrate-integrations-from-env.js
+

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../lib/useAuth';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -38,7 +39,28 @@ interface NewUserFormState {
 }
 
 export default function AdminDashboard({ brands, properties: initialProperties, bookings, loyalty, users, roomTypes: initialRoomTypes, stats }: AdminDashboardProps) {
-  const { data: session, signOut } = useAuth();
+  const { data: session, status: authStatus, signOut } = useAuth();
+  const router = useRouter();
+  const [authTimeout, setAuthTimeout] = useState(false);
+
+  // Add timeout fallback - if auth check takes more than 3 seconds, show page anyway
+  useEffect(() => {
+    if (authStatus === 'loading') {
+      const timeout = setTimeout(() => {
+        setAuthTimeout(true);
+      }, 3000); // Reduced to 3 seconds to match useAuth timeout
+      return () => clearTimeout(timeout);
+    } else {
+      setAuthTimeout(false);
+    }
+  }, [authStatus]);
+
+  // Redirect to login if unauthenticated
+  useEffect(() => {
+    if (authStatus === 'unauthenticated') {
+      router.push('/admin/login');
+    }
+  }, [authStatus, router]);
   const [properties, setProperties] = useState(initialProperties || []);
   const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
   const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
@@ -741,6 +763,31 @@ useEffect(() => {
     }
   };
 
+  // Show loading state only if auth is loading AND we haven't timed out
+  // Also redirect if unauthenticated (but show loading during redirect)
+  if (authStatus === 'loading' && !authTimeout) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If unauthenticated, show loading while redirecting
+  if (authStatus === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <Head>
@@ -753,47 +800,68 @@ useEffect(() => {
       <Header />
 
       {/* Admin Header */}
-      <section className="pt-24 pb-8 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
+      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
         <Container>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-              <p className="text-neutral-300">POD N BEYOND Group Management</p>
-            </div>
-            <div className="flex items-center space-x-6">
-              {/* User Info */}
-              <div className="text-right">
-                <p className="text-sm text-neutral-400">Signed in as</p>
-                <p className="text-white font-semibold">{session?.user?.email || 'Loading...'}</p>
-                <p className="text-xs text-neutral-500 mt-1">
-                  {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                </p>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex space-x-3">
-                <a href="/admin/email">
-                  <button className="px-6 py-2 bg-white text-neutral-900 rounded-button font-semibold hover:bg-neutral-100 transition-all">
-                    💬 Communication Hub
-                  </button>
-                </a>
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+            {/* Left: User Info and Title */}
+            <div className="flex items-start gap-6">
+              {/* User Info - Top Left */}
+              <div className="flex items-center gap-4">
+                <div className="text-left">
+                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
+                  <p className="text-white font-semibold text-sm mt-0.5">
+                    {session?.user?.email || 'Not signed in'}
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
+                  </p>
+                </div>
+                <div className="h-12 w-px bg-neutral-700"></div>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-6 py-2 bg-white/10 border-2 border-white text-white rounded-button font-semibold hover:bg-white hover:text-neutral-900 transition-all"
+                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
                 >
                   Sign Out
                 </button>
               </div>
             </div>
+
+            {/* Right: Title */}
+            <div className="text-right">
+              <h1 className="text-3xl font-bold mb-1">Admin Dashboard</h1>
+              <p className="text-neutral-300 text-sm">POD N BEYOND Group Management</p>
+            </div>
+          </div>
+
+          {/* Header Tabs - Like Communication Hub */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <a href="/admin/communication-hub">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/communication-hub')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                💬 Communication Hub
+              </button>
+            </a>
+            <a href="/admin/integrations">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/integrations')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                ⚙️ Integrations
+              </button>
+            </a>
           </div>
         </Container>
       </section>
 
-      {/* Tabs */}
+      {/* Tabs - Removed Payment, OTA, Integrations */}
       <section className="bg-white border-b border-neutral-200 sticky top-0 z-20">
         <Container>
           <div className="flex space-x-8 overflow-x-auto py-4">
-            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms', 'payment', 'ota'].map((tab) => (
+            {['overview', 'brands', 'properties', 'bookings', 'loyalty', 'users', 'cms'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -803,7 +871,7 @@ useEffect(() => {
                     : 'border-transparent text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                {tab === 'cms' ? 'CMS' : tab === 'ota' ? 'OTA' : tab}
+                {tab === 'cms' ? 'CMS' : tab}
               </button>
             ))}
           </div>
@@ -1698,8 +1766,8 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Payment Gateway Tab */}
-          {activeTab === 'payment' && (
+          {/* Payment Gateway Tab - Removed, use Integrations header tab */}
+          {false && activeTab === 'payment' && (
             <div className="space-y-6 animate-fade-in">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">Payment Gateway Settings</h2>
               
@@ -1780,8 +1848,20 @@ useEffect(() => {
             </div>
           )}
 
-          {/* OTA Integration Tab */}
-          {activeTab === 'ota' && (
+          {/* Integrations Tab - Removed, use Integrations header tab */}
+          {false && activeTab === 'integrations' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-900">Third-Party Integrations</h2>
+                  <p className="text-neutral-600 mt-1">Manage all third-party service configurations</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OTA Integration Tab - Removed, use Integrations header tab */}
+          {false && activeTab === 'ota' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between mb-6">
                 <div>
