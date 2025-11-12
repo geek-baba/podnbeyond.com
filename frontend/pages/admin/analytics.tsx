@@ -162,11 +162,10 @@ export default function AnalyticsPage() {
   }
 
   // Prepare chart data - sort by date and format
-  const dailyStatsArray = Object.entries(analytics.trends.dailyStats || {})
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count }));
-
-  const maxDailyCount = Math.max(...dailyStatsArray.map(d => d.count), 1);
+  const dailyStatsArray = Object.entries(analytics?.trends?.dailyStats || {})
+    .map(([date, count]) => ({ date, count: count as number }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const maxDailyCount = dailyStatsArray.length > 0 ? Math.max(...dailyStatsArray.map(d => d.count), 1) : 1;
 
   return (
     <>
