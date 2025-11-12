@@ -480,6 +480,15 @@ export default function CommunicationHub() {
                 💬 Communication Hub
               </button>
             </a>
+            <a href="/admin/templates">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/templates')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                📝 Templates
+              </button>
+            </a>
             <a href="/admin/integrations">
               <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
                 router.asPath?.startsWith('/admin/integrations')
