@@ -82,13 +82,13 @@ jobs:
 
             # Clean install backend dependencies
             cd backend
-            rm -rf node_modules package-lock.json
+            rm -rf node_modules
             npm ci
             cd ..
             
             # Clean install frontend dependencies (handle npm ENOTEMPTY errors)
             cd frontend
-            rm -rf node_modules package-lock.json
+            rm -rf node_modules
             # Retry npm ci if it fails due to ENOTEMPTY
             npm ci || (rm -rf node_modules && npm ci)
             cd ..
