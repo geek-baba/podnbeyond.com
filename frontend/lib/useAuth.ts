@@ -96,18 +96,28 @@ export function useAuth() {
       // Fetch from backend using relative URL (Next.js rewrites handle proxying)
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 5000); // 5 second timeout
       
-      const response = await fetch('/api/auth/session', {
-        credentials: 'include',
-        headers: {
-          'Authorization': `Bearer ${sessionToken}`,
-          'Content-Type': 'application/json'
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+      let response;
+      try {
+        response = await fetch('/api/auth/session', {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${sessionToken}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('TIMEOUT');
+        }
+        throw fetchError;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -149,7 +159,7 @@ export function useAuth() {
       localStorage.removeItem('pod-session-token');
       sessionCache = { data: null, timestamp: Date.now() };
       
-      const errorMessage = error.name === 'AbortError' 
+      const errorMessage = error.message === 'TIMEOUT' || error.name === 'AbortError'
         ? 'Request timeout. Please check your connection.'
         : 'Connection error. Please check your internet.';
       
