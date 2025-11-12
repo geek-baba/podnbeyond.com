@@ -104,6 +104,49 @@ async function seedConversations() {
   console.log('🌱 Starting conversation seed...');
 
   try {
+    // Clear existing seed data first
+    console.log('🧹 Cleaning up existing seed data...');
+    
+    // Delete threads that match seed patterns
+    const seedThreads = await prisma.thread.findMany({
+      where: {
+        OR: [
+          { subject: { startsWith: 'Booking Inquiry' } },
+          { subject: { startsWith: 'General Inquiry' } },
+          { subject: { startsWith: 'Booking Confirmation Request' } },
+          { subject: { startsWith: 'Special Request' } },
+          { subject: { startsWith: 'Question about' } },
+        ],
+      },
+    });
+
+    if (seedThreads.length > 0) {
+      const threadIds = seedThreads.map(t => t.id);
+      
+      // Delete related data first (due to foreign key constraints)
+      await prisma.conversationNote.deleteMany({
+        where: { threadId: { in: threadIds } },
+      });
+      await prisma.email.deleteMany({
+        where: { threadId: { in: threadIds } },
+      });
+      await prisma.messageLog.deleteMany({
+        where: { threadId: { in: threadIds } },
+      });
+      await prisma.callLog.deleteMany({
+        where: { threadId: { in: threadIds } },
+      });
+      
+      // Delete threads
+      await prisma.thread.deleteMany({
+        where: { id: { in: threadIds } },
+      });
+      
+      console.log(`   ✅ Deleted ${seedThreads.length} existing seed conversations`);
+    } else {
+      console.log('   ℹ️  No existing seed data found to clean up');
+    }
+
     // Get existing properties and bookings
     const properties = await prisma.property.findMany({ take: 3 });
     if (properties.length === 0) {
