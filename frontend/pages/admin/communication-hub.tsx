@@ -52,7 +52,7 @@ interface EmailDetail {
 }
 
 export default function CommunicationHub() {
-  const { data: session, status, signOut } = useAuth();
+  const { data: session, status: authStatus, signOut } = useAuth();
   const router = useRouter();
   
   const [threads, setThreads] = useState<Thread[]>([]);
