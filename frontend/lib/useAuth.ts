@@ -177,33 +177,46 @@ export function useAuth() {
     if (authState.status === 'loading' || !sessionCache || Date.now() - sessionCache.timestamp >= CACHE_DURATION) {
       fetchSession();
     }
-    
+  }, [fetchSession, authState.status]);
+
+  // Separate effect for timeout - only runs when status becomes 'loading'
+  useEffect(() => {
+    if (authState.status !== 'loading') {
+      return; // Not loading, no timeout needed
+    }
+
     // Add a safety timeout: if we're still loading after 3 seconds, mark as unauthenticated
-    if (authState.status === 'loading') {
-      const timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
+      // Check current status again (might have changed)
+      setAuthState((currentState) => {
+        if (currentState.status !== 'loading') {
+          return currentState; // Status changed, don't override
+        }
+        
         const token = localStorage.getItem('pod-session-token');
         if (!token) {
           // No token, definitely unauthenticated
-          setAuthState({
+          return {
             data: null,
             status: 'unauthenticated',
             error: null
-          });
+          };
         } else {
           // Token exists but fetch is hanging - clear it and mark unauthenticated
           console.warn('[useAuth] Auth check timeout - clearing session');
           localStorage.removeItem('pod-session-token');
           sessionCache = { data: null, timestamp: Date.now() };
-          setAuthState({
+          return {
             data: null,
             status: 'unauthenticated',
             error: 'Authentication check timed out. Please try logging in again.'
-          });
+          };
         }
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [fetchSession, authState.status]);
+      });
+    }, 3000);
+    
+    return () => clearTimeout(timeout);
+  }, [authState.status]); // Only re-run when status changes
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
     // Get token before clearing
