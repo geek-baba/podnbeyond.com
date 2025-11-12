@@ -621,5 +621,96 @@ router.post('/:id/mark-read', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/conversations/bulk
+ * Perform bulk actions on multiple conversations
+ */
+router.post('/bulk', async (req, res) => {
+  try {
+    const userId = req.user?.id || req.body.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { conversationIds, action, value } = req.body;
+
+    if (!Array.isArray(conversationIds) || conversationIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'conversationIds array is required' });
+    }
+
+    if (!['assign', 'status', 'archive'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'Invalid action. Must be: assign, status, or archive' });
+    }
+
+    // Get accessible property IDs for RBAC check
+    const accessiblePropertyIds = await getAccessiblePropertyIds(userId);
+
+    // Build where clause with RBAC filtering
+    const where = {
+      id: { in: conversationIds.map(id => parseInt(id)) },
+    };
+
+    if (accessiblePropertyIds !== null) {
+      where.propertyId = { in: accessiblePropertyIds };
+    }
+
+    // Verify all conversations are accessible
+    const accessibleThreads = await prisma.thread.findMany({
+      where,
+      select: { id: true },
+    });
+
+    if (accessibleThreads.length !== conversationIds.length) {
+      return res.status(403).json({
+        success: false,
+        error: 'Some conversations are not accessible',
+      });
+    }
+
+    let updateData = {};
+    let updated = 0;
+
+    switch (action) {
+      case 'assign':
+        updateData = {
+          assignedTo: value || userId,
+        };
+        break;
+      case 'status':
+        if (!['NEW', 'IN_PROGRESS', 'WAITING_FOR_GUEST', 'RESOLVED', 'ARCHIVED'].includes(value)) {
+          return res.status(400).json({ success: false, error: 'Invalid status value' });
+        }
+        updateData = {
+          status: value,
+          ...(value === 'RESOLVED' ? { resolvedAt: new Date() } : {}),
+          ...(value === 'ARCHIVED' ? { isArchived: true } : {}),
+        };
+        break;
+      case 'archive':
+        updateData = {
+          isArchived: true,
+          status: 'ARCHIVED',
+        };
+        break;
+    }
+
+    const result = await prisma.thread.updateMany({
+      where,
+      data: updateData,
+    });
+
+    updated = result.count;
+
+    res.json({
+      success: true,
+      updated,
+      message: `Successfully ${action}ed ${updated} conversation(s)`,
+    });
+  } catch (error) {
+    console.error('Bulk action error:', error);
+    res.status(500).json({ success: false, error: 'Failed to perform bulk action' });
+  }
+});
+
 module.exports = router;
 

@@ -80,6 +80,8 @@ export default function CommunicationHub() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [properties, setProperties] = useState<Array<{ id: number; name: string; slug: string }>>([]);
+  const [selectedConversationIds, setSelectedConversationIds] = useState<Set<number>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [filters, setFilters] = useState({
     status: '' as ConversationStatus | '',
     assignedTo: '',
@@ -88,6 +90,8 @@ export default function CommunicationHub() {
     channel: '' as MessageChannel | '',
   });
   const [integrations, setIntegrations] = useState<{ gupshup?: { enabled: boolean; status: string }; exotel?: { enabled: boolean; status: string } }>({});
+  const [quickReplyTemplates, setQuickReplyTemplates] = useState<Array<{ id: number; name: string; type: string; channel: MessageChannel; body: string; subject: string | null }>>([]);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
   
   // Reply form
   const [replyForm, setReplyForm] = useState({
@@ -221,6 +225,9 @@ export default function CommunicationHub() {
         if (identifier) {
           loadGuestContext(identifier);
         }
+        
+        // Load quick reply templates for this conversation
+        loadQuickReplyTemplates(data.conversation);
       } else {
         console.error('Failed to load conversation details:', data.error);
       }
@@ -238,6 +245,83 @@ export default function CommunicationHub() {
       }
     } catch (error) {
       console.error('Failed to load guest context:', error);
+    }
+  };
+
+  const loadQuickReplyTemplates = async (conversation: ConversationDetail) => {
+    try {
+      const params = new URLSearchParams();
+      params.append('isActive', 'true');
+      
+      // Filter by property if conversation has one
+      if (conversation.property?.id) {
+        params.append('propertyId', conversation.property.id.toString());
+      }
+      
+      // Filter by channel based on conversation's primary channel
+      const channelMap: Record<MessageChannel, string> = {
+        EMAIL: 'EMAIL',
+        WHATSAPP: 'WHATSAPP',
+        SMS: 'SMS',
+        VOICE: 'WHATSAPP', // Voice conversations can use WhatsApp templates
+      };
+      params.append('channel', channelMap[conversation.primaryChannel] || 'WHATSAPP');
+      
+      const response = await fetch(`/api/templates?${params.toString()}`);
+      const data = await response.json();
+      if (data.success) {
+        // Get templates that are relevant for quick replies (FAQ, CUSTOM, or matching type)
+        const relevantTemplates = data.templates.filter((t: any) => 
+          t.type === 'FAQ' || 
+          t.type === 'CUSTOM' ||
+          (conversation.booking && t.type === 'BOOKING_CONFIRMATION')
+        ).slice(0, 5); // Limit to 5 quick replies
+        setQuickReplyTemplates(relevantTemplates);
+      }
+    } catch (error) {
+      console.error('Failed to load quick reply templates:', error);
+    }
+  };
+
+  const useQuickReply = async (template: { id: number; body: string; subject: string | null; channel: MessageChannel }) => {
+    if (!selectedConversation?.booking?.id) {
+      alert('This template requires a booking. Please select a conversation with a booking.');
+      return;
+    }
+    
+    try {
+      setLoadingTemplate(true);
+      const response = await fetch(`/api/templates/${template.id}/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: selectedConversation.booking.id }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Set the channel based on template
+        const channelMap: Record<MessageChannel, 'whatsapp' | 'sms' | 'email'> = {
+          WHATSAPP: 'whatsapp',
+          SMS: 'sms',
+          EMAIL: 'email',
+          VOICE: 'whatsapp',
+        };
+        
+        setReplyForm({
+          message: data.preview.body,
+          channel: channelMap[template.channel] || 'whatsapp',
+        });
+        
+        // If email, we might want to set subject too, but for now just the body
+        // The subject will be handled in the sendReply function
+      } else {
+        alert(`Failed to load template: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error loading template:', error);
+      alert('Failed to load template');
+    } finally {
+      setLoadingTemplate(false);
     }
   };
 
@@ -292,6 +376,68 @@ export default function CommunicationHub() {
     } catch (error) {
       console.error('Failed to assign conversation:', error);
       alert('Failed to assign conversation');
+    }
+  };
+
+  const toggleConversationSelection = (id: number) => {
+    setSelectedConversationIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllConversations = () => {
+    if (selectedConversationIds.size === conversations.length) {
+      setSelectedConversationIds(new Set());
+    } else {
+      setSelectedConversationIds(new Set(conversations.map(c => c.id)));
+    }
+  };
+
+  const performBulkAction = async (action: 'assign' | 'status' | 'archive', value?: string) => {
+    if (selectedConversationIds.size === 0) {
+      alert('Please select at least one conversation');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to ${action} ${selectedConversationIds.size} conversation(s)?`)) {
+      return;
+    }
+
+    try {
+      setBulkActionLoading(true);
+      const response = await fetch('/api/conversations/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationIds: Array.from(selectedConversationIds),
+          action,
+          value: value || (action === 'assign' ? session?.user?.id : undefined),
+          userId: session?.user?.id,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await loadConversations();
+        setSelectedConversationIds(new Set());
+        if (selectedConversation?.id && selectedConversationIds.has(selectedConversation.id)) {
+          await loadConversationDetails(selectedConversation.id);
+        }
+        alert(`Successfully ${action}ed ${data.updated} conversation(s)`);
+      } else {
+        alert(`Failed: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Bulk action error:', error);
+      alert('Failed to perform bulk action');
+    } finally {
+      setBulkActionLoading(false);
     }
   };
 
@@ -599,9 +745,57 @@ export default function CommunicationHub() {
               {/* Left Sidebar: Conversation List */}
               <div className="xl:col-span-3 order-1">
                 <Card variant="default" padding="lg">
-                  <h3 className="text-lg font-bold text-neutral-900 mb-4">
-                    Conversations ({conversations.length})
-                  </h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-neutral-900">
+                      Conversations ({conversations.length})
+                    </h3>
+                    {conversations.length > 0 && (
+                      <button
+                        onClick={selectAllConversations}
+                        className="text-sm text-neutral-600 hover:text-neutral-900"
+                      >
+                        {selectedConversationIds.size === conversations.length ? 'Deselect All' : 'Select All'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Bulk Actions Bar */}
+                  {selectedConversationIds.size > 0 && (
+                    <div className="mb-4 p-3 bg-neutral-100 rounded-lg flex flex-wrap gap-2">
+                      <span className="text-sm font-semibold text-neutral-700 w-full">
+                        {selectedConversationIds.size} selected
+                      </span>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => performBulkAction('assign')}
+                        disabled={bulkActionLoading}
+                      >
+                        Assign to Me
+                      </Button>
+                      <select
+                        onChange={(e) => e.target.value && performBulkAction('status', e.target.value)}
+                        className="px-3 py-1.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                        defaultValue=""
+                        disabled={bulkActionLoading}
+                      >
+                        <option value="">Change Status</option>
+                        <option value="NEW">New</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="WAITING_FOR_GUEST">Waiting for Guest</option>
+                        <option value="RESOLVED">Resolved</option>
+                        <option value="ARCHIVED">Archive</option>
+                      </select>
+                      <Button
+                        variant="error"
+                        size="sm"
+                        onClick={() => performBulkAction('archive')}
+                        disabled={bulkActionLoading}
+                      >
+                        Archive
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-3 max-h-[400px] xl:max-h-[700px] overflow-y-auto">
                     {conversations.length === 0 ? (
@@ -613,13 +807,27 @@ export default function CommunicationHub() {
                       conversations.map((conv) => (
                         <div
                           key={conv.id}
-                          onClick={() => loadConversationDetails(conv.id)}
-                          className={`p-4 rounded-lg cursor-pointer transition-all border ${
+                          className={`p-4 rounded-lg transition-all border ${
                             selectedConversation?.id === conv.id
                               ? 'bg-neutral-900 text-white border-neutral-900'
                               : 'bg-white hover:bg-neutral-50 border-neutral-200'
                           }`}
                         >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedConversationIds.has(conv.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleConversationSelection(conv.id);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-1 w-4 h-4 text-neutral-900 border-neutral-300 rounded focus:ring-neutral-900"
+                            />
+                            <div
+                              onClick={() => loadConversationDetails(conv.id)}
+                              className="flex-1 cursor-pointer"
+                            >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -664,6 +872,8 @@ export default function CommunicationHub() {
                               👤 {conv.assignedUser.name}
                             </p>
                           )}
+                            </div>
+                          </div>
                         </div>
                       ))
                     )}
@@ -806,6 +1016,28 @@ export default function CommunicationHub() {
                         ))}
                       </div>
                     </Card>
+
+                    {/* Quick Reply Templates */}
+                    {quickReplyTemplates.length > 0 && (
+                      <Card variant="default" padding="md">
+                        <h4 className="text-sm font-semibold text-neutral-700 mb-3">Quick Replies</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {quickReplyTemplates.map((template) => (
+                            <Button
+                              key={template.id}
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => useQuickReply(template)}
+                              disabled={loadingTemplate || !selectedConversation?.booking?.id}
+                              title={selectedConversation?.booking?.id ? `Use template: ${template.name}` : 'Requires a booking'}
+                            >
+                              {template.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
 
                     {/* Reply Form */}
                     <Card variant="default" padding="lg">
