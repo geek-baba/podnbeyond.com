@@ -24,7 +24,51 @@ async function migrate() {
   console.log('🔄 Starting migration of integrations from environment variables to database...\n');
 
   try {
+    // Also check directly for Gupshup and Exotel (in case enabled flag logic prevents them)
     const integrations = await initializeFromEnv();
+    
+    // Manually check for Gupshup if not in list
+    if (process.env.GUPSHUP_API_KEY) {
+      const gupshupExists = integrations.find(i => i.provider === 'GUPSHUP');
+      if (!gupshupExists) {
+        integrations.push({
+          provider: 'GUPSHUP',
+          name: 'Gupshup WhatsApp/SMS',
+          category: 'MESSAGING',
+          enabled: process.env.GUPSHUP_ENABLED === 'true',
+          config: {
+            apiKey: process.env.GUPSHUP_API_KEY,
+            appId: process.env.GUPSHUP_APP_ID || '',
+            appName: process.env.GUPSHUP_APP_NAME || '',
+            source: process.env.GUPSHUP_SOURCE || '',
+            webhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || '',
+            webhookUrl: process.env.GUPSHUP_WEBHOOK_URL || ''
+          }
+        });
+      }
+    }
+
+    // Manually check for Exotel if not in list
+    if (process.env.EXOTEL_SID) {
+      const exotelExists = integrations.find(i => i.provider === 'EXOTEL');
+      if (!exotelExists) {
+        integrations.push({
+          provider: 'EXOTEL',
+          name: 'Exotel Voice/SMS',
+          category: 'VOICE',
+          enabled: process.env.EXOTEL_ENABLED === 'true',
+          config: {
+            sid: process.env.EXOTEL_SID,
+            apiKey: process.env.EXOTEL_API_KEY || '',
+            apiToken: process.env.EXOTEL_API_TOKEN || '',
+            subdomain: process.env.EXOTEL_SUBDOMAIN || '',
+            fromNumber: process.env.EXOTEL_FROM_NUMBER || '',
+            webhookSecret: process.env.EXOTEL_WEBHOOK_SECRET || '',
+            webhookUrl: process.env.EXOTEL_WEBHOOK_URL || ''
+          }
+        });
+      }
+    }
     
     if (integrations.length === 0) {
       console.log('⚠️  No integrations found in environment variables to migrate.');
