@@ -416,27 +416,36 @@ export default function AnalyticsPage() {
             {/* Trends Chart */}
             <Card variant="default" padding="lg" className="mb-6">
               <h3 className="text-lg font-bold text-neutral-900 mb-4">Conversations Over Time</h3>
-              <div className="h-64 flex items-end gap-1">
-                {dailyStatsArray.map(({ date, count }) => (
-                  <div
-                    key={date}
-                    className="flex-1 bg-neutral-900 rounded-t hover:bg-neutral-700 transition-colors relative group"
-                    style={{ height: `${(count / maxDailyCount) * 100}%` }}
-                    title={`${date}: ${count} conversations`}
-                  >
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-neutral-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                      {date}: {count}
-                    </div>
+              {dailyStatsArray.length === 0 ? (
+                <div className="h-64 flex items-center justify-center text-neutral-500">
+                  <p>No conversation data for the selected date range</p>
+                </div>
+              ) : (
+                <>
+                  <div className="h-64 flex items-end gap-1">
+                    {dailyStatsArray.map(({ date, count }) => (
+                      <div
+                        key={date}
+                        className="flex-1 bg-neutral-900 rounded-t hover:bg-neutral-700 transition-colors relative group min-h-[4px]"
+                        style={{ height: `${Math.max((count / maxDailyCount) * 100, 2)}%` }}
+                        title={`${date}: ${count} conversations`}
+                      >
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-neutral-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                          {date}: {count}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-2 text-xs text-neutral-500 text-center">
-                {dailyStatsArray.length > 0 && (
-                  <>
-                    {new Date(dailyStatsArray[0].date).toLocaleDateString()} - {new Date(dailyStatsArray[dailyStatsArray.length - 1].date).toLocaleDateString()}
-                  </>
-                )}
-              </div>
+                  <div className="mt-2 text-xs text-neutral-500 text-center">
+                    {dailyStatsArray.length > 0 && (
+                      <>
+                        {new Date(dailyStatsArray[0].date).toLocaleDateString()} - {new Date(dailyStatsArray[dailyStatsArray.length - 1].date).toLocaleDateString()}
+                        {' '}({dailyStatsArray.reduce((sum, d) => sum + d.count, 0)} conversations)
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </Card>
 
             {/* Top Assignees */}
