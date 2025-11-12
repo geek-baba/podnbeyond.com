@@ -56,6 +56,12 @@ jobs:
             cd ${{ secrets.PROD_DEPLOY_PATH }}
             git fetch --all
             git checkout production
+            
+            # Discard any local changes to .next directory and other build artifacts
+            git reset --hard HEAD || true
+            git clean -fd frontend/.next backend/.next || true
+            
+            # Now pull the latest changes
             git pull origin production
 
             export DATABASE_URL='${{ secrets.PROD_DATABASE_URL }}'
