@@ -301,7 +301,7 @@ router.get('/conversations', async (req, res) => {
           resolvedCount,
         },
         trends: {
-          dailyStats: filledStats,
+          dailyStats,
         },
         topAssignees: topAssigneesWithNames,
       },
