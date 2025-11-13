@@ -2,135 +2,86 @@
  * Recovery script for failed booking_module_phase1 migration
  * 
  * This script helps recover from a failed migration by:
- * 1. Checking database state
- * 2. Cleaning up partial migration changes
- * 3. Marking migration as rolled back
+ * 1. Attempting to mark the migration as rolled back
+ * 2. If that fails, providing clear manual recovery instructions
  * 
  * Usage:
+ *   export DATABASE_URL="your-database-url"
  *   node scripts/recover-failed-migration.js
  */
 
 const { execSync } = require('child_process');
-const { exec } = require('child_process');
-const { promisify } = require('util');
 
-const execAsync = promisify(exec);
+const MIGRATION_NAME = '20251112220044_booking_module_phase1';
 
-async function checkDatabaseState() {
-  console.log('🔍 Checking database state...');
-  
-  try {
-    // Use Prisma CLI to execute raw SQL (doesn't require Prisma Client)
-    const checkEnumQuery = `SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BookingSource_new') as exists;`;
-    
-    try {
-      const { stdout } = await execAsync(
-        `npx prisma db execute --stdin <<< "${checkEnumQuery}"`,
-        { encoding: 'utf8' }
-      );
-      
-      // Parse output (format: "exists\nt\n" or "exists\nf\n")
-      if (stdout.includes('\tt\n') || stdout.includes('t\n')) {
-        console.log('⚠️  Found BookingSource_new enum (partial migration detected)');
-        return { hasPartialMigration: true, enumName: 'BookingSource_new' };
-      }
-    } catch (error) {
-      // If Prisma CLI fails, assume no partial migration
-      console.log('⚠️  Could not check database state, assuming clean state');
-      return { hasPartialMigration: false };
-    }
-    
-    console.log('✓ No partial migration detected');
-    return { hasPartialMigration: false };
-  } catch (error) {
-    console.error('❌ Error checking database state:', error.message);
-    // Assume no partial migration and try to resolve
-    console.log('⚠️  Could not check database state, assuming clean state');
-    return { hasPartialMigration: false };
-  }
-}
-
-async function cleanupPartialMigration() {
-  console.log('🧹 Cleaning up partial migration...');
-  
-  try {
-    // Use Prisma CLI to execute raw SQL (doesn't require Prisma Client)
-    const dropEnumQuery = `DROP TYPE IF EXISTS "BookingSource_new" CASCADE;`;
-    
-    try {
-      await execAsync(
-        `echo "${dropEnumQuery}" | npx prisma db execute --stdin`,
-        { encoding: 'utf8' }
-      );
-      console.log('✓ Dropped BookingSource_new enum (if it existed)');
-    } catch (error) {
-      // If cleanup fails, log but don't throw - we can still try to resolve
-      console.log('⚠️  Could not drop enum (may not exist):', error.message);
-    }
-    
-    console.log('✓ Cleanup complete');
-  } catch (error) {
-    console.error('❌ Error cleaning up partial migration:', error.message);
-    // Don't throw - we can still try to resolve the migration
-    console.log('⚠️  Cleanup failed, but will continue with migration resolution');
-  }
-}
-
-async function markMigrationAsRolledBack() {
-  console.log('🔄 Marking migration as rolled back...');
-  
-  try {
-    execSync('npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1"', {
-      stdio: 'inherit',
-      cwd: process.cwd(),
-    });
-    console.log('✓ Migration marked as rolled back');
-  } catch (error) {
-    console.error('❌ Error marking migration as rolled back:', error.message);
-    throw error;
-  }
-}
-
-async function main() {
+function main() {
   console.log('🚀 Starting migration recovery...');
+  console.log(`Migration: ${MIGRATION_NAME}`);
   console.log('');
   
+  // Check if DATABASE_URL is set
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ ERROR: DATABASE_URL environment variable is required');
+    console.error('');
+    console.error('Usage:');
+    console.error('  export DATABASE_URL="your-database-url"');
+    console.error('  node scripts/recover-failed-migration.js');
+    process.exit(1);
+  }
+  
   try {
-    // Check database state
-    const state = await checkDatabaseState();
+    // Try to mark migration as rolled back
+    console.log('🔄 Attempting to mark migration as rolled back...');
     console.log('');
     
-    // If partial migration detected, clean it up
-    if (state.hasPartialMigration) {
-      console.log('⚠️  Partial migration detected. Cleaning up...');
-      await cleanupPartialMigration();
+    try {
+      execSync(`npx prisma migrate resolve --rolled-back "${MIGRATION_NAME}"`, {
+        stdio: 'inherit',
+        cwd: process.cwd(),
+      });
       console.log('');
+      console.log('✅ Migration marked as rolled back successfully!');
+      console.log('You can now retry the deployment.');
+      process.exit(0);
+    } catch (error) {
+      console.error('');
+      console.error('⚠️  Could not automatically resolve the migration');
+      console.error('');
+      console.error('The migration may have partially succeeded.');
+      console.error('');
+      console.error('Manual recovery steps:');
+      console.error('');
+      console.error('1. Check migration status:');
+      console.error('   npx prisma migrate status');
+      console.error('');
+      console.error('2. If the migration partially succeeded, check database state:');
+      console.error('   - Check if BookingSource_new enum exists:');
+      console.error('     SELECT * FROM pg_type WHERE typname = \'BookingSource_new\';');
+      console.error('   - Check if source column is text type:');
+      console.error('     SELECT data_type FROM information_schema.columns WHERE table_name = \'bookings\' AND column_name = \'source\';');
+      console.error('');
+      console.error('3. Clean up partial migration (if needed):');
+      console.error('   - Drop BookingSource_new enum if it exists:');
+      console.error('     DROP TYPE IF EXISTS "BookingSource_new" CASCADE;');
+      console.error('   - If source column is text, the migration will handle conversion');
+      console.error('');
+      console.error('4. Mark migration as rolled back:');
+      console.error(`   npx prisma migrate resolve --rolled-back "${MIGRATION_NAME}"`);
+      console.error('');
+      console.error('5. Or if the migration partially succeeded and you want to keep it:');
+      console.error(`   npx prisma migrate resolve --applied "${MIGRATION_NAME}"`);
+      console.error('   (Then manually fix any remaining issues)');
+      console.error('');
+      console.error('6. After resolving, retry the deployment');
+      console.error('');
+      process.exit(1);
     }
-    
-    // Mark migration as rolled back
-    await markMigrationAsRolledBack();
-    console.log('');
-    
-    console.log('✅ Migration recovery complete!');
-    console.log('You can now retry the deployment.');
   } catch (error) {
     console.error('');
-    console.error('❌ Migration recovery failed:', error.message);
-    console.error('');
-    console.error('Manual recovery steps:');
-    console.error('1. Check database state:');
-    console.error('   SELECT * FROM pg_type WHERE typname LIKE \'BookingSource%\';');
-    console.error('   SELECT data_type FROM information_schema.columns WHERE table_name = \'bookings\' AND column_name = \'source\';');
-    console.error('');
-    console.error('2. Clean up partial migration:');
-    console.error('   DROP TYPE IF EXISTS "BookingSource_new" CASCADE;');
-    console.error('');
-    console.error('3. Mark migration as rolled back:');
-    console.error('   npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1"');
+    console.error('❌ Recovery failed:', error.message);
     console.error('');
     process.exit(1);
   }
 }
 
 main();
-
