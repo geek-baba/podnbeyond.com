@@ -40,8 +40,9 @@ jobs:
   build-and-deploy:
     needs: wait-for-batching
     runs-on: ubuntu-latest
-    # Continue even if wait job was cancelled (new workflow will handle it)
-    if: always()
+    # Only run if wait job completed successfully (not cancelled)
+    # If wait job was cancelled, a new workflow will handle the latest commits
+    if: success()
 
     steps:
       - name: Checkout repository
