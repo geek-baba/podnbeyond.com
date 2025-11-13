@@ -141,7 +141,7 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
               Status:{' '}
               <span
                 className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  meta.status === 'CAPTURED'
+                  meta.status === 'COMPLETED'
                     ? 'bg-green-100 text-green-800'
                     : meta.status === 'PENDING'
                     ? 'bg-yellow-100 text-yellow-800'
