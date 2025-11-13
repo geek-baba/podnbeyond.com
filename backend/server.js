@@ -38,44 +38,22 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Log startup immediately (before any requires)
-// Use both console.log and process.stdout.write for maximum compatibility
 console.log('🚀 Starting backend server...');
-console.error('ERROR LOG TEST: This should appear in error logs');
-try {
-  console.log('Step 1: About to log working directory');
-  const cwd = process.cwd();
-  console.log('📁 Working directory: ' + cwd);
-  console.log('Step 2: About to log Node version');
-  console.log('📦 Node version: ' + process.version);
-  console.log('Step 3: About to start loading modules');
-  console.log('Step 4: Reached module loading section');
-} catch (err) {
-  console.error('ERROR in startup logging:');
-  console.error(err);
-  process.exit(1);
-}
+console.log(`📁 Working directory: ${process.cwd()}`);
+console.log(`📦 Node version: ${process.version}`);
 
 // Try to require core modules with error handling
-process.stdout.write('Step 5: About to require express\n');
 let express, cors, cookieParser, rateLimit;
 try {
-  process.stdout.write('Step 6: Requiring express...\n');
   express = require('express');
-  process.stdout.write('Step 7: Express loaded, requiring cors...\n');
   cors = require('cors');
-  process.stdout.write('Step 8: CORS loaded, requiring cookie-parser...\n');
   cookieParser = require('cookie-parser');
-  process.stdout.write('Step 9: Cookie-parser loaded, requiring express-rate-limit...\n');
   rateLimit = require('express-rate-limit');
-  process.stdout.write('Step 10: Express-rate-limit loaded\n');
   console.log('✓ Core modules loaded');
 } catch (error) {
-  process.stderr.write('❌ ERROR: Failed to load core modules\n');
-  process.stderr.write('Error: ' + error.message + '\n');
-  process.stderr.write('Stack: ' + (error.stack || 'No stack trace') + '\n');
   console.error('❌ ERROR: Failed to load core modules');
-  console.error('Error: ' + error.message);
-  console.error('Stack: ' + (error.stack || 'No stack trace'));
+  console.error(`Error: ${error.message}`);
+  console.error(`Stack: ${error.stack || 'No stack trace'}`);
   process.exit(1);
 }
 
@@ -129,23 +107,19 @@ let realtimeRoutes, broadcastEvent, initHoldReleaseJob;
 // Load routes one by one to identify which one fails
 const loadRoute = (name, path) => {
   try {
-    console.log(`Loading route: ${name}...`);
     const route = require(path);
-    console.log(`✓ Loaded route: ${name}`);
     return route;
   } catch (error) {
     console.error(`❌ ERROR: Failed to load route ${name} from ${path}`);
-    console.error(`Error name: ${error.name}`);
-    console.error(`Error message: ${error.message}`);
+    console.error(`Error: ${error.message}`);
     if (error.stack) {
-      console.error(`Stack trace: ${error.stack}`);
+      console.error(`Stack: ${error.stack}`);
     }
     throw error; // Re-throw to be caught by outer try-catch
   }
 };
 
 try {
-  console.log('Loading routes...');
   bookingRoutes = loadRoute('booking', './routes/booking');
   loyaltyRoutes = loadRoute('loyalty', './routes/loyalty');
   usersRoutes = loadRoute('users', './routes/users');
@@ -165,22 +139,18 @@ try {
   templatesRoutes = loadRoute('templates', './routes/templates');
   analyticsRoutes = loadRoute('analytics', './routes/analytics');
   
-  console.log('Loading realtime module...');
   const realtimeModule = loadRoute('realtime', './routes/realtime');
   realtimeRoutes = realtimeModule.router;
   broadcastEvent = realtimeModule.broadcastEvent;
   
-  console.log('Loading holdReleaseJob...');
   const holdReleaseJobModule = require('./jobs/holdReleaseJob');
   initHoldReleaseJob = holdReleaseJobModule.initHoldReleaseJob;
   console.log('✓ All routes loaded successfully');
-  console.log('');
 } catch (error) {
   console.error('❌ ERROR: Failed to load routes');
-  console.error(`Error name: ${error.name}`);
-  console.error(`Error message: ${error.message}`);
+  console.error(`Error: ${error.message}`);
   if (error.stack) {
-    console.error(`Stack trace: ${error.stack}`);
+    console.error(`Stack: ${error.stack}`);
   }
   // Exit immediately - server cannot start without routes
   process.exit(1);
@@ -192,16 +162,10 @@ global.broadcastEvent = broadcastEvent;
 // Import cron service with error handling
 let cronService;
 try {
-  console.log('Loading cronService...');
   cronService = require('./services/cronService');
-  console.log('✓ cronService loaded');
 } catch (error) {
-  console.error('❌ ERROR: Failed to load cronService');
+  console.error('⚠️  Warning: Failed to load cronService');
   console.error(`Error: ${error.message}`);
-  if (error.stack) {
-    console.error(`Stack: ${error.stack}`);
-  }
-  console.error('⚠️  Server will continue to start, but cron service will not be available');
   // Don't exit - allow server to start without cron service
   cronService = null;
 }
