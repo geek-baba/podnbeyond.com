@@ -10,87 +10,41 @@
  *   node scripts/recover-failed-migration.js
  */
 
-const { PrismaClient } = require('@prisma/client');
 const { execSync } = require('child_process');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
 const execAsync = promisify(exec);
 
-let prisma;
-try {
-  prisma = new PrismaClient();
-} catch (error) {
-  console.error('⚠️  Could not create Prisma Client, using raw SQL instead');
-  prisma = null;
-}
-
 async function checkDatabaseState() {
   console.log('🔍 Checking database state...');
   
   try {
-    if (!prisma) {
-      // Use raw SQL via psql if Prisma Client is not available
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL environment variable is required');
-      }
-      
-      // Extract connection details from DATABASE_URL
-      const url = new URL(databaseUrl);
-      const dbName = url.pathname.slice(1);
-      const dbUser = url.username;
-      const dbPassword = url.password;
-      const dbHost = url.hostname;
-      const dbPort = url.port || '5432';
-      
-      // Check if BookingSource_new enum exists
-      const checkEnumQuery = `SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BookingSource_new') as exists;`;
-      const { stdout: enumCheck } = await execAsync(
-        `PGPASSWORD="${dbPassword}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -t -c "${checkEnumQuery}"`
+    // Use Prisma CLI to execute raw SQL (doesn't require Prisma Client)
+    const checkEnumQuery = `SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BookingSource_new') as exists;`;
+    
+    try {
+      const { stdout } = await execAsync(
+        `npx prisma db execute --stdin <<< "${checkEnumQuery}"`,
+        { encoding: 'utf8' }
       );
       
-      if (enumCheck.trim() === 't') {
+      // Parse output (format: "exists\nt\n" or "exists\nf\n")
+      if (stdout.includes('\tt\n') || stdout.includes('t\n')) {
         console.log('⚠️  Found BookingSource_new enum (partial migration detected)');
         return { hasPartialMigration: true, enumName: 'BookingSource_new' };
       }
-      
-      console.log('✓ No partial migration detected');
+    } catch (error) {
+      // If Prisma CLI fails, assume no partial migration
+      console.log('⚠️  Could not check database state, assuming clean state');
       return { hasPartialMigration: false };
-    }
-    
-    // Check if BookingSource_new enum exists
-    const enumExists = await prisma.$queryRaw`
-      SELECT EXISTS (
-        SELECT 1 
-        FROM pg_type 
-        WHERE typname = 'BookingSource_new'
-      ) as exists
-    `;
-    
-    if (enumExists[0].exists) {
-      console.log('⚠️  Found BookingSource_new enum (partial migration detected)');
-      return { hasPartialMigration: true, enumName: 'BookingSource_new' };
-    }
-    
-    // Check if source column is text type (partial migration)
-    const columnType = await prisma.$queryRaw`
-      SELECT data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'bookings' 
-      AND column_name = 'source'
-    `;
-    
-    if (columnType.length > 0 && columnType[0].data_type === 'text') {
-      console.log('⚠️  Found source column as text type (partial migration detected)');
-      return { hasPartialMigration: true, columnType: 'text' };
     }
     
     console.log('✓ No partial migration detected');
     return { hasPartialMigration: false };
   } catch (error) {
     console.error('❌ Error checking database state:', error.message);
-    // If Prisma Client fails, assume no partial migration and try to resolve
+    // Assume no partial migration and try to resolve
     console.log('⚠️  Could not check database state, assuming clean state');
     return { hasPartialMigration: false };
   }
@@ -100,33 +54,18 @@ async function cleanupPartialMigration() {
   console.log('🧹 Cleaning up partial migration...');
   
   try {
-    if (!prisma) {
-      // Use raw SQL via psql if Prisma Client is not available
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL environment variable is required');
-      }
-      
-      // Extract connection details from DATABASE_URL
-      const url = new URL(databaseUrl);
-      const dbName = url.pathname.slice(1);
-      const dbUser = url.username;
-      const dbPassword = url.password;
-      const dbHost = url.hostname;
-      const dbPort = url.port || '5432';
-      
-      // Drop BookingSource_new enum if it exists
-      const dropEnumQuery = `DROP TYPE IF EXISTS "BookingSource_new" CASCADE;`;
+    // Use Prisma CLI to execute raw SQL (doesn't require Prisma Client)
+    const dropEnumQuery = `DROP TYPE IF EXISTS "BookingSource_new" CASCADE;`;
+    
+    try {
       await execAsync(
-        `PGPASSWORD="${dbPassword}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -c "${dropEnumQuery}"`
+        `echo "${dropEnumQuery}" | npx prisma db execute --stdin`,
+        { encoding: 'utf8' }
       );
       console.log('✓ Dropped BookingSource_new enum (if it existed)');
-    } else {
-      // Drop BookingSource_new enum if it exists
-      await prisma.$executeRawUnsafe(`
-        DROP TYPE IF EXISTS "BookingSource_new" CASCADE;
-      `);
-      console.log('✓ Dropped BookingSource_new enum (if it existed)');
+    } catch (error) {
+      // If cleanup fails, log but don't throw - we can still try to resolve
+      console.log('⚠️  Could not drop enum (may not exist):', error.message);
     }
     
     console.log('✓ Cleanup complete');
@@ -190,10 +129,6 @@ async function main() {
     console.error('   npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1"');
     console.error('');
     process.exit(1);
-  } finally {
-    if (prisma) {
-      await prisma.$disconnect();
-    }
   }
 }
 
