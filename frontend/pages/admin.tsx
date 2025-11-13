@@ -9,6 +9,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import { getBookings } from '../lib/booking';
 
 interface AdminDashboardProps {
   brands: any[];
