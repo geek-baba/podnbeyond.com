@@ -613,10 +613,25 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Conversation fetch error:', error);
     console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    });
+    
+    // Send detailed error response
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch conversation',
-      message: error.message || 'An unexpected error occurred while fetching the conversation.'
+      message: error.message || 'An unexpected error occurred while fetching the conversation.',
+      ...(process.env.NODE_ENV === 'development' && {
+        details: {
+          stack: error.stack,
+          code: error.code,
+          meta: error.meta,
+        },
+      }),
     });
   }
 });
