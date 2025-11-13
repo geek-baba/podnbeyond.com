@@ -369,7 +369,16 @@ export default function CommunicationHub() {
       }
 
       console.log('Conversation loaded successfully:', data.conversation?.id);
-      setSelectedConversation(data.conversation);
+      
+      // Ensure all arrays are initialized to prevent undefined errors
+      const conversation = {
+        ...data.conversation,
+        participants: Array.isArray(data.conversation.participants) ? data.conversation.participants : [],
+        messages: Array.isArray(data.conversation.messages) ? data.conversation.messages : [],
+        notes: Array.isArray(data.conversation.notes) ? data.conversation.notes : [],
+      };
+      
+      setSelectedConversation(conversation);
       // Mark as auto-selected if this was the first auto-selection
       if (!hasAutoSelected) {
         setHasAutoSelected(true);
