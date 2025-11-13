@@ -11,7 +11,8 @@
     "seed": "node prisma/seed.js",
     "seed:conversations": "node seed_conversations.js",
     "backfill:room-types": "node scripts/backfillRoomTypes.js",
-    "cleanup:seed-data": "node scripts/cleanup-seed-data.js"
+    "cleanup:seed-data": "node scripts/cleanup-seed-data.js",
+    "reset:bookings-loyalty": "node scripts/reset-bookings-loyalty.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
