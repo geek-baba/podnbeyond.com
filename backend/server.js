@@ -28,20 +28,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Routes
+// Routes - Register public routes first (OTP, Auth) before protected routes
+const otpRoutes = require('./routes/otp');
+const authRoutes = require('./routes/auth');
 const bookingRoutes = require('./routes/booking');
 const guestRoutes = require('./routes/guest');
 const cancellationPolicyRoutes = require('./routes/cancellationPolicy');
 const paymentRoutes = require('./routes/payment');
-const otpRoutes = require('./routes/otp');
-const authRoutes = require('./routes/auth');
 
+// Public routes (no authentication required)
+app.use('/api/otp', otpRoutes);
+app.use('/api/auth', authRoutes);
+
+// Protected routes (require authentication)
 app.use('/api', bookingRoutes);
 app.use('/api', guestRoutes);
 app.use('/api', cancellationPolicyRoutes);
 app.use('/api', paymentRoutes);
-app.use('/api/otp', otpRoutes);
-app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use((req, res) => {
