@@ -8,7 +8,15 @@ const {
 } = require('../lib/inventoryUtils');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 const DAYS_OF_INVENTORY = parseInt(process.env.SEED_INVENTORY_DAYS || '60', 10);
 const INVENTORY_SUMMARY_WINDOW_DAYS = parseInt(process.env.INVENTORY_SUMMARY_WINDOW_DAYS || '7', 10);
@@ -210,7 +218,7 @@ router.get('/:propertyId/room-types', async (req, res) => {
   }
 
   try {
-    const payload = await fetchPropertyRoomTypes(prisma, propertyId);
+    const payload = await fetchPropertyRoomTypes(getPrisma(), propertyId);
     if (!payload) {
       return res.status(404).json({ success: false, error: 'Property not found' });
     }
@@ -234,7 +242,7 @@ router.put('/:propertyId/room-types', async (req, res) => {
   }
 
   try {
-    const payload = await prisma.$transaction(async (tx) => {
+    const payload = await getPrisma().$transaction(async (tx) => {
       const property = await tx.property.findUnique({ where: { id: propertyId } });
       if (!property) {
         throw Object.assign(new Error('Property not found'), { statusCode: 404 });

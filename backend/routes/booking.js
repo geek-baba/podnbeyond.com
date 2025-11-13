@@ -12,7 +12,15 @@ const {
 } = require('../lib/inventoryUtils');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 const HOLD_TTL_MINUTES = parseInt(process.env.BOOKING_HOLD_TTL_MINUTES || '15', 10);
 
@@ -79,7 +87,7 @@ async function ensureLoyaltyAccount(tx, email) {
  */
 router.get('/bookings', async (req, res) => {
   try {
-    const bookings = await prisma.booking.findMany({
+    const bookings = await getPrisma().booking.findMany({
       include: {
         property: true,
         roomType: true,
@@ -100,7 +108,7 @@ router.get('/bookings', async (req, res) => {
  */
 router.get('/bookings/:id', async (req, res) => {
   try {
-    const booking = await prisma.booking.findUnique({
+    const booking = await getPrisma().booking.findUnique({
       where: { id: parseInt(req.params.id, 10) },
       include: {
         property: true,
@@ -127,7 +135,7 @@ router.get('/bookings/:id', async (req, res) => {
  */
 router.get('/rooms', async (req, res) => {
   try {
-    const roomTypes = await prisma.roomType.findMany({
+    const roomTypes = await getPrisma().roomType.findMany({
       where: { isActive: true },
       include: {
         property: true,
@@ -174,7 +182,7 @@ router.post('/bookings/hold', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Idempotency-Key header is required' });
     }
 
-    const existingKey = await getExistingIdempotency(prisma, idempotencyKey);
+    const existingKey = await getExistingIdempotency(getPrisma(), idempotencyKey);
     if (existingKey) {
       if (existingKey.requestHash !== requestHash) {
         return res.status(409).json({ success: false, error: 'Conflicting idempotency key with different payload' });
@@ -215,7 +223,7 @@ router.post('/bookings/hold', async (req, res) => {
       return res.status(400).json({ success: false, error: `Stay cannot exceed ${MAX_BOOKING_RANGE_DAYS} nights` });
     }
 
-    const { booking, property, roomType, inventories } = await prisma.$transaction(async (tx) => {
+    const { booking, property, roomType, inventories } = await getPrisma().$transaction(async (tx) => {
       const property = await tx.property.findUnique({
         where: { id: parseInt(propertyId, 10) },
       });
@@ -332,7 +340,7 @@ router.post('/bookings/hold', async (req, res) => {
     };
 
     await persistIdempotency(
-      prisma,
+      getPrisma(),
       idempotencyKey,
       req.method,
       req.path,
@@ -351,7 +359,7 @@ router.post('/bookings/hold', async (req, res) => {
 
     if (statusCode !== 500 && req.headers['idempotency-key']) {
       await persistIdempotency(
-        prisma,
+        getPrisma(),
         req.headers['idempotency-key'],
         req.method,
         req.path,
@@ -378,7 +386,7 @@ router.post('/bookings/confirm', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Idempotency-Key header is required' });
     }
 
-    const existingKey = await getExistingIdempotency(prisma, idempotencyKey);
+    const existingKey = await getExistingIdempotency(getPrisma(), idempotencyKey);
     if (existingKey) {
       if (existingKey.requestHash !== requestHash) {
         return res.status(409).json({ success: false, error: 'Conflicting idempotency key with different payload' });
@@ -394,7 +402,7 @@ router.post('/bookings/confirm', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Provide bookingId or holdToken' });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await getPrisma().$transaction(async (tx) => {
       const booking = await tx.booking.findFirst({
         where: bookingId
           ? { id: parseInt(bookingId, 10) }
@@ -476,7 +484,7 @@ router.post('/bookings/confirm', async (req, res) => {
     };
 
     await persistIdempotency(
-      prisma,
+      getPrisma(),
       idempotencyKey,
       req.method,
       req.path,
@@ -519,7 +527,7 @@ router.post('/bookings/cancel', async (req, res) => {
   }
 
   try {
-    const { booking } = await prisma.$transaction(async (tx) => {
+    const { booking } = await getPrisma().$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
         where: { id: parseInt(bookingId, 10) },
       include: {

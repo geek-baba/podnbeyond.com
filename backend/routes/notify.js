@@ -5,14 +5,22 @@ const { renderTemplate } = require('../services/template-engine');
 const { createHash } = require('crypto');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * Get existing idempotency or null
  */
 async function getExistingIdempotency(key) {
   if (!key) return null;
-  return prisma.idempotencyKey.findUnique({ where: { key } });
+  return getPrisma().idempotencyKey.findUnique({ where: { key } });
 }
 
 /**
@@ -20,7 +28,7 @@ async function getExistingIdempotency(key) {
  */
 async function persistIdempotency(key, method, path, requestHash, statusCode, responseBody, propertyId) {
   if (!key) return;
-  await prisma.idempotencyKey.upsert({
+  await getPrisma().idempotencyKey.upsert({
     where: { key },
     update: {
       requestHash,
@@ -57,7 +65,7 @@ router.post('/booking', async (req, res) => {
 
     if (bookingId) {
       // Get booking details
-      booking = await prisma.booking.findUnique({
+      booking = await getPrisma().booking.findUnique({
         where: { id: parseInt(bookingId) },
         include: {
           property: true,
@@ -103,7 +111,7 @@ router.post('/booking', async (req, res) => {
     
     if (templateId && bookingId) {
       // Use specific template
-      const template = await prisma.messageTemplate.findUnique({
+      const template = await getPrisma().messageTemplate.findUnique({
         where: { id: parseInt(templateId) },
       });
       
@@ -119,7 +127,7 @@ router.post('/booking', async (req, res) => {
       }
     } else if (bookingId && !message) {
       // Auto-find booking confirmation template
-      const template = await prisma.messageTemplate.findFirst({
+      const template = await getPrisma().messageTemplate.findFirst({
         where: {
           type: 'BOOKING_CONFIRMATION',
           channel: channel === 'whatsapp' ? 'WHATSAPP' : 'SMS',
@@ -189,7 +197,7 @@ router.post('/booking', async (req, res) => {
 
     // Link message log to booking if provided
     if (result.success && result.messageId && booking) {
-      await prisma.messageLog.update({
+      await getPrisma().messageLog.update({
         where: { id: result.messageId },
         data: { bookingId: booking.id },
       });

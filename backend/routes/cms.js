@@ -5,7 +5,15 @@ const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -45,7 +53,7 @@ const upload = multer({
 // Get all content
 router.get('/content/all', async (req, res) => {
   try {
-    const content = await prisma.content.findMany({
+    const content = await getPrisma().content.findMany({
       orderBy: {
         sortOrder: 'asc'
       }
@@ -62,7 +70,7 @@ router.get('/content/all', async (req, res) => {
 router.get('/content/:type', async (req, res) => {
   try {
     const { type } = req.params;
-    const content = await prisma.content.findMany({
+    const content = await getPrisma().content.findMany({
       where: {
         type: type,
         isActive: true
@@ -84,18 +92,18 @@ router.post('/content', async (req, res) => {
   try {
     const { type, title, subtitle, description, content, isActive, sortOrder } = req.body;
     
-    const existingContent = await prisma.content.findFirst({
+    const existingContent = await getPrisma().content.findFirst({
       where: { type: type }
     });
     
     let result;
     if (existingContent) {
-      result = await prisma.content.update({
+      result = await getPrisma().content.update({
         where: { id: existingContent.id },
         data: { title, subtitle, description, content, isActive, sortOrder }
       });
     } else {
-      result = await prisma.content.create({
+      result = await getPrisma().content.create({
         data: { type, title, subtitle, description, content, isActive, sortOrder }
       });
     }
@@ -119,7 +127,7 @@ router.post('/images/upload', upload.single('image'), async (req, res) => {
     const { type, altText, title, description } = req.body;
     const imageUrl = `/uploads/${req.file.filename}`;
     
-    const image = await prisma.image.create({
+    const image = await getPrisma().image.create({
       data: {
         type: type,
         filename: req.file.filename,
@@ -142,7 +150,7 @@ router.post('/images/upload', upload.single('image'), async (req, res) => {
 // Get all images
 router.get('/images/all', async (req, res) => {
   try {
-    const images = await prisma.image.findMany({
+    const images = await getPrisma().image.findMany({
       orderBy: {
         sortOrder: 'asc'
       }
@@ -167,7 +175,7 @@ router.get('/images/:type', async (req, res) => {
       return res.status(400).json({ error: 'Invalid image type' });
     }
     
-    const images = await prisma.image.findMany({
+    const images = await getPrisma().image.findMany({
       where: {
         type: type,
         isActive: true
@@ -188,7 +196,7 @@ router.get('/images/:type', async (req, res) => {
 router.delete('/images/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const image = await prisma.image.findUnique({ where: { id: parseInt(id) } });
+    const image = await getPrisma().image.findUnique({ where: { id: parseInt(id) } });
     
     if (!image) {
       return res.status(404).json({ error: 'Image not found' });
@@ -199,7 +207,7 @@ router.delete('/images/:id', async (req, res) => {
       fs.unlinkSync(image.path);
     }
     
-    await prisma.image.delete({ where: { id: parseInt(id) } });
+    await getPrisma().image.delete({ where: { id: parseInt(id) } });
     
     res.json({ success: true, message: 'Image deleted successfully' });
   } catch (error) {
@@ -213,7 +221,7 @@ router.delete('/images/:id', async (req, res) => {
 // Get all testimonials
 router.get('/testimonials', async (req, res) => {
   try {
-    const testimonials = await prisma.testimonial.findMany({
+    const testimonials = await getPrisma().testimonial.findMany({
       where: { isActive: true },
       include: { avatarImage: true },
       orderBy: { sortOrder: 'asc' }
@@ -231,7 +239,7 @@ router.post('/testimonials', async (req, res) => {
   try {
     const { guestName, guestEmail, rating, title, content, avatarImageId, isActive, sortOrder } = req.body;
     
-    const testimonial = await prisma.testimonial.create({
+    const testimonial = await getPrisma().testimonial.create({
       data: {
         guestName,
         guestEmail,
@@ -258,7 +266,7 @@ router.put('/testimonials/:id', async (req, res) => {
     const { id } = req.params;
     const { guestName, guestEmail, rating, title, content, avatarImageId, isActive, sortOrder } = req.body;
     
-    const testimonial = await prisma.testimonial.update({
+    const testimonial = await getPrisma().testimonial.update({
       where: { id: parseInt(id) },
       data: {
         guestName,
@@ -284,7 +292,7 @@ router.put('/testimonials/:id', async (req, res) => {
 router.delete('/testimonials/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.testimonial.delete({ where: { id: parseInt(id) } });
+    await getPrisma().testimonial.delete({ where: { id: parseInt(id) } });
     
     res.json({ success: true, message: 'Testimonial deleted successfully' });
   } catch (error) {
@@ -298,7 +306,7 @@ router.delete('/testimonials/:id', async (req, res) => {
 // Get all amenities
 router.get('/amenities', async (req, res) => {
   try {
-    const amenities = await prisma.amenity.findMany({
+    const amenities = await getPrisma().amenity.findMany({
       where: { isActive: true },
       include: { iconImage: true },
       orderBy: { sortOrder: 'asc' }
@@ -316,7 +324,7 @@ router.post('/amenities', async (req, res) => {
   try {
     const { name, description, iconName, iconImageId, isActive, sortOrder } = req.body;
     
-    const amenity = await prisma.amenity.create({
+    const amenity = await getPrisma().amenity.create({
       data: {
         name,
         description,
@@ -341,7 +349,7 @@ router.put('/amenities/:id', async (req, res) => {
     const { id } = req.params;
     const { name, description, iconName, iconImageId, isActive, sortOrder } = req.body;
     
-    const amenity = await prisma.amenity.update({
+    const amenity = await getPrisma().amenity.update({
       where: { id: parseInt(id) },
       data: {
         name,
@@ -365,7 +373,7 @@ router.put('/amenities/:id', async (req, res) => {
 router.delete('/amenities/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.amenity.delete({ where: { id: parseInt(id) } });
+    await getPrisma().amenity.delete({ where: { id: parseInt(id) } });
     
     res.json({ success: true, message: 'Amenity deleted successfully' });
   } catch (error) {
@@ -379,7 +387,7 @@ router.delete('/amenities/:id', async (req, res) => {
 // Get all settings
 router.get('/settings', async (req, res) => {
   try {
-    const settings = await prisma.setting.findMany({
+    const settings = await getPrisma().setting.findMany({
       orderBy: { key: 'asc' }
     });
     
@@ -394,7 +402,7 @@ router.get('/settings', async (req, res) => {
 router.get('/settings/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    const setting = await prisma.setting.findUnique({
+    const setting = await getPrisma().setting.findUnique({
       where: { key }
     });
     
@@ -414,18 +422,18 @@ router.post('/settings', async (req, res) => {
   try {
     const { key, value, description, type, isPublic } = req.body;
     
-    const existingSetting = await prisma.setting.findUnique({
+    const existingSetting = await getPrisma().setting.findUnique({
       where: { key }
     });
     
     let result;
     if (existingSetting) {
-      result = await prisma.setting.update({
+      result = await getPrisma().setting.update({
         where: { key },
         data: { value, description, type, isPublic }
       });
     } else {
-      result = await prisma.setting.create({
+      result = await getPrisma().setting.create({
         data: { key, value, description, type, isPublic }
       });
     }
@@ -441,7 +449,7 @@ router.post('/settings', async (req, res) => {
 router.delete('/settings/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    await prisma.setting.delete({ where: { key } });
+    await getPrisma().setting.delete({ where: { key } });
     
     res.json({ success: true, message: 'Setting deleted successfully' });
   } catch (error) {

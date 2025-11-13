@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 const STAFF_ROLE_KEYS = [
   'STAFF_FRONTDESK',
@@ -19,7 +27,7 @@ router.get('/', async (req, res) => {
   try {
     const search = (req.query.search || '').toLowerCase();
 
-    const users = await prisma.user.findMany({
+    const users = await getPrisma().user.findMany({
       where: {
         userRoles: {
           some: {
@@ -98,12 +106,12 @@ router.post('/', async (req, res) => {
     }
 
     // Ensure email is unique
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await getPrisma().user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(409).json({ error: 'A user with this email already exists' });
     }
 
-    const user = await prisma.user.create({
+    const user = await getPrisma().user.create({
       data: {
         name: fullName || email.split('@')[0],
         email,
@@ -111,7 +119,7 @@ router.post('/', async (req, res) => {
       },
     });
 
-    await prisma.userRole.create({
+    await getPrisma().userRole.create({
       data: {
         userId: user.id,
         roleKey,
@@ -157,7 +165,7 @@ router.patch('/:id', async (req, res) => {
 
     const fullName = name || [firstName, lastName].filter(Boolean).join(' ').trim();
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { id },
       include: {
         userRoles: true,
@@ -178,7 +186,7 @@ router.patch('/:id', async (req, res) => {
         updateData.name = fullName;
       }
       if (Object.keys(updateData).length > 0) {
-        await prisma.user.update({
+        await getPrisma().user.update({
           where: { id },
           data: updateData,
         });
@@ -189,7 +197,7 @@ router.patch('/:id', async (req, res) => {
       const existingRole = user.userRoles[0];
 
       if (existingRole) {
-        await prisma.userRole.update({
+        await getPrisma().userRole.update({
           where: { id: existingRole.id },
           data: {
             roleKey,
@@ -198,7 +206,7 @@ router.patch('/:id', async (req, res) => {
           },
         });
       } else {
-        await prisma.userRole.create({
+        await getPrisma().userRole.create({
           data: {
             userId: id,
             roleKey,
@@ -209,7 +217,7 @@ router.patch('/:id', async (req, res) => {
       }
     }
 
-    const updatedUser = await prisma.user.findUnique({
+    const updatedUser = await getPrisma().user.findUnique({
       where: { id },
       include: {
         userRoles: {
