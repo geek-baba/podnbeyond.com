@@ -4,10 +4,18 @@ on:
   push:
     branches:
       - main
+    # Skip deployment for documentation-only changes
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.cursorrules'
+      - 'README.md'
   workflow_dispatch:
 
 # Cancel previous deployments when a new one starts
 # This allows batching: if multiple commits are pushed quickly, only the latest deploys
+# Note: To reduce cancellation email spam, configure GitHub notifications to not send
+# emails for cancelled workflows (Settings → Notifications → GitHub Actions → uncheck "Cancelled")
 concurrency:
   group: deploy-staging
   cancel-in-progress: true
