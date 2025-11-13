@@ -13,6 +13,7 @@ async function authenticate(req, res, next) {
     // Get session token from cookie or header
     // Try multiple cookie names for compatibility
     const sessionToken = 
+      req.cookies['pod-session'] ||
       req.cookies['session-token'] || 
       req.cookies['next-auth.session-token'] ||
       req.cookies['__Secure-next-auth.session-token'] ||
@@ -140,6 +141,7 @@ async function optionalAuthenticate(req, res, next) {
   try {
     // Get session token from cookie or header
     const sessionToken = 
+      req.cookies['pod-session'] ||
       req.cookies['session-token'] || 
       req.cookies['next-auth.session-token'] ||
       req.cookies['__Secure-next-auth.session-token'] ||
