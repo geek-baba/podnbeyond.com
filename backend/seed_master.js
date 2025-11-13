@@ -230,11 +230,23 @@ async function seedLoyaltyUsers() {
     { tier: 'PLATINUM', weight: 15 }
   ];
 
+  // Get existing loyalty accounts to find next available member number
+  const existingAccounts = await prisma.loyaltyAccount.findMany({
+    orderBy: { memberNumber: 'desc' },
+    take: 1,
+  });
+  
+  let startMemberNumber = 1;
+  if (existingAccounts.length > 0) {
+    const lastMemberNumber = parseInt(existingAccounts[0].memberNumber, 10);
+    startMemberNumber = lastMemberNumber + 1;
+  }
+
   for (let i = 0; i < 100; i++) {
     const name = generateIndianName();
     const email = generateEmail(name);
     const phone = generateIndianPhone();
-    const memberNumber = String(i + 1).padStart(6, '0');
+    const memberNumber = String(startMemberNumber + i).padStart(6, '0');
     const tier = weightedRandom(tierWeights).tier;
     
     // Points based on tier
@@ -251,7 +263,7 @@ async function seedLoyaltyUsers() {
       lifetimeStays = Math.floor(10 + Math.random() * 10);
     }
 
-    // Create user
+    // Create user (upsert to avoid duplicates)
     const user = await prisma.user.upsert({
       where: { email },
       update: { name, phone },
@@ -262,22 +274,49 @@ async function seedLoyaltyUsers() {
       },
     });
 
-    // Create loyalty account
-    const loyaltyAccount = await prisma.loyaltyAccount.upsert({
+    // Check if loyalty account already exists for this user
+    const existingLoyaltyAccount = await prisma.loyaltyAccount.findUnique({
       where: { userId: user.id },
-      update: {
-        points,
-        lifetimeStays,
-        tier,
-      },
-      create: {
-        userId: user.id,
-        memberNumber,
-        points,
-        lifetimeStays,
-        tier,
-      },
     });
+
+    let loyaltyAccount;
+    if (existingLoyaltyAccount) {
+      // Update existing account
+      loyaltyAccount = await prisma.loyaltyAccount.update({
+        where: { id: existingLoyaltyAccount.id },
+        data: {
+          points: existingLoyaltyAccount.points + points,
+          lifetimeStays: existingLoyaltyAccount.lifetimeStays + lifetimeStays,
+          tier: tier > existingLoyaltyAccount.tier ? tier : existingLoyaltyAccount.tier,
+        },
+      });
+    } else {
+      // Create new loyalty account with unique member number
+      // Check if member number is already taken
+      let finalMemberNumber = memberNumber;
+      let memberNumberExists = await prisma.loyaltyAccount.findUnique({
+        where: { memberNumber: finalMemberNumber },
+      });
+      
+      // If taken, find next available
+      while (memberNumberExists) {
+        startMemberNumber++;
+        finalMemberNumber = String(startMemberNumber).padStart(6, '0');
+        memberNumberExists = await prisma.loyaltyAccount.findUnique({
+          where: { memberNumber: finalMemberNumber },
+        });
+      }
+      
+      loyaltyAccount = await prisma.loyaltyAccount.create({
+        data: {
+          userId: user.id,
+          memberNumber: finalMemberNumber,
+          points,
+          lifetimeStays,
+          tier,
+        },
+      });
+    }
 
     loyaltyUsers.push({ user, loyaltyAccount });
     
