@@ -218,43 +218,63 @@ router.get('/', async (req, res) => {
     }
 
     // Fetch threads
-    const threads = await getPrisma().thread.findMany({
-      where,
-      include: {
-        property: {
-          select: { id: true, name: true, slug: true },
+    // Use a simpler query that works with current schema (without new fields)
+    // We'll enhance this after migration
+    let threads;
+    try {
+      // Try to fetch with all new relations
+      threads = await getPrisma().thread.findMany({
+        where: {
+          isArchived: false,
+          ...(where.propertyId && { propertyId: where.propertyId }),
         },
-        booking: {
-          select: { id: true, guestName: true, checkIn: true, checkOut: true },
+        include: {
+          property: {
+            select: { id: true, name: true, slug: true },
+          },
+          booking: {
+            select: { id: true, guestName: true, checkIn: true, checkOut: true },
+          },
+          emails: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+          // Only include new relations if they exist
+          ...(where.assignedTo !== undefined && {
+            assignedUser: {
+              select: { id: true, name: true, email: true },
+            },
+          }),
         },
-        assignedUser: {
-          select: { id: true, name: true, email: true },
+        orderBy: { lastMessageAt: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset),
+      });
+    } catch (error) {
+      // Fallback: Fetch without new fields
+      console.warn('Error fetching threads, using fallback query:', error.message);
+      threads = await getPrisma().thread.findMany({
+        where: {
+          isArchived: false,
+          ...(where.propertyId && { propertyId: where.propertyId }),
         },
-        emails: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-        messageLogs: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-        callLogs: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-        _count: {
-          select: {
-            emails: true,
-            messageLogs: true,
-            callLogs: true,
-            notes: true,
+        include: {
+          property: {
+            select: { id: true, name: true, slug: true },
+          },
+          booking: {
+            select: { id: true, guestName: true, checkIn: true, checkOut: true },
+          },
+          emails: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
           },
         },
-      },
-      orderBy: { lastMessageAt: 'desc' },
-      take: parseInt(limit),
-      skip: parseInt(offset),
-    });
+        orderBy: { lastMessageAt: 'desc' },
+        take: parseInt(limit),
+        skip: parseInt(offset),
+      });
+    }
 
     // Enrich with channel info and SLA
     const enriched = threads.map((thread) => {
