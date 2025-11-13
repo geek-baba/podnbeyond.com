@@ -90,12 +90,21 @@ jobs:
             git fetch --all
             git checkout main
             
-            # Discard any local changes to .next directory and other build artifacts
-            git reset --hard HEAD || true
-            git clean -fd frontend/.next backend/.next || true
+            # Clean all untracked files first (including test scripts that might conflict)
+            echo "Cleaning untracked files..."
+            git clean -fd || true
             
-            # Now pull the latest changes
-            git pull origin main
+            # Discard any local changes
+            git reset --hard HEAD || true
+            
+            # Fetch latest changes
+            git fetch origin main
+            
+            # Reset to origin/main (this avoids merge conflicts with untracked files)
+            git reset --hard origin/main
+            
+            # Clean again to ensure clean state
+            git clean -fd || true
 
             export DATABASE_URL='${{ secrets.STAGING_DATABASE_URL }}'
             export POSTMARK_TOKEN='${{ secrets.STAGING_POSTMARK_TOKEN }}'
