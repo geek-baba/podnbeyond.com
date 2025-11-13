@@ -291,40 +291,61 @@ export async function getBookings(filters: BookingFilters = {}): Promise<Booking
   if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
 
   const apiUrl = getBookingApiUrl();
-  const response = await fetch(`${apiUrl}/bookings?${params.toString()}`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch bookings: ${response.statusText}`);
-  }
-
-  const result = await response.json();
+  const url = `${apiUrl}/bookings?${params.toString()}`;
   
-  // Transform response to match expected format
-  if (result.success) {
-    // Backend returns { success: true, data: [...], pagination: {...} }
-    if (Array.isArray(result.data)) {
-      const pagination = result.pagination || {};
-      return {
-        success: true,
-        data: {
-          bookings: result.data,
-          total: pagination.total || result.data.length,
-          totalPages: pagination.totalPages || 1,
-          page: pagination.page || filters.page || 1,
-          limit: pagination.limit || filters.limit || 20,
-        },
-        pagination: pagination,
-      };
-    }
-  }
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  return result;
+    if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || response.statusText;
+      } catch {
+        // If JSON parse fails, use statusText
+      }
+      throw new Error(`Failed to fetch bookings: ${errorMessage} (${response.status})`);
+    }
+
+    const result = await response.json();
+    
+    // Transform response to match expected format
+    if (result.success) {
+      // Backend returns { success: true, data: [...], pagination: {...} }
+      if (Array.isArray(result.data)) {
+        const pagination = result.pagination || {};
+        return {
+          success: true,
+          data: {
+            bookings: result.data,
+            total: pagination.total || result.data.length,
+            totalPages: pagination.totalPages || 1,
+            page: pagination.page || filters.page || 1,
+            limit: pagination.limit || filters.limit || 20,
+          },
+          pagination: pagination,
+        };
+      }
+    }
+
+    // If response doesn't match expected format, return as-is
+    console.warn('Unexpected API response format:', result);
+    return result;
+  } catch (error: any) {
+    console.error('Error fetching bookings:', {
+      url,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
 }
 
 /**
