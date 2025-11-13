@@ -6,7 +6,14 @@ const {
   updateInventoryWithConfirmation,
 } = require('../lib/inventoryUtils');
 
-const prisma = new PrismaClient();
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * Channel Manager for External Travel Platform Integrations
@@ -109,7 +116,7 @@ class ChannelManager {
    */
   async logSyncActivity(action, details, channelId = null) {
     try {
-      await prisma.oTASyncLog.create({
+      await getPrisma().oTASyncLog.create({
         data: {
           action: action,
           details: JSON.stringify(details),
@@ -364,7 +371,7 @@ class ChannelManager {
       const inclusiveEnd = new Date(end);
       inclusiveEnd.setUTCDate(inclusiveEnd.getUTCDate() + 1);
 
-      const mappings = await prisma.oTAMapping.findMany({
+      const mappings = await getPrisma().oTAMapping.findMany({
         where: {
           isActive: true,
           ...(channelId ? { provider: channelId } : {}),
@@ -393,7 +400,7 @@ class ChannelManager {
         return [];
       }
 
-      const inventories = await prisma.inventory.findMany({
+      const inventories = await getPrisma().inventory.findMany({
         where: {
           roomTypeId: { in: roomTypeIds },
           date: {
@@ -432,7 +439,7 @@ class ChannelManager {
           let inventory = inventoryMap.get(mapKey);
 
           if (!inventory) {
-            inventory = await ensureInventoryRow(prisma, property, roomType, normalizedDate);
+            inventory = await ensureInventoryRow(getPrisma(), property, roomType, normalizedDate);
             inventoryMap.set(mapKey, inventory);
           }
 
@@ -871,7 +878,7 @@ class ChannelManager {
    */
   async getSyncLogs(limit = 50) {
     try {
-      const logs = await prisma.oTASyncLog.findMany({
+      const logs = await getPrisma().oTASyncLog.findMany({
         orderBy: { timestamp: 'desc' },
         take: limit
       });
