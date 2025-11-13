@@ -40,6 +40,7 @@ const bookingRoutes = require('./routes/booking');
 const guestRoutes = require('./routes/guest');
 const guestContextRoutes = require('./routes/guest-context');
 const analyticsRoutes = require('./routes/analytics');
+const integrationsRoutes = require('./routes/integrations');
 const cancellationPolicyRoutes = require('./routes/cancellationPolicy');
 const paymentRoutes = require('./routes/payment');
 
@@ -57,6 +58,7 @@ app.use('/api', bookingRoutes);
 app.use('/api', guestRoutes);
 app.use('/api/guest-context', guestContextRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/integrations', integrationsRoutes);
 app.use('/api', cancellationPolicyRoutes);
 app.use('/api', paymentRoutes);
 
