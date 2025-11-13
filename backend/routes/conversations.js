@@ -593,17 +593,31 @@ router.get('/:id', async (req, res) => {
     const sla = calculateSLA({ ...thread, status: threadStatus, priority: threadPriority }, primaryChannel);
 
     // Build conversation response with backward compatibility
+    // Safely extract thread data to avoid spreading undefined/null values
     const conversationResponse = {
-      ...thread,
+      id: thread.id,
+      subject: thread.subject,
+      participants: Array.isArray(thread.participants) ? thread.participants : [],
+      lastMessageAt: thread.lastMessageAt,
+      isArchived: thread.isArchived || false,
       status: threadStatus,
       priority: threadPriority,
       assignedTo: thread.assignedTo || null,
       assignedUser: thread.assignedUser || null,
+      property: thread.property || null,
+      booking: thread.booking || null,
+      propertyId: thread.propertyId || null,
+      bookingId: thread.bookingId || null,
+      userId: thread.userId || null,
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+      firstResponseAt: thread.firstResponseAt || null,
+      resolvedAt: thread.resolvedAt || null,
+      slaBreached: thread.slaBreached || false,
+      unreadCount: thread.unreadCount || 0,
+      tags: Array.isArray(thread.tags) ? thread.tags : [],
       messages,
       sla,
-      // Add default values for fields that might not exist
-      unreadCount: thread.unreadCount || 0,
-      participants: thread.participants || [],
     };
 
     res.json({
