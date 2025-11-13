@@ -137,7 +137,13 @@ export default function CommunicationHub() {
     }
 
     // Create new EventSource connection
-    const es = new EventSource(`/api/realtime/events?userId=${session.user.id}`);
+    // Note: EventSource doesn't support custom headers, so we use query param for auth
+    // In production, the cookie should work, but for development we need the token in URL
+    const sessionToken = typeof window !== 'undefined' ? localStorage.getItem('pod-session-token') : null;
+    const eventUrl = sessionToken 
+      ? `/api/realtime/events?userId=${session.user.id}&token=${encodeURIComponent(sessionToken)}`
+      : `/api/realtime/events?userId=${session.user.id}`;
+    const es = new EventSource(eventUrl);
     setEventSource(es);
 
     es.onmessage = (event) => {
