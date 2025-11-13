@@ -88,7 +88,36 @@ router.get('/conversations', async (req, res) => {
     if (propertyId) {
       propertyFilter.propertyId = parseInt(propertyId);
     } else if (accessiblePropertyIds !== null) {
-      propertyFilter.propertyId = { in: accessiblePropertyIds };
+      // Only apply filter if user has access to at least one property
+      // Empty array means no access, so return empty results
+      if (accessiblePropertyIds.length > 0) {
+        propertyFilter.propertyId = { in: accessiblePropertyIds };
+      } else {
+        // User has no property access - return empty results
+        return res.json({
+          success: true,
+          analytics: {
+            overview: {
+              totalConversations: 0,
+              byStatus: {},
+              byPriority: {},
+              channelBreakdown: { EMAIL: 0, WHATSAPP: 0, SMS: 0, VOICE: 0 },
+            },
+            performance: {
+              avgResponseTime: 0,
+              avgResolutionTime: 0,
+              slaBreachRate: 0,
+              slaBreachedCount: 0,
+              respondedCount: 0,
+              resolvedCount: 0,
+            },
+            trends: {
+              dailyStats: {},
+            },
+            topAssignees: [],
+          },
+        });
+      }
     }
 
     const where = {
@@ -317,11 +346,19 @@ router.get('/conversations', async (req, res) => {
     });
   } catch (error) {
     console.error('Analytics error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
+    // Always include error details for better debugging
     res.status(500).json({ 
       success: false, 
       error: 'Failed to fetch analytics',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: error.message || 'Unknown error',
+      // Include more details in production for debugging
+      ...(process.env.NODE_ENV === 'production' ? {
+        errorName: error.name,
+        errorCode: error.code,
+      } : {})
     });
   }
 });

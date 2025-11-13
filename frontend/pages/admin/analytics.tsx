@@ -147,13 +147,24 @@ export default function AnalyticsPage() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        console.error('Analytics API error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        throw new Error(errorData.error || errorData.details || `HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
       console.log('Analytics API response:', data); // Debug log
       console.log('Analytics performance data:', data.analytics?.performance); // Debug performance metrics
-      if (data.success && data.analytics) {
+      
+      if (!data.success) {
+        console.error('Analytics API returned success: false:', data);
+        throw new Error(data.error || data.details || 'Unknown error from analytics API');
+      }
+      
+      if (data.analytics) {
         console.log('Setting analytics data:', {
           totalConversations: data.analytics.overview?.totalConversations,
           avgResponseTime: data.analytics.performance?.avgResponseTime,
@@ -163,8 +174,8 @@ export default function AnalyticsPage() {
         });
         setAnalytics(data.analytics);
       } else {
-        console.error('Analytics API error:', data.error, data.details);
-        alert(`Failed to load analytics: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
+        console.error('Analytics API response missing analytics data:', data);
+        throw new Error('Analytics API response missing analytics data');
       }
     } catch (error) {
       console.error('Failed to load analytics:', error);
