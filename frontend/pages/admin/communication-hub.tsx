@@ -80,6 +80,7 @@ export default function CommunicationHub() {
   const [loading, setLoading] = useState(true);
   const [conversationDetailsLoading, setConversationDetailsLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false); // Track if we've auto-selected once
   const [properties, setProperties] = useState<Array<{ id: number; name: string; slug: string }>>([]);
   const [selectedConversationIds, setSelectedConversationIds] = useState<Set<number>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
@@ -1075,8 +1076,21 @@ export default function CommunicationHub() {
                       conversations.map((conv) => (
                         <div
                           key={conv.id}
-                          onClick={() => loadConversationDetails(conv.id)}
-                          className={`p-4 rounded-lg transition-all border cursor-pointer ${
+                          onClick={(e) => {
+                            // Prevent clicks if already loading
+                            if (conversationDetailsLoading || conv.id === selectedConversation?.id) {
+                              return;
+                            }
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('User clicked conversation:', conv.id);
+                            loadConversationDetails(conv.id, true);
+                          }}
+                          className={`p-4 rounded-lg transition-all border ${
+                            conversationDetailsLoading && selectedConversation?.id !== conv.id
+                              ? 'cursor-wait opacity-50'
+                              : 'cursor-pointer'
+                          } ${
                             selectedConversation?.id === conv.id
                               ? 'bg-neutral-900 text-white border-neutral-900'
                               : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-neutral-300'
