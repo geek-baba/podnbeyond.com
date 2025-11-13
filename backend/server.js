@@ -1,59 +1,31 @@
 // CRITICAL: Set up error handlers FIRST before any other code
-// Use immediate function to ensure handlers are set up synchronously
-(function setupErrorHandlers() {
-  // Write directly to stderr (unbuffered) to ensure errors are logged
-  const originalWrite = process.stderr.write.bind(process.stderr);
-  process.stderr.write = function(chunk, encoding, callback) {
-    originalWrite(chunk, encoding, callback);
-    // Force flush
-    if (typeof callback !== 'function') {
-      process.stderr._handle && process.stderr._handle.setBlocking && process.stderr._handle.setBlocking(true);
-    }
-  };
+// PM2 captures console.log/error immediately, so use those for logging
+process.on('uncaughtException', (error) => {
+  console.error('❌ UNCAUGHT EXCEPTION');
+  console.error(`Error name: ${error.name}`);
+  console.error(`Error message: ${error.message}`);
+  if (error.stack) {
+    console.error(`Stack trace: ${error.stack}`);
+  }
+  if (error.code) {
+    console.error(`Error code: ${error.code}`);
+  }
+  // Give PM2 time to capture logs before exiting
+  setTimeout(() => process.exit(1), 1000);
+});
 
-  process.on('uncaughtException', (error) => {
-    try {
-      // Use console.error for PM2 compatibility
-      console.error('❌ UNCAUGHT EXCEPTION');
-      console.error(`Error name: ${error.name}`);
-      console.error(`Error message: ${error.message}`);
-      if (error.stack) {
-        console.error(`Stack trace: ${error.stack}`);
-      }
-      if (error.code) {
-        console.error(`Error code: ${error.code}`);
-      }
-    } catch (logError) {
-      // If we can't even log, write to a file as last resort
-      try {
-        require('fs').appendFileSync('/tmp/server-crash.log', 
-          `${new Date().toISOString()}: ${error.toString()}\n${error.stack || ''}\n\n`);
-      } catch (e) {
-        // Give up
-      }
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ UNHANDLED REJECTION');
+  if (reason instanceof Error) {
+    console.error(`Error name: ${reason.name}`);
+    console.error(`Error message: ${reason.message}`);
+    if (reason.stack) {
+      console.error(`Stack trace: ${reason.stack}`);
     }
-    // Exit after a short delay to ensure logs are written
-    setTimeout(() => process.exit(1), 500);
-  });
-
-  process.on('unhandledRejection', (reason, promise) => {
-    try {
-      // Use console.error for PM2 compatibility
-      console.error('❌ UNHANDLED REJECTION');
-      if (reason instanceof Error) {
-        console.error(`Error name: ${reason.name}`);
-        console.error(`Error message: ${reason.message}`);
-        if (reason.stack) {
-          console.error(`Stack trace: ${reason.stack}`);
-        }
-      } else {
-        console.error(`Reason: ${String(reason)}`);
-      }
-    } catch (logError) {
-      // Ignore logging errors
-    }
-  });
-})();
+  } else {
+    console.error(`Reason: ${String(reason)}`);
+  }
+});
 
 // Log startup immediately (before any requires)
 // Use console.log for PM2 compatibility (PM2 buffers process.stdout.write)
