@@ -189,50 +189,61 @@ router.get('/conversations', async (req, res) => {
       _count: { id: true },
     }).catch(() => []); // Return empty array if groupBy fails
 
-    // Get SLA metrics
-    const slaMetrics = await getPrisma().thread.findMany({
-      where: {
-        ...where,
-        status: { not: 'ARCHIVED' },
-      },
-      select: {
-        id: true,
-        createdAt: true,
-        firstResponseAt: true,
-        resolvedAt: true,
-        slaBreached: true,
-        status: true,
-      },
-    });
-
-    const now = new Date();
-    let totalResponseTime = 0;
-    let respondedCount = 0;
-    let totalResolutionTime = 0;
-    let resolvedCount = 0;
+    // Get SLA metrics - handle case where columns might not exist in production DB
+    let avgResponseTime = 0;
+    let avgResolutionTime = 0;
+    let slaBreachRate = 0;
     let slaBreachedCount = 0;
+    let respondedCount = 0;
+    let resolvedCount = 0;
 
-    slaMetrics.forEach((thread) => {
-      if (thread.firstResponseAt) {
-        const responseTime = (thread.firstResponseAt - thread.createdAt) / (1000 * 60); // minutes
-        totalResponseTime += responseTime;
-        respondedCount++;
-      }
+    try {
+      const slaMetrics = await getPrisma().thread.findMany({
+        where: {
+          ...where,
+          status: { not: 'ARCHIVED' },
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          firstResponseAt: true,
+          resolvedAt: true,
+          slaBreached: true,
+          status: true,
+        },
+      });
 
-      if (thread.resolvedAt) {
-        const resolutionTime = (thread.resolvedAt - thread.createdAt) / (1000 * 60); // minutes
-        totalResolutionTime += resolutionTime;
-        resolvedCount++;
-      }
+      const now = new Date();
+      let totalResponseTime = 0;
+      let totalResolutionTime = 0;
 
-      if (thread.slaBreached) {
-        slaBreachedCount++;
-      }
-    });
+      slaMetrics.forEach((thread) => {
+        if (thread.firstResponseAt) {
+          const responseTime = (thread.firstResponseAt - thread.createdAt) / (1000 * 60); // minutes
+          totalResponseTime += responseTime;
+          respondedCount++;
+        }
 
-    const avgResponseTime = respondedCount > 0 ? totalResponseTime / respondedCount : 0;
-    const avgResolutionTime = resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0;
-    const slaBreachRate = slaMetrics.length > 0 ? (slaBreachedCount / slaMetrics.length) * 100 : 0;
+        if (thread.resolvedAt) {
+          const resolutionTime = (thread.resolvedAt - thread.createdAt) / (1000 * 60); // minutes
+          totalResolutionTime += resolutionTime;
+          resolvedCount++;
+        }
+
+        if (thread.slaBreached) {
+          slaBreachedCount++;
+        }
+      });
+
+      avgResponseTime = respondedCount > 0 ? totalResponseTime / respondedCount : 0;
+      avgResolutionTime = resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0;
+      slaBreachRate = slaMetrics.length > 0 ? (slaBreachedCount / slaMetrics.length) * 100 : 0;
+    } catch (slaError) {
+      // If SLA columns don't exist in database, return zero values
+      // This allows analytics to work even if migrations haven't been run
+      console.warn('SLA metrics query failed (columns may not exist):', slaError.message);
+      console.warn('Returning zero values for SLA metrics');
+    }
 
     // Get conversations over time (grouped by time period)
     const timePeriod = req.query.timePeriod || 'day'; // day, week, month, year
