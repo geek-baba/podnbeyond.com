@@ -80,6 +80,11 @@ async function authenticate(req, res, next) {
     // Add helper methods
     req.user.hasPermission = (permission) => {
       return req.user.roles.some(role => {
+        // Check for wildcard permission (all permissions)
+        if (role.permissions.includes('*')) {
+          return true;
+        }
+
         // Check for exact permission match
         if (role.permissions.includes(permission)) {
           return true;
@@ -189,9 +194,17 @@ async function optionalAuthenticate(req, res, next) {
       // Add helper methods
       req.user.hasPermission = (permission) => {
         return req.user.roles.some(role => {
+          // Check for wildcard permission (all permissions)
+          if (role.permissions.includes('*')) {
+            return true;
+          }
+
+          // Check for exact permission match
           if (role.permissions.includes(permission)) {
             return true;
           }
+
+          // Check for wildcard permission (e.g., bookings:*:scoped)
           const [resource, action, scope] = permission.split(':');
           if (resource && action && scope) {
             const wildcardPermission = `${resource}:*:${scope}`;
@@ -199,12 +212,15 @@ async function optionalAuthenticate(req, res, next) {
               return true;
             }
           }
+
+          // Check for global permission if scoped (e.g., bookings:read:global)
           if (scope === 'scoped') {
             const globalPermission = `${resource}:${action}:global`;
             if (role.permissions.includes(globalPermission)) {
               return true;
             }
           }
+
           return false;
         });
       };

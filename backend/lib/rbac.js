@@ -189,6 +189,11 @@ function hasPermission(user, permission) {
   }
 
   return user.roles.some(role => {
+    // Check for wildcard permission (all permissions)
+    if (role.permissions.includes('*')) {
+      return true;
+    }
+
     // Check for exact permission match
     if (role.permissions.includes(permission)) {
       return true;
