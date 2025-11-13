@@ -73,6 +73,8 @@ if (require.main === module) {
     console.log(`📝 Booking routes: /api/bookings`);
     console.log(`👤 Guest routes: /api/guest/bookings`);
     console.log(`📋 Cancellation policy routes: /api/cancellation-policies`);
+    console.log(`🔐 OTP routes: /api/otp/send, /api/otp/verify`);
+    console.log(`🔑 Auth routes: /api/auth/session, /api/auth/signout`);
   });
 
   // Graceful shutdown
