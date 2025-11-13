@@ -221,17 +221,19 @@ export default function CommunicationHub() {
   }, [authStatus, filters]);
 
   useEffect(() => {
-    // Auto-select first conversation only when conversations first load
-    // Don't re-trigger if already loading or if there's a selection
+    // Auto-select first conversation only once when conversations first load
+    // Don't re-trigger if already loading, if there's a selection, or if we've already auto-selected
     if (
       !loading &&
       !conversationDetailsLoading &&
       conversations.length > 0 &&
-      !selectedConversation
+      !selectedConversation &&
+      !hasAutoSelected
     ) {
       const firstConversationId = conversations[0]?.id;
       if (firstConversationId) {
         console.log('Auto-selecting first conversation:', firstConversationId);
+        setHasAutoSelected(true); // Mark as auto-selected to prevent re-triggering
         loadConversationDetails(firstConversationId, false);
       }
     }
@@ -367,6 +369,10 @@ export default function CommunicationHub() {
 
       console.log('Conversation loaded successfully:', data.conversation?.id);
       setSelectedConversation(data.conversation);
+      // Mark as auto-selected if this was the first auto-selection
+      if (!hasAutoSelected) {
+        setHasAutoSelected(true);
+      }
       
       // Mark as read when viewing
       if (data.conversation.unreadCount > 0) {
