@@ -133,7 +133,7 @@ router.get('/conversations', async (req, res) => {
       by: ['status'],
       where,
       _count: { id: true },
-    });
+    }).catch(() => []); // Return empty array if groupBy fails
 
     // Get conversations by channel
     const threads = await getPrisma().thread.findMany({
@@ -167,7 +167,7 @@ router.get('/conversations', async (req, res) => {
       by: ['priority'],
       where,
       _count: { id: true },
-    });
+    }).catch(() => []); // Return empty array if groupBy fails
 
     // Get SLA metrics
     const slaMetrics = await getPrisma().thread.findMany({
@@ -298,7 +298,7 @@ router.get('/conversations', async (req, res) => {
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
       take: 10,
-    });
+    }).catch(() => []); // Return empty array if groupBy fails
 
     // Get user names for assignees
     const assigneeIds = topAssignees.map(a => a.assignedTo).filter(Boolean);
@@ -324,11 +324,11 @@ router.get('/conversations', async (req, res) => {
       analytics: {
         overview: {
           totalConversations,
-          byStatus: byStatus.reduce((acc, item) => {
+          byStatus: (byStatus || []).reduce((acc, item) => {
             acc[item.status] = item._count.id;
             return acc;
           }, {}),
-          byPriority: byPriority.reduce((acc, item) => {
+          byPriority: (byPriority || []).reduce((acc, item) => {
             acc[item.priority] = item._count.id;
             return acc;
           }, {}),
