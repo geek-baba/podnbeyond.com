@@ -4,10 +4,16 @@
 
 -- Step 1: Create new enums (only if they don't exist)
 -- PostgreSQL doesn't support CREATE TYPE IF NOT EXISTS, so we use DO block
+-- Check in current schema (public) to avoid conflicts
 DO $$ 
 BEGIN
   -- Create ConversationStatus enum if it doesn't exist
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ConversationStatus') THEN
+  -- Check in current schema (public is default)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public' AND t.typname = 'ConversationStatus'
+  ) THEN
     CREATE TYPE "ConversationStatus" AS ENUM (
       'NEW',
       'IN_PROGRESS',
@@ -15,17 +21,28 @@ BEGIN
       'RESOLVED',
       'ARCHIVED'
     );
+  ELSE
+    RAISE NOTICE 'ConversationStatus enum already exists, skipping creation';
   END IF;
   
   -- Create Priority enum if it doesn't exist
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Priority') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public' AND t.typname = 'Priority'
+  ) THEN
     CREATE TYPE "Priority" AS ENUM (
       'LOW',
       'NORMAL',
       'HIGH',
       'URGENT'
     );
+  ELSE
+    RAISE NOTICE 'Priority enum already exists, skipping creation';
   END IF;
+EXCEPTION
+  WHEN duplicate_object THEN
+    RAISE NOTICE 'Enum already exists, skipping creation';
 END $$;
 
 -- Step 2: Add new columns to email_threads table (with defaults)
