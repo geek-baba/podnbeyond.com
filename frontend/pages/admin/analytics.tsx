@@ -177,8 +177,15 @@ export default function AnalyticsPage() {
         console.error('Analytics API response missing analytics data:', data);
         throw new Error('Analytics API response missing analytics data');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load analytics:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+      const errorMessage = error.message || 'Failed to fetch analytics';
+      alert(`Failed to load analytics: ${errorMessage}\n\nCheck browser console for more details.`);
     } finally {
       setLoading(false);
     }
