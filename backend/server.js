@@ -1,37 +1,52 @@
 // CRITICAL: Set up error handlers FIRST before any other code
 // PM2 captures console.log/error immediately, so use those for logging
 process.on('uncaughtException', (error) => {
-  console.error('❌ UNCAUGHT EXCEPTION');
-  console.error(`Error name: ${error.name}`);
-  console.error(`Error message: ${error.message}`);
-  if (error.stack) {
-    console.error(`Stack trace: ${error.stack}`);
-  }
-  if (error.code) {
-    console.error(`Error code: ${error.code}`);
+  try {
+    console.error('❌ UNCAUGHT EXCEPTION');
+    console.error('Error name: ' + (error.name || 'Unknown'));
+    console.error('Error message: ' + (error.message || 'Unknown'));
+    if (error.stack) {
+      console.error('Stack trace: ' + error.stack);
+    }
+    if (error.code) {
+      console.error('Error code: ' + error.code);
+    }
+  } catch (logErr) {
+    // If we can't even log, try to write to stderr directly
+    try {
+      process.stderr.write('FATAL: Cannot log error\n');
+      process.stderr.write(String(error) + '\n');
+    } catch (e) {
+      // Give up
+    }
   }
   // Give PM2 time to capture logs before exiting
-  setTimeout(() => process.exit(1), 1000);
+  setTimeout(() => process.exit(1), 2000);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ UNHANDLED REJECTION');
   if (reason instanceof Error) {
-    console.error(`Error name: ${reason.name}`);
-    console.error(`Error message: ${reason.message}`);
+    console.error('Error name: ' + reason.name);
+    console.error('Error message: ' + reason.message);
     if (reason.stack) {
-      console.error(`Stack trace: ${reason.stack}`);
+      console.error('Stack trace: ' + reason.stack);
     }
   } else {
-    console.error(`Reason: ${String(reason)}`);
+    console.error('Reason: ' + String(reason));
   }
 });
 
 // Log startup immediately (before any requires)
 // Use console.log for PM2 compatibility (PM2 buffers process.stdout.write)
 console.log('🚀 Starting backend server...');
-console.log(`📁 Working directory: ${process.cwd()}`);
-console.log(`📦 Node version: ${process.version}`);
+try {
+  console.log('📁 Working directory: ' + process.cwd());
+  console.log('📦 Node version: ' + process.version);
+} catch (err) {
+  console.error('Error logging startup info:', err);
+  throw err;
+}
 
 // Try to require core modules with error handling
 let express, cors, cookieParser, rateLimit;
