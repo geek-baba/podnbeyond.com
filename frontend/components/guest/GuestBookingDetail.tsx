@@ -11,6 +11,7 @@ import {
   getStatusColor,
   getSourceColor,
   calculateOutstandingBalance,
+  getPaymentMethod,
 } from '../../lib/booking';
 
 interface GuestBookingDetailProps {
@@ -215,7 +216,7 @@ export default function GuestBookingDetail({ booking }: GuestBookingDetailProps)
                       {formatCurrency(payment.amount, payment.currency || booking.currency)}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {payment.method.replace(/_/g, ' ')} • {formatDate(payment.createdAt)}
+                      {getPaymentMethod(payment).replace(/_/g, ' ')} • {formatDate(payment.createdAt)}
                     </p>
                   </div>
                   <span
