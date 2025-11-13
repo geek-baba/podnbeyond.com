@@ -3187,11 +3187,19 @@ export async function getServerSideProps() {
     const roomTypes = []; // Room types loaded separately per property
 
     // Fetch real loyalty accounts from API
+    let loyaltyAccounts = [];
     const loyaltyRes = await fetch(`${API_URL}/api/loyalty/accounts`).catch(e => { 
       console.error('Loyalty fetch failed:', e); 
       return null; 
     });
-    const loyaltyAccounts = loyaltyRes ? (await loyaltyRes.json()).accounts || [] : [];
+    if (loyaltyRes && loyaltyRes.ok) {
+      try {
+        const loyaltyData = await loyaltyRes.json();
+        loyaltyAccounts = loyaltyData.accounts || loyaltyData.data || [];
+      } catch (e) {
+        console.error('Error parsing loyalty response:', e);
+      }
+    }
 
     console.log('Admin data fetched:', { 
       brands: brands.length, 
