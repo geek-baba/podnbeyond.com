@@ -1142,7 +1142,7 @@ export default function CommunicationHub() {
                               <p className={`text-xs mb-1 ${
                                 selectedConversation?.id === conv.id ? 'text-neutral-300' : 'text-neutral-600'
                               }`}>
-                                {conv.property?.name || 'No Property'} • {conv.participants[0] || 'Unknown'}
+                                {conv.property?.name || 'No Property'} • {(Array.isArray(conv.participants) ? conv.participants[0] : null) || 'Unknown'}
                               </p>
                               <p className={`text-xs ${
                                 selectedConversation?.id === conv.id ? 'text-neutral-400' : 'text-neutral-500'
