@@ -2,21 +2,31 @@
 -- Description: Add workflow fields, status tracking, and unified message linking to Thread model
 -- Date: 2025-11-13
 
--- Step 1: Create new enums
-CREATE TYPE "ConversationStatus" AS ENUM (
-  'NEW',
-  'IN_PROGRESS',
-  'WAITING_FOR_GUEST',
-  'RESOLVED',
-  'ARCHIVED'
-);
-
-CREATE TYPE "Priority" AS ENUM (
-  'LOW',
-  'NORMAL',
-  'HIGH',
-  'URGENT'
-);
+-- Step 1: Create new enums (only if they don't exist)
+-- PostgreSQL doesn't support CREATE TYPE IF NOT EXISTS, so we use DO block
+DO $$ 
+BEGIN
+  -- Create ConversationStatus enum if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ConversationStatus') THEN
+    CREATE TYPE "ConversationStatus" AS ENUM (
+      'NEW',
+      'IN_PROGRESS',
+      'WAITING_FOR_GUEST',
+      'RESOLVED',
+      'ARCHIVED'
+    );
+  END IF;
+  
+  -- Create Priority enum if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Priority') THEN
+    CREATE TYPE "Priority" AS ENUM (
+      'LOW',
+      'NORMAL',
+      'HIGH',
+      'URGENT'
+    );
+  END IF;
+END $$;
 
 -- Step 2: Add new columns to email_threads table (with defaults)
 -- First, add columns as nullable
