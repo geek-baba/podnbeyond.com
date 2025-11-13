@@ -35,6 +35,7 @@ const brandsRoutes = require('./routes/brands');
 const propertiesRoutes = require('./routes/properties');
 const usersRoutes = require('./routes/users');
 const loyaltyRoutes = require('./routes/loyalty');
+const conversationsRoutes = require('./routes/conversations');
 const bookingRoutes = require('./routes/booking');
 const guestRoutes = require('./routes/guest');
 const cancellationPolicyRoutes = require('./routes/cancellationPolicy');
@@ -49,6 +50,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 
 // Protected routes (require authentication)
+app.use('/api/conversations', conversationsRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', guestRoutes);
 app.use('/api', cancellationPolicyRoutes);

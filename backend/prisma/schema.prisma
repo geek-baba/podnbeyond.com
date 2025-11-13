@@ -148,14 +148,16 @@ model User {
   sessions Session[]
 
   // Custom relations
-  userRoles        UserRole[]
-  loyaltyAccount   LoyaltyAccount?
-  sentInvites      Invite[]          @relation("InvitedBy")
-  auditLogs        AuditLog[]
-  pointsLedger     PointsLedger[]
-  emailThreads     Thread[] // Email conversations
-  bookingAuditLogs BookingAuditLog[] // Booking audit logs
-  roomAssignments  RoomAssignment[] // Room assignments
+  userRoles         UserRole[]
+  loyaltyAccount    LoyaltyAccount?
+  sentInvites       Invite[]           @relation("InvitedBy")
+  auditLogs         AuditLog[]
+  pointsLedger      PointsLedger[]
+  emailThreads      Thread[]           @relation("ThreadOwner") // Email conversations owned by user
+  assignedThreads   Thread[]           @relation("AssignedThreads") // Threads assigned to user
+  conversationNotes ConversationNote[] // Notes authored by user
+  bookingAuditLogs  BookingAuditLog[] // Booking audit logs
+  roomAssignments   RoomAssignment[] // Room assignments
 
   @@map("users")
 }
@@ -1065,6 +1067,21 @@ enum SuppressionReason {
   UNSUBSCRIBE
 }
 
+enum ConversationStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_FOR_GUEST
+  RESOLVED
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model Thread {
   id            Int      @id @default(autoincrement())
   subject       String
@@ -1072,9 +1089,26 @@ model Thread {
   lastMessageAt DateTime @default(now())
   isArchived    Boolean  @default(false)
 
+  // Workflow fields
+  status     ConversationStatus @default(NEW)
+  assignedTo String? // User ID
+  priority   Priority           @default(NORMAL)
+
+  // SLA Tracking
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  slaBreached     Boolean   @default(false)
+
+  // Unread tracking
+  unreadCount Int @default(0)
+
+  // Tags
+  tags String[] @default([])
+
   // Relations
-  userId String? // User who owns this thread (if applicable)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId       String? // User who owns this thread (if applicable)
+  user         User?   @relation("ThreadOwner", fields: [userId], references: [id], onDelete: SetNull)
+  assignedUser User?   @relation("AssignedThreads", fields: [assignedTo], references: [id], onDelete: SetNull)
 
   bookingId Int? // Link to booking if email is booking-related
   booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
@@ -1082,7 +1116,10 @@ model Thread {
   propertyId Int? // Link to property if email is property-related
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
-  emails Email[]
+  emails      Email[]
+  messageLogs MessageLog[]
+  callLogs    CallLog[]
+  notes       ConversationNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1091,6 +1128,9 @@ model Thread {
   @@index([bookingId])
   @@index([propertyId])
   @@index([lastMessageAt])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([isArchived])
   @@map("email_threads")
 }
 
@@ -1275,6 +1315,8 @@ model MessageLog {
 
   // Relations
   bookingId Int? // Link to booking if message is booking-related
+  threadId  Int? // Link to thread for unified conversations
+  thread    Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1289,6 +1331,7 @@ model MessageLog {
   @@index([direction])
   @@index([createdAt])
   @@index([bookingId])
+  @@index([threadId])
   @@map("message_logs")
 }
 
@@ -1321,6 +1364,8 @@ model CallLog {
 
   // Relations
   bookingId Int? // Link to booking if call is booking-related
+  threadId  Int? // Link to thread for unified conversations
+  thread    Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1336,7 +1381,26 @@ model CallLog {
   @@index([direction])
   @@index([createdAt])
   @@index([bookingId])
+  @@index([threadId])
   @@map("call_logs")
+}
+
+// ConversationNote - Internal notes for conversations
+model ConversationNote {
+  id         Int      @id @default(autoincrement())
+  threadId   Int
+  thread     Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  isInternal Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([threadId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("conversation_notes")
 }
 
 // Third-Party Integration Configuration

@@ -1,6 +1,10 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const { authenticate } = require('../middleware/auth');
 const router = express.Router();
+
+// Apply authentication to all conversation routes
+router.use(authenticate);
 
 // Initialize Prisma client lazily to avoid startup issues
 let prisma;
@@ -137,20 +141,8 @@ function calculateSLA(thread, channel) {
  */
 router.get('/', async (req, res) => {
   try {
-    let userId = req.user?.id || req.query.userId; // Get from session/auth
-    
-    // If userId is an email, look up the user ID
-    if (userId && userId.includes('@')) {
-      const user = await getPrisma().user.findUnique({
-        where: { email: userId },
-        select: { id: true },
-      });
-      if (user) {
-        userId = user.id;
-      } else {
-        return res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
-      }
-    }
+    // Get user ID from authenticated request (set by authenticate middleware)
+    const userId = req.user?.id;
     
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized', message: 'User ID is required' });
