@@ -264,9 +264,17 @@ router.get('/booking/:bookingId', async (req, res) => {
 
     res.json({
       success: true,
-      booking,
-      conversations,
-      contact,
+      guest: {
+        booking,
+        conversations,
+        contact: contact ? {
+          id: contact.id,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          metadata: contact.metadata,
+        } : null,
+      },
     });
   } catch (error) {
     console.error('Booking context error:', error);
