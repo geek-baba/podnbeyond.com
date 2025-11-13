@@ -187,8 +187,9 @@ router.get('/conversations', async (req, res) => {
 
     // Get conversations over time (grouped by time period)
     const timePeriod = req.query.timePeriod || 'day'; // day, week, month, year
-    const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
+    // Convert query params to Date objects (startDate/endDate already destructured from req.query above)
+    const startDateObj = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDateObj = endDate ? new Date(endDate) : new Date();
     
     const allThreads = await getPrisma().thread.findMany({
       where,
@@ -225,9 +226,9 @@ router.get('/conversations', async (req, res) => {
 
     // Fill in missing periods with 0 counts to show full timeline
     const dailyStats = {};
-    const current = new Date(startDate);
+    const current = new Date(startDateObj);
     current.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
+    const end = new Date(endDateObj);
     end.setHours(23, 59, 59, 999);
 
     while (current <= end) {
