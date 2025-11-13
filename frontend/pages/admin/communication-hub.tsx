@@ -78,6 +78,7 @@ export default function CommunicationHub() {
   const [selectedConversation, setSelectedConversation] = useState<ConversationDetail | null>(null);
   const [guestContext, setGuestContext] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [conversationDetailsLoading, setConversationDetailsLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [properties, setProperties] = useState<Array<{ id: number; name: string; slug: string }>>([]);
   const [selectedConversationIds, setSelectedConversationIds] = useState<Set<number>>(new Set());
@@ -219,6 +220,30 @@ export default function CommunicationHub() {
     }
   }, [authStatus, filters]);
 
+  useEffect(() => {
+    if (
+      !loading &&
+      !conversationDetailsLoading &&
+      conversations.length > 0
+    ) {
+      const currentId = selectedConversation?.id;
+      const firstConversationId = conversations[0]?.id;
+
+      if (
+        !currentId ||
+        !conversations.some((conv) => conv.id === currentId)
+      ) {
+        loadConversationDetails(firstConversationId, false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    loading,
+    conversationDetailsLoading,
+    conversations,
+    selectedConversation?.id,
+  ]);
+
   // Helper function to get auth headers
   const getAuthHeaders = (): HeadersInit => {
     const headers: HeadersInit = {
@@ -308,51 +333,63 @@ export default function CommunicationHub() {
     }
   };
 
-  const loadConversationDetails = async (conversationId: number) => {
+  const loadConversationDetails = async (conversationId: number, showErrors = true) => {
     try {
       // Note: userId is not needed in query params as it's extracted from the authenticated session
       // The backend gets userId from req.user.id (set by authenticate middleware)
-      
+      setConversationDetailsLoading(true);
+
       const response = await fetch(`/api/conversations/${conversationId}`, {
         credentials: 'include',
         headers: getAuthHeaders(),
       });
       const data = await response.json();
-      if (data.success) {
-        setSelectedConversation(data.conversation);
-        
-        // Mark as read when viewing
-        if (data.conversation.unreadCount > 0) {
-          try {
-            await fetch(`/api/conversations/${conversationId}/mark-read`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: getAuthHeaders(),
-            });
-            // Update local state
-            setConversations(prev => prev.map(c => 
-              c.id === conversationId ? { ...c, unreadCount: 0 } : c
-            ));
-          } catch (error) {
-            console.error('Failed to mark as read:', error);
-          }
-        }
-        
-        // Load guest context if we have a participant email or booking
-        const identifier = data.conversation.participants[0] || 
-                          (data.conversation.booking?.email) ||
-                          (data.conversation.messages.find((m: any) => m.from)?.from);
-        if (identifier) {
-          loadGuestContext(identifier);
-        }
-        
-        // Load quick reply templates for this conversation
-        loadQuickReplyTemplates(data.conversation);
-      } else {
-        console.error('Failed to load conversation details:', data.error);
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error || `Failed to load conversation (HTTP ${response.status})`
+        );
       }
+
+      setSelectedConversation(data.conversation);
+      
+      // Mark as read when viewing
+      if (data.conversation.unreadCount > 0) {
+        try {
+          await fetch(`/api/conversations/${conversationId}/mark-read`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+          });
+          // Update local state
+          setConversations(prev => prev.map(c => 
+            c.id === conversationId ? { ...c, unreadCount: 0 } : c
+          ));
+        } catch (error) {
+          console.error('Failed to mark as read:', error);
+        }
+      }
+      
+      // Load guest context if we have a participant email or booking
+      const identifier = data.conversation.participants[0] || 
+                        (data.conversation.booking?.email) ||
+                        (data.conversation.messages.find((m: any) => m.from)?.from);
+      if (identifier) {
+        loadGuestContext(identifier);
+      }
+      
+      // Load quick reply templates for this conversation
+      loadQuickReplyTemplates(data.conversation);
     } catch (error) {
       console.error('Failed to load conversation details:', error);
+      if (showErrors) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load conversation details. Please try again.'
+        );
+      }
+    } finally {
+      setConversationDetailsLoading(false);
     }
   };
 
@@ -1075,7 +1112,19 @@ export default function CommunicationHub() {
 
               {/* Center: Main Conversation View */}
               <div className="xl:col-span-6 order-2">
-                {selectedConversation ? (
+                {conversationDetailsLoading && !selectedConversation ? (
+                  <Card variant="default" padding="lg">
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-neutral-900 mx-auto mb-4"></div>
+                      <p className="text-neutral-600 font-semibold mb-2">
+                        Loading conversation...
+                      </p>
+                      <p className="text-sm text-neutral-500">
+                        Please wait while we fetch the conversation details.
+                      </p>
+                    </div>
+                  </Card>
+                ) : selectedConversation ? (
                   <div className="space-y-4">
                     {/* Conversation Header */}
                     <Card variant="default" padding="lg">
