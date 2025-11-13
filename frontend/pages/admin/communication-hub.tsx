@@ -1287,7 +1287,7 @@ export default function CommunicationHub() {
                               {message.content}
                             </div>
 
-                            {message.attachments && message.attachments.length > 0 && (
+                            {message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
                               <div className="mt-2 pt-2 border-t border-neutral-200">
                                 <p className="text-xs font-semibold text-neutral-700 mb-1">
                                   Attachments ({message.attachments.length})
