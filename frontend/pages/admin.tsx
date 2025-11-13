@@ -835,6 +835,15 @@ useEffect(() => {
 
           {/* Header Tabs - Like Communication Hub */}
           <div className="flex items-center gap-3 flex-wrap">
+            <a href="/admin/bookings">
+              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
+                router.asPath?.startsWith('/admin/bookings')
+                  ? 'bg-white text-neutral-900'
+                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
+              }`}>
+                📋 Bookings
+              </button>
+            </a>
             <a href="/admin/communication-hub">
               <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
                 router.asPath?.startsWith('/admin/communication-hub') ||
