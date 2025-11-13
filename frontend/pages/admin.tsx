@@ -3138,15 +3138,52 @@ export async function getServerSideProps() {
       fetch(`${API_URL}/api/users`).catch(e => { console.error('Users fetch failed:', e); return null; }),
     ]);
 
-    const brandsData = brandsRes ? await brandsRes.json() : {};
-    const propertiesData = propertiesRes ? await propertiesRes.json() : {};
-    const bookingsData = bookingsRes ? await bookingsRes.json() : {};
-    const usersData = usersRes ? await usersRes.json() : {};
+    // Parse responses, handling errors gracefully
+    let brands = [];
+    let properties = [];
+    let bookings = [];
+    let users = [];
 
-    const brands = brandsData.brands || brandsData.data || [];
-    const properties = propertiesData.properties || propertiesData.data || [];
-    const bookings = bookingsData.data || bookingsData.bookings || [];
-    const users = usersData.users || usersData.data || [];
+    if (brandsRes && brandsRes.ok) {
+      try {
+        const brandsData = await brandsRes.json();
+        brands = brandsData.brands || brandsData.data || [];
+      } catch (e) {
+        console.error('Error parsing brands response:', e);
+      }
+    }
+
+    if (propertiesRes && propertiesRes.ok) {
+      try {
+        const propertiesData = await propertiesRes.json();
+        properties = propertiesData.properties || propertiesData.data || [];
+      } catch (e) {
+        console.error('Error parsing properties response:', e);
+      }
+    }
+
+    if (bookingsRes && bookingsRes.ok) {
+      try {
+        const bookingsData = await bookingsRes.json();
+        bookings = bookingsData.data || bookingsData.bookings || [];
+      } catch (e) {
+        console.error('Error parsing bookings response:', e);
+        // Bookings may require authentication, so this is expected
+      }
+    } else {
+      // Bookings endpoint requires authentication, so it may fail in getServerSideProps
+      console.log('Bookings fetch failed (may require authentication)');
+    }
+
+    if (usersRes && usersRes.ok) {
+      try {
+        const usersData = await usersRes.json();
+        users = usersData.users || usersData.data || [];
+      } catch (e) {
+        console.error('Error parsing users response:', e);
+      }
+    }
+
     const roomTypes = []; // Room types loaded separately per property
 
     // Fetch real loyalty accounts from API
