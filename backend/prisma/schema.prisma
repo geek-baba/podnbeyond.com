@@ -139,7 +139,9 @@ model User {
   sentInvites    Invite[]        @relation("InvitedBy")
   auditLogs      AuditLog[]
   pointsLedger   PointsLedger[]
-  emailThreads   Thread[] // Email conversations
+  emailThreads   Thread[]        @relation("ThreadOwner") // Email conversations owned by user
+  assignedThreads Thread[]       @relation("AssignedThreads") // Threads assigned to user
+  conversationNotes ConversationNote[] // Internal notes authored by user
 
   @@map("users")
 }
@@ -391,6 +393,7 @@ model Property {
   ratePlans       RatePlan[]
   emailThreads    Thread[] // Email conversations about this property
   idempotencyKeys IdempotencyKey[]
+  messageTemplates MessageTemplate[] // Message templates for this property
 
   @@map("properties")
 }
@@ -865,6 +868,21 @@ enum SuppressionReason {
   UNSUBSCRIBE
 }
 
+enum ConversationStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_FOR_GUEST
+  RESOLVED
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model Thread {
   id            Int      @id @default(autoincrement())
   subject       String
@@ -874,7 +892,7 @@ model Thread {
 
   // Relations
   userId String? // User who owns this thread (if applicable)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?   @relation("ThreadOwner", fields: [userId], references: [id], onDelete: SetNull)
 
   bookingId Int? // Link to booking if email is booking-related
   booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
@@ -882,7 +900,30 @@ model Thread {
   propertyId Int? // Link to property if email is property-related
   property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
-  emails Email[]
+  // Workflow fields (NEW)
+  status          ConversationStatus @default(NEW)
+  assignedTo      String? // User ID (from UserRole)
+  assignedUser    User?   @relation("AssignedThreads", fields: [assignedTo], references: [id], onDelete: SetNull)
+  priority        Priority @default(NORMAL)
+  
+  // SLA Tracking
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  slaBreached     Boolean  @default(false)
+  
+  // Unread tracking
+  unreadCount     Int      @default(0) // Unread messages for assigned user
+  
+  // Tags for categorization
+  tags            String[] @default([])
+  
+  // Unified message links (NEW)
+  emails          Email[]
+  messageLogs     MessageLog[] // Link WhatsApp/SMS
+  callLogs        CallLog[]    // Link voice calls
+  
+  // Internal notes (NEW)
+  notes           ConversationNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -891,6 +932,10 @@ model Thread {
   @@index([bookingId])
   @@index([propertyId])
   @@index([lastMessageAt])
+  @@index([status])
+  @@index([assignedTo])
+  @@index([priority])
+  @@index([isArchived])
   @@map("email_threads")
 }
 
@@ -1030,6 +1075,15 @@ enum CallStatus {
   CANCELLED
 }
 
+enum MessageTemplateType {
+  BOOKING_CONFIRMATION
+  CHECK_IN
+  CHECK_OUT
+  CANCELLATION
+  FAQ
+  CUSTOM
+}
+
 // Contact - Unified contact information
 model Contact {
   id       Int     @id @default(autoincrement())
@@ -1075,6 +1129,8 @@ model MessageLog {
 
   // Relations
   bookingId Int? // Link to booking if message is booking-related
+  threadId  Int? // Link to unified conversation thread
+  thread    Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1089,6 +1145,7 @@ model MessageLog {
   @@index([direction])
   @@index([createdAt])
   @@index([bookingId])
+  @@index([threadId])
   @@map("message_logs")
 }
 
@@ -1121,6 +1178,8 @@ model CallLog {
 
   // Relations
   bookingId Int? // Link to booking if call is booking-related
+  threadId  Int? // Link to unified conversation thread
+  thread    Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1136,7 +1195,65 @@ model CallLog {
   @@index([direction])
   @@index([createdAt])
   @@index([bookingId])
+  @@index([threadId])
   @@map("call_logs")
+}
+
+// Internal notes for conversations (staff-only)
+model ConversationNote {
+  id          Int      @id @default(autoincrement())
+  threadId    Int
+  thread      Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  content     String   @db.Text
+  isInternal  Boolean  @default(true) // Not visible to guest
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([threadId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("conversation_notes")
+}
+
+// Message Templates - Reusable message templates for bookings and communications
+model MessageTemplate {
+  id          Int                 @id @default(autoincrement())
+  name        String              // Template name (e.g., "Booking Confirmation - Standard")
+  type        MessageTemplateType // Template category
+  channel     MessageChannel      // WHATSAPP, SMS, or EMAIL (for subject)
+  
+  // Content
+  subject     String?             // Email subject or WhatsApp template name
+  body        String   @db.Text   // Message body with variables (e.g., {{guestName}}, {{bookingId}})
+  
+  // Variables documentation (JSON array of available variables)
+  variables   Json?               // e.g., ["guestName", "bookingId", "checkIn", "checkOut", "propertyName", "roomType"]
+  
+  // Scope
+  propertyId  Int?                // Property-specific template (null = global)
+  property    Property?           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Metadata
+  description String?  @db.Text
+  createdBy   String?  // User ID who created
+  updatedBy   String?  // User ID who last updated
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([type])
+  @@index([channel])
+  @@index([propertyId])
+  @@index([isActive])
+  @@index([type, channel, propertyId])
+  @@map("message_templates")
 }
 
 // Third-Party Integration Configuration

@@ -2,13 +2,21 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 router.get('/', async (req, res) => {
   const { propertyId, provider } = req.query;
 
   try {
-    const mappings = await prisma.oTAMapping.findMany({
+    const mappings = await getPrisma().oTAMapping.findMany({
       where: {
         ...(propertyId && { propertyId: parseInt(propertyId, 10) }),
         ...(provider && { provider }),
@@ -48,7 +56,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const mapping = await prisma.oTAMapping.create({
+    const mapping = await getPrisma().oTAMapping.create({
       data: {
         propertyId: parseInt(propertyId, 10),
         roomTypeId: roomTypeId ? parseInt(roomTypeId, 10) : null,
@@ -84,7 +92,7 @@ router.put('/:id', async (req, res) => {
   } = req.body;
 
   try {
-    const mapping = await prisma.oTAMapping.update({
+    const mapping = await getPrisma().oTAMapping.update({
       where: { id: parseInt(id, 10) },
       data: {
         ...(externalPropertyCode && { externalPropertyCode }),
@@ -108,7 +116,7 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    await prisma.oTAMapping.delete({
+    await getPrisma().oTAMapping.delete({
       where: { id: parseInt(id, 10) },
     });
 

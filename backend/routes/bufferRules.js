@@ -2,7 +2,15 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 router.get('/', async (req, res) => {
   const { propertyId, roomTypeId } = req.query;
@@ -12,7 +20,7 @@ router.get('/', async (req, res) => {
       ...(roomTypeId && { roomTypeId: parseInt(roomTypeId, 10) }),
     };
 
-    const rules = await prisma.bufferRule.findMany({
+    const rules = await getPrisma().bufferRule.findMany({
       where: filters,
       orderBy: [{ propertyId: 'asc' }, { roomTypeId: 'asc' }, { startDate: 'asc' }],
     });
@@ -41,7 +49,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const rule = await prisma.bufferRule.create({
+    const rule = await getPrisma().bufferRule.create({
       data: {
         propertyId: parseInt(propertyId, 10),
         roomTypeId: roomTypeId ? parseInt(roomTypeId, 10) : null,
@@ -73,7 +81,7 @@ router.put('/:id', async (req, res) => {
   } = req.body;
 
   try {
-    const rule = await prisma.bufferRule.update({
+    const rule = await getPrisma().bufferRule.update({
       where: { id: parseInt(id, 10) },
       data: {
         ...(startDate && { startDate: new Date(startDate) }),
@@ -96,7 +104,7 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    await prisma.bufferRule.delete({
+    await getPrisma().bufferRule.delete({
       where: { id: parseInt(id, 10) },
     });
     res.json({ success: true });

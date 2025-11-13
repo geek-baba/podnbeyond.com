@@ -4,14 +4,22 @@ const { callReception } = require('../services/exotel');
 const { createHash } = require('crypto');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * Get existing idempotency or null
  */
 async function getExistingIdempotency(key) {
   if (!key) return null;
-  return prisma.idempotencyKey.findUnique({ where: { key } });
+  return getPrisma().idempotencyKey.findUnique({ where: { key } });
 }
 
 /**
@@ -19,7 +27,7 @@ async function getExistingIdempotency(key) {
  */
 async function persistIdempotency(key, method, path, requestHash, statusCode, responseBody, propertyId) {
   if (!key) return;
-  await prisma.idempotencyKey.upsert({
+  await getPrisma().idempotencyKey.upsert({
     where: { key },
     update: {
       requestHash,
@@ -71,7 +79,7 @@ router.post('/call-reception', async (req, res) => {
     // Get property reception number if propertyId provided
     let reception = receptionPhone;
     if (!reception && propertyId) {
-      const property = await prisma.property.findUnique({
+      const property = await getPrisma().property.findUnique({
         where: { id: parseInt(propertyId) },
       });
       if (property && property.phone) {
@@ -91,7 +99,7 @@ router.post('/call-reception', async (req, res) => {
 
     // Link call log to booking if provided
     if (result.success && result.callId && bookingId) {
-      await prisma.callLog.update({
+      await getPrisma().callLog.update({
         where: { id: result.callId },
         data: { bookingId: parseInt(bookingId) },
       });

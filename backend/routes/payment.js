@@ -2,7 +2,14 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
 
-const prisma = new PrismaClient();
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 let razorpay = null;
 const hasRazorpayCredentials =
@@ -54,7 +61,7 @@ router.post('/create-order', async (req, res) => {
       console.log('⚠️  TEST MODE: Bypassing Razorpay payment');
       
       // Verify booking exists
-      const booking = await prisma.booking.findUnique({
+      const booking = await getPrisma().booking.findUnique({
         where: { id: parseInt(bookingId) },
         include: { room: true }
       });
@@ -86,7 +93,7 @@ router.post('/create-order', async (req, res) => {
     }
 
     // Verify booking exists and is in PENDING status
-    const booking = await prisma.booking.findUnique({
+    const booking = await getPrisma().booking.findUnique({
       where: { id: parseInt(bookingId) },
       include: { room: true }
     });
@@ -124,7 +131,7 @@ router.post('/create-order', async (req, res) => {
     const order = await razorpay.orders.create(orderOptions);
 
     // Save payment record to database
-    await prisma.payment.create({
+    await getPrisma().payment.create({
       data: {
         bookingId: parseInt(bookingId),
         razorpayOrderId: order.id,
@@ -203,7 +210,7 @@ router.post('/verify-payment', async (req, res) => {
 
     // Update payment status in database
     try {
-      const payment = await prisma.payment.findFirst({
+      const payment = await getPrisma().payment.findFirst({
         where: { razorpayOrderId: razorpay_order_id },
         include: {
           booking: {
@@ -220,7 +227,7 @@ router.post('/verify-payment', async (req, res) => {
       }
 
       // Update payment status
-      await prisma.payment.update({
+      await getPrisma().payment.update({
         where: { id: payment.id },
         data: {
           razorpayPaymentId: razorpay_payment_id,
@@ -262,7 +269,7 @@ router.post('/verify-payment', async (req, res) => {
 async function confirmBookingAfterPayment(bookingId, paymentId, paymentAmount) {
   try {
     // Find the booking
-    const booking = await prisma.booking.findUnique({
+    const booking = await getPrisma().booking.findUnique({
       where: { id: bookingId },
       include: {
         room: true,
@@ -279,7 +286,7 @@ async function confirmBookingAfterPayment(bookingId, paymentId, paymentAmount) {
     }
 
     // Update booking status to CONFIRMED
-    const confirmedBooking = await prisma.booking.update({
+    const confirmedBooking = await getPrisma().booking.update({
       where: { id: bookingId },
       data: { 
         status: 'CONFIRMED',
@@ -350,7 +357,7 @@ function determineTier(totalPoints) {
 async function updateLoyaltyAccount(loyaltyAccountId, pointsToAdd, totalPrice) {
   try {
     // Get current loyalty account
-    const currentAccount = await prisma.loyaltyAccount.findUnique({
+    const currentAccount = await getPrisma().loyaltyAccount.findUnique({
       where: { id: loyaltyAccountId }
     });
 
@@ -368,7 +375,7 @@ async function updateLoyaltyAccount(loyaltyAccountId, pointsToAdd, totalPrice) {
     const tierUpgraded = newTier !== currentAccount.tier;
 
     // Update loyalty account
-    const updatedAccount = await prisma.loyaltyAccount.update({
+    const updatedAccount = await getPrisma().loyaltyAccount.update({
       where: { id: loyaltyAccountId },
       data: {
         points: newTotalPoints,
@@ -456,7 +463,7 @@ router.get('/payments/:bookingId', async (req, res) => {
       });
     }
 
-    const payments = await prisma.payment.findMany({
+    const payments = await getPrisma().payment.findMany({
       where: {
         bookingId: parseInt(bookingId)
       },
@@ -548,7 +555,7 @@ router.post('/test-confirm', async (req, res) => {
     console.log('⚠️  TEST MODE: Confirming payment for booking', bookingId);
 
     // Find the booking
-    const booking = await prisma.booking.findUnique({
+    const booking = await getPrisma().booking.findUnique({
       where: { id: parseInt(bookingId) },
       include: { 
         room: true,
@@ -567,7 +574,7 @@ router.post('/test-confirm', async (req, res) => {
     }
 
     // Create a test payment record
-    const payment = await prisma.payment.create({
+    const payment = await getPrisma().payment.create({
       data: {
         bookingId: booking.id,
         amount: booking.totalPrice,
@@ -578,7 +585,7 @@ router.post('/test-confirm', async (req, res) => {
     });
 
     // Update booking to CONFIRMED
-    const confirmedBooking = await prisma.booking.update({
+    const confirmedBooking = await getPrisma().booking.update({
       where: { id: booking.id },
       data: { status: 'CONFIRMED' },
       include: {
@@ -592,7 +599,7 @@ router.post('/test-confirm', async (req, res) => {
     const loyaltyPoints = Math.floor(booking.totalPrice * 0.10); // 10% as points
     
     if (booking.loyaltyAccountId) {
-      const updatedLoyalty = await prisma.loyaltyAccount.update({
+      const updatedLoyalty = await getPrisma().loyaltyAccount.update({
         where: { id: booking.loyaltyAccountId },
         data: {
           points: { increment: loyaltyPoints },

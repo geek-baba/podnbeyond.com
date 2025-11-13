@@ -8,7 +8,15 @@ const {
 } = require('../lib/inventoryUtils');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 router.get('/availability', async (req, res) => {
   const { propertyId, roomTypeId, start, end } = req.query;
@@ -21,7 +29,7 @@ router.get('/availability', async (req, res) => {
   }
 
   try {
-    const property = await prisma.property.findUnique({
+    const property = await getPrisma().property.findUnique({
       where: { id: parseInt(propertyId, 10) },
       include: { roomTypes: { where: { isActive: true } } },
     });
@@ -49,7 +57,7 @@ router.get('/availability', async (req, res) => {
     const response = [];
 
     for (const roomType of roomTypeFilter) {
-      const inventories = await prisma.inventory.findMany({
+      const inventories = await getPrisma().inventory.findMany({
         where: {
           roomTypeId: roomType.id,
           date: {
@@ -74,7 +82,7 @@ router.get('/availability', async (req, res) => {
         let inventory = inventoryByDate.get(key);
 
         if (!inventory) {
-          inventory = await ensureInventoryRow(prisma, property, roomType, date);
+          inventory = await ensureInventoryRow(getPrisma(), property, roomType, date);
           inventoryByDate.set(key, inventory);
         }
 

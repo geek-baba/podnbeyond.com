@@ -2,7 +2,15 @@ const cron = require('node-cron');
 const ChannelManager = require('../modules/channelManager');
 const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
+
 const channelManager = new ChannelManager();
 
 /**
@@ -197,7 +205,7 @@ class CronService {
   async processExternalBooking(externalBooking, channel) {
     try {
       // Check if booking already exists in our system
-      const existingBooking = await prisma.booking.findFirst({
+      const existingBooking = await getPrisma().booking.findFirst({
         where: {
           OR: [
             {
@@ -235,7 +243,7 @@ class CronService {
   async createNewBooking(externalBooking, channel) {
     try {
       // Find the room by type
-      const room = await prisma.room.findFirst({
+      const room = await getPrisma().room.findFirst({
         where: {
           type: {
             contains: externalBooking.roomType,
@@ -252,7 +260,7 @@ class CronService {
       // Create or update loyalty account
       let loyaltyAccount = null;
       if (externalBooking.email) {
-        loyaltyAccount = await prisma.loyaltyAccount.upsert({
+        loyaltyAccount = await getPrisma().loyaltyAccount.upsert({
           where: { email: externalBooking.email },
           update: {
             guestName: externalBooking.guestName,
@@ -270,7 +278,7 @@ class CronService {
       }
 
       // Create the booking
-      const booking = await prisma.booking.create({
+      const booking = await getPrisma().booking.create({
         data: {
           guestName: externalBooking.guestName,
           email: externalBooking.email,
@@ -318,7 +326,7 @@ class CronService {
       }
 
       if (Object.keys(updates).length > 0) {
-        await prisma.booking.update({
+        await getPrisma().booking.update({
           where: { id: existingBooking.id },
           data: updates
         });

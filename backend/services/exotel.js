@@ -2,6 +2,7 @@ const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 const { integrationsConfig, validateExotelConfig } = require('../lib/integrations');
 const { normalizePhoneNumber } = require('./gupshup');
+const { findOrCreateThread, linkCallToThread } = require('./thread-linking');
 
 const prisma = new PrismaClient();
 const config = integrationsConfig.exotel;
@@ -91,8 +92,20 @@ async function initiateCall({
     });
 
     // Upsert contacts
-    await upsertContact(normalizedFrom);
-    await upsertContact(normalizedTo);
+    const fromContact = await upsertContact(normalizedFrom);
+    const toContact = await upsertContact(normalizedTo);
+
+    // Link to thread if booking/property metadata exists
+    if (metadata.bookingId || metadata.propertyId) {
+      const thread = await findOrCreateThread({
+        phone: normalizedTo, // Guest phone
+        email: toContact?.email || null,
+        propertyId: metadata.propertyId || null,
+        bookingId: metadata.bookingId || null,
+        subject: `Call with ${toContact?.name || normalizedTo}`,
+      });
+      await linkCallToThread(callLog.id, thread.id);
+    }
 
     return {
       success: true,

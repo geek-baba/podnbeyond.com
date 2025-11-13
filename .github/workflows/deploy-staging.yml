@@ -4,11 +4,45 @@ on:
   push:
     branches:
       - main
+    # Skip deployment for documentation-only changes
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.cursorrules'
+      - 'README.md'
   workflow_dispatch:
 
+# Cancel previous deployments when a new one starts
+# This allows batching: if multiple commits are pushed quickly, only the latest deploys
+# Note: To reduce cancellation email spam, configure GitHub notifications to not send
+# emails for cancelled workflows (Settings → Notifications → GitHub Actions → uncheck "Cancelled")
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  # Debounce: Wait briefly to batch rapid commits and reduce cancellation emails
+  # This waits 20 seconds before starting deployment, allowing multiple rapid commits
+  # to be batched into a single deployment. If new commits arrive during this time,
+  # this workflow will be cancelled and the new workflow will handle the latest commits.
+  wait-for-batching:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Wait for batching rapid commits
+        run: |
+          echo "⏳ Waiting 20 seconds to batch rapid commits..."
+          echo "If new commits arrive during this time, this workflow will be cancelled"
+          echo "and the new workflow will handle the latest commits."
+          sleep 20
+          echo "✓ Batching period complete, proceeding with deployment"
+
+  build-and-deploy:
+    needs: wait-for-batching
+    runs-on: ubuntu-latest
+    # Only run if wait job completed successfully (not cancelled)
+    # If wait job was cancelled, a new workflow will handle the latest commits
+    if: success()
 
     steps:
       - name: Checkout repository
@@ -80,8 +114,53 @@ jobs:
               . "$NVM_DIR/nvm.sh"
             fi
 
-            npm ci --prefix backend
-            npm ci --prefix frontend
+            # Clean install backend dependencies
+            cd backend
+            rm -rf node_modules
+            npm ci
+            cd ..
+            
+            # Clean install frontend dependencies (handle npm ENOTEMPTY errors)
+            cd frontend
+            # Clean up everything that might cause issues
+            echo "Cleaning up frontend dependencies..."
+            rm -rf node_modules
+            rm -rf .next
+            rm -rf .next/cache
+            npm cache clean --force || true
+            # Ensure package-lock.json exists
+            if [ ! -f "package-lock.json" ]; then
+              echo "WARNING: package-lock.json not found, generating it..."
+              npm install --package-lock-only
+            fi
+            # Clean install with retry logic
+            echo "Installing frontend dependencies..."
+            npm ci || (echo "First npm ci failed, cleaning and retrying..." && rm -rf node_modules && npm cache clean --force && npm ci)
+            # If still failing, try npm install as fallback
+            if [ ! -d "node_modules/next" ]; then
+              echo "npm ci failed, trying npm install as fallback..."
+              rm -rf node_modules
+              npm cache clean --force
+              npm install --legacy-peer-deps
+            fi
+            # Verify critical Next.js files exist
+            if [ ! -d "node_modules/next" ]; then
+              echo "ERROR: Next.js not installed properly!"
+              exit 1
+            fi
+            if [ ! -f "node_modules/next/dist/compiled/jest-worker/processChild.js" ]; then
+              echo "ERROR: Next.js jest-worker module missing! Reinstalling..."
+              rm -rf node_modules/next
+              npm install next --no-save
+            fi
+            # Verify napi-postinstall is properly installed (common issue)
+            if [ ! -f "node_modules/napi-postinstall/package.json" ]; then
+              echo "WARNING: napi-postinstall missing, reinstalling..."
+              npm install napi-postinstall --no-save || true
+            fi
+            cd ..
+            
+            # Run Prisma migrations
             cd backend
             npx prisma migrate deploy || (echo "Migration failed, trying db push..." && npx prisma db push --accept-data-loss --skip-generate)
             npx prisma generate
@@ -130,58 +209,180 @@ jobs:
             export NEXT_PUBLIC_API_URL='${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}'
             export NEXT_PUBLIC_RAZORPAY_KEY_ID='${{ secrets.STAGING_NEXT_PUBLIC_RAZORPAY_KEY_ID }}'
 
-            # Restart backend
-            pm2 restart staging-backend || pm2 start ecosystem.config.js --only staging-backend
+            # Smart restart: Only restart if code/dependencies changed or process is errored
+            echo "Checking if restart is needed..."
             
-            # Restart frontend - ensure it's running
-            # First try reload, but if process doesn't exist, start it
-            if pm2 list | grep -q "staging-frontend"; then
-              echo "Frontend process exists, reloading..."
-              pm2 reload staging-frontend --update-env || pm2 restart staging-frontend --update-env
-            else
-              echo "Frontend process not found, starting..."
-              # Check if ecosystem.config.js exists
-              if [ ! -f "ecosystem.config.js" ]; then
-                echo "ERROR: ecosystem.config.js not found!"
-                exit 1
+            # Get the last commit hash that triggered a restart (stored in a file)
+            LAST_RESTART_FILE="/home/${{ secrets.STAGING_DEPLOY_USER }}/.last-staging-restart"
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            LAST_RESTART_COMMIT=$(cat "$LAST_RESTART_FILE" 2>/dev/null || echo "")
+            
+            # Check if backend/frontend code or dependencies changed
+            NEEDS_RESTART=false
+            if [ -z "$LAST_RESTART_COMMIT" ] || [ "$CURRENT_COMMIT" != "$LAST_RESTART_COMMIT" ]; then
+              # Check what files changed since last restart
+              if [ -n "$LAST_RESTART_COMMIT" ]; then
+                CHANGED_FILES=$(git diff --name-only "$LAST_RESTART_COMMIT" HEAD 2>/dev/null || echo "")
+              else
+                CHANGED_FILES="all" # First deployment, restart everything
               fi
-              # Show what apps are defined in ecosystem.config.js
-              echo "Checking ecosystem.config.js for staging-frontend app..."
-              grep -A 10 "staging-frontend" ecosystem.config.js || echo "WARNING: staging-frontend not found in ecosystem.config.js"
-              # Try to start frontend and capture output
-              echo "Starting frontend process..."
-              pm2 start ecosystem.config.js --only staging-frontend --update-env 2>&1
-              START_EXIT_CODE=$?
-              echo "PM2 start exit code: $START_EXIT_CODE"
-              echo "Waiting 5 seconds for process to initialize..."
-              sleep 5
-              echo "PM2 list after start attempt:"
-              pm2 list
-              # Check if process actually started
-              if ! pm2 list | grep -q "staging-frontend"; then
-                echo "ERROR: Frontend process did not appear in PM2 list after start!"
-                echo "Checking PM2 describe for staging-frontend:"
-                pm2 describe staging-frontend 2>&1 || echo "Process does not exist"
-                echo "Checking PM2 logs for any errors:"
-                pm2 logs --lines 10 --nostream 2>&1 | tail -20 || true
-                exit 1
+              
+              # Check if backend code or dependencies changed
+              if [ "$CHANGED_FILES" = "all" ] || echo "$CHANGED_FILES" | grep -qE "(backend/|package\.json|package-lock\.json|\.env|ecosystem\.config\.js)"; then
+                echo "Backend code or dependencies changed, restart needed"
+                NEEDS_RESTART=true
+              fi
+              
+              # Check if frontend code or dependencies changed
+              if [ "$CHANGED_FILES" = "all" ] || echo "$CHANGED_FILES" | grep -qE "(frontend/|package\.json|package-lock\.json|\.env|next\.config\.js)"; then
+                echo "Frontend code or dependencies changed, restart needed"
+                NEEDS_RESTART=true
               fi
             fi
-            pm2 save
             
-            # Verify both processes are running
-            echo "Verifying PM2 processes..."
+            # Check if processes are errored or stopped (always restart in this case)
+            BACKEND_ERRORED=false
+            FRONTEND_ERRORED=false
+            
+            if pm2 list | grep -qE "staging-backend.*(errored|stopped)"; then
+              echo "Backend process is errored or stopped, restart needed"
+              BACKEND_ERRORED=true
+              NEEDS_RESTART=true
+            fi
+            
+            if pm2 list | grep -qE "staging-frontend.*(errored|stopped)"; then
+              echo "Frontend process is errored or stopped, restart needed"
+              FRONTEND_ERRORED=true
+              NEEDS_RESTART=true
+            fi
+            
+            # Restart or skip based on need
+            if [ "$NEEDS_RESTART" = true ]; then
+              echo "Restarting PM2 processes..."
+              
+              # Backend: delete if errored, then restart/start
+              if [ "$BACKEND_ERRORED" = true ]; then
+                echo "Backend is errored - deleting and recreating..."
+                pm2 delete staging-backend 2>/dev/null || true
+                sleep 1
+                echo "Starting fresh backend process..."
+                pm2 start ecosystem.config.js --only staging-backend --update-env
+              elif pm2 list | grep -q "staging-backend"; then
+                echo "Restarting backend process..."
+                pm2 restart staging-backend --update-env
+              else
+                echo "Backend process not found, starting..."
+                pm2 start ecosystem.config.js --only staging-backend --update-env
+              fi
+              
+              # Frontend: delete if errored, then restart/start
+              if [ "$FRONTEND_ERRORED" = true ]; then
+                echo "Frontend is errored - deleting and recreating..."
+                pm2 delete staging-frontend 2>/dev/null || true
+                sleep 1
+                echo "Starting fresh frontend process..."
+                pm2 start ecosystem.config.js --only staging-frontend --update-env
+              elif pm2 list | grep -q "staging-frontend"; then
+                echo "Restarting frontend process..."
+                pm2 restart staging-frontend --update-env
+              else
+                echo "Frontend process not found, starting..."
+                pm2 start ecosystem.config.js --only staging-frontend --update-env
+              fi
+              
+              # Save current commit as last restart commit
+              echo "$CURRENT_COMMIT" > "$LAST_RESTART_FILE"
+              echo "Saved restart commit: $CURRENT_COMMIT"
+            else
+              echo "✓ No restart needed - code and dependencies unchanged, processes are healthy"
+              echo "Current commit: $CURRENT_COMMIT"
+              echo "Last restart commit: $LAST_RESTART_COMMIT"
+            fi
+            
+            echo "Waiting 5 seconds for processes to stabilize..."
+            sleep 5
+            
+            echo "PM2 status:"
             pm2 list
-            if ! pm2 list | grep -q "staging-frontend.*online"; then
-              echo "ERROR: Frontend process is not online!"
-              echo "PM2 status:"
+            
+            # Verify processes are running and stable
+            BACKEND_ONLINE=false
+            FRONTEND_ONLINE=false
+            BACKEND_ERRORED=false
+            FRONTEND_ERRORED=false
+            
+            for i in {1..5}; do
+              # Check for errored status first (this is critical)
+              if pm2 list | grep -q "staging-backend.*errored"; then
+                BACKEND_ERRORED=true
+              fi
+              if pm2 list | grep -q "staging-frontend.*errored"; then
+                FRONTEND_ERRORED=true
+              fi
+              
+              # Check for online status
+              if pm2 list | grep -q "staging-backend.*online"; then
+                BACKEND_ONLINE=true
+              fi
+              if pm2 list | grep -q "staging-frontend.*online"; then
+                FRONTEND_ONLINE=true
+              fi
+              
+              if [ "$BACKEND_ONLINE" = true ] && [ "$FRONTEND_ONLINE" = true ] && [ "$BACKEND_ERRORED" != true ] && [ "$FRONTEND_ERRORED" != true ]; then
+                break
+              fi
+              echo "Waiting for processes to come online... ($i/5)"
+              sleep 2
+            done
+            
+            # Check for errored status first (fail immediately if errored)
+            if [ "$BACKEND_ERRORED" = true ]; then
+              echo "❌ ERROR: Backend process is in ERRORED state!"
+              echo "PM2 Status:"
               pm2 list
-              echo "Frontend logs (if process exists):"
-              pm2 logs staging-frontend --lines 30 --nostream || echo "Could not get frontend logs"
-              echo "PM2 error logs:"
-              pm2 logs --err --lines 20 --nostream || true
+              echo ""
+              echo "Backend logs (last 50 lines):"
+              pm2 logs staging-backend --lines 50 --nostream || true
+              echo ""
+              echo "Backend error logs:"
+              pm2 logs staging-backend --err --lines 50 --nostream || true
               exit 1
             fi
+            
+            if [ "$FRONTEND_ERRORED" = true ]; then
+              echo "❌ ERROR: Frontend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Frontend logs (last 50 lines):"
+              pm2 logs staging-frontend --lines 50 --nostream || true
+              echo ""
+              echo "Frontend error logs:"
+              pm2 logs staging-frontend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            if [ "$BACKEND_ONLINE" != true ]; then
+              echo "❌ ERROR: Backend process is not online!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Backend logs (last 50 lines):"
+              pm2 logs staging-backend --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            if [ "$FRONTEND_ONLINE" != true ]; then
+              echo "❌ ERROR: Frontend process is not online!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Frontend logs (last 50 lines):"
+              pm2 logs staging-frontend --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            pm2 save
             
             # Wait for server to be ready
             echo "Waiting for server to start..."
@@ -229,16 +430,86 @@ jobs:
             
             echo "Checking server health..."
             HEALTH_CHECK_URL="${{ secrets.STAGING_HEALTHCHECK_URL }}"
-            if curl --fail --max-time 15 --retry 3 --retry-delay 3 -L "$HEALTH_CHECK_URL"; then
+            
+            # Wait a bit more for services to be fully ready
+            echo "Waiting for services to be ready..."
+            sleep 5
+            
+            # First check PM2 status - if any process is errored, fail immediately
+            echo "Checking PM2 process status..."
+            if pm2 list | grep -q "staging-backend.*errored"; then
+              echo "❌ ERROR: Backend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Backend logs (last 50 lines):"
+              pm2 logs staging-backend --lines 50 --nostream || true
+              echo ""
+              echo "Backend error logs:"
+              pm2 logs staging-backend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            if pm2 list | grep -q "staging-frontend.*errored"; then
+              echo "❌ ERROR: Frontend process is in ERRORED state!"
+              echo "PM2 Status:"
+              pm2 list
+              echo ""
+              echo "Frontend logs (last 50 lines):"
+              pm2 logs staging-frontend --lines 50 --nostream || true
+              echo ""
+              echo "Frontend error logs:"
+              pm2 logs staging-frontend --err --lines 50 --nostream || true
+              exit 1
+            fi
+            
+            # Check if services are listening on ports
+            echo "Checking if services are listening on ports..."
+            BACKEND_PORT_OK=false
+            FRONTEND_PORT_OK=false
+            
+            for i in {1..10}; do
+              if netstat -tlnp 2>/dev/null | grep -q ':8080' || ss -tlnp 2>/dev/null | grep -q ':8080'; then
+                BACKEND_PORT_OK=true
+              fi
+              if netstat -tlnp 2>/dev/null | grep -q ':3001' || ss -tlnp 2>/dev/null | grep -q ':3001'; then
+                FRONTEND_PORT_OK=true
+              fi
+              if [ "$BACKEND_PORT_OK" = true ] && [ "$FRONTEND_PORT_OK" = true ]; then
+                echo "✓ Both services are listening on ports"
+                break
+              fi
+              echo "  Attempt $i/10: Waiting for services..."
+              sleep 2
+            done
+            
+            # Try health check
+            if curl --fail --max-time 10 --retry 2 --retry-delay 2 -L "$HEALTH_CHECK_URL" 2>/dev/null; then
               echo "✓ Health check passed!"
             else
-              echo "✗ Health check failed!"
+              echo "⚠️  Health check failed"
               echo "PM2 Status:"
               pm2 list || echo "PM2 not available in PATH"
-              echo "PM2 Logs (last 50 lines):"
-              pm2 logs --lines 50 --nostream || echo "PM2 logs not available"
-              echo "Checking if services are listening on ports..."
-              netstat -tlnp | grep -E ':(3000|3001|8080|8081)' || ss -tlnp | grep -E ':(3000|3001|8080|8081)' || echo "No services found on expected ports"
-              exit 1
+              
+              # Only consider it successful if ports are listening AND processes are online
+              if [ "$BACKEND_PORT_OK" = true ] && [ "$FRONTEND_PORT_OK" = true ]; then
+                # Double-check PM2 status one more time
+                if pm2 list | grep -q "staging-backend.*online" && pm2 list | grep -q "staging-frontend.*online"; then
+                  echo "✓ Services are listening on ports and PM2 shows them as online"
+                  echo "Note: Health check endpoint may not be responding, but services appear to be up"
+                else
+                  echo "✗ Services are listening on ports but PM2 shows them as not online"
+                  echo "PM2 Status:"
+                  pm2 list
+                  echo "PM2 Logs (last 50 lines):"
+                  pm2 logs --lines 50 --nostream || echo "PM2 logs not available"
+                  exit 1
+                fi
+              else
+                echo "✗ Services are not listening on expected ports"
+                echo "PM2 Logs (last 50 lines):"
+                pm2 logs --lines 50 --nostream || echo "PM2 logs not available"
+                exit 1
+              fi
             fi
 

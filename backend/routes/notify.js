@@ -1,17 +1,26 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { sendWhatsAppMessage, sendSMS } = require('../services/gupshup');
+const { renderTemplate } = require('../services/template-engine');
 const { createHash } = require('crypto');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * Get existing idempotency or null
  */
 async function getExistingIdempotency(key) {
   if (!key) return null;
-  return prisma.idempotencyKey.findUnique({ where: { key } });
+  return getPrisma().idempotencyKey.findUnique({ where: { key } });
 }
 
 /**
@@ -19,7 +28,7 @@ async function getExistingIdempotency(key) {
  */
 async function persistIdempotency(key, method, path, requestHash, statusCode, responseBody, propertyId) {
   if (!key) return;
-  await prisma.idempotencyKey.upsert({
+  await getPrisma().idempotencyKey.upsert({
     where: { key },
     update: {
       requestHash,
@@ -56,7 +65,7 @@ router.post('/booking', async (req, res) => {
 
     if (bookingId) {
       // Get booking details
-      booking = await prisma.booking.findUnique({
+      booking = await getPrisma().booking.findUnique({
         where: { id: parseInt(bookingId) },
         include: {
           property: true,
@@ -96,8 +105,57 @@ router.post('/booking', async (req, res) => {
       }
     }
 
-    // Prepare message content
+    // Prepare message content - use template if templateId provided or auto-find booking confirmation template
     let messageContent = message;
+    let templateUsed = null;
+    
+    if (templateId && bookingId) {
+      // Use specific template
+      const template = await getPrisma().messageTemplate.findUnique({
+        where: { id: parseInt(templateId) },
+      });
+      
+      if (template && template.isActive) {
+        try {
+          const rendered = await renderTemplate(template.body, template.subject, bookingId);
+          messageContent = rendered.body;
+          templateUsed = template;
+        } catch (error) {
+          console.error('Error rendering template:', error);
+          // Fall back to default message
+        }
+      }
+    } else if (bookingId && !message) {
+      // Auto-find booking confirmation template
+      const template = await getPrisma().messageTemplate.findFirst({
+        where: {
+          type: 'BOOKING_CONFIRMATION',
+          channel: channel === 'whatsapp' ? 'WHATSAPP' : 'SMS',
+          isActive: true,
+          OR: [
+            { propertyId: propertyId },
+            { propertyId: null }, // Global templates
+          ],
+        },
+        orderBy: [
+          { propertyId: 'desc' }, // Property-specific first
+          { createdAt: 'desc' },
+        ],
+      });
+      
+      if (template) {
+        try {
+          const rendered = await renderTemplate(template.body, template.subject, bookingId);
+          messageContent = rendered.body;
+          templateUsed = template;
+        } catch (error) {
+          console.error('Error rendering auto-template:', error);
+          // Fall back to default message
+        }
+      }
+    }
+    
+    // Fallback to default message if no template was used
     if (!messageContent && booking) {
       messageContent = `Your booking #${booking.id} at ${booking.property.name} is confirmed.\n\n` +
         `Check-in: ${new Date(booking.checkIn).toLocaleDateString()}\n` +
@@ -139,7 +197,7 @@ router.post('/booking', async (req, res) => {
 
     // Link message log to booking if provided
     if (result.success && result.messageId && booking) {
-      await prisma.messageLog.update({
+      await getPrisma().messageLog.update({
         where: { id: result.messageId },
         data: { bookingId: booking.id },
       });
@@ -168,6 +226,7 @@ router.post('/booking', async (req, res) => {
         message: 'Notification sent successfully',
         messageId: result.messageId,
         providerMessageId: result.providerMessageId,
+        templateUsed: templateUsed ? { id: templateUsed.id, name: templateUsed.name } : null,
       });
     } else {
       return res.status(500).json({

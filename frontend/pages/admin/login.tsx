@@ -40,10 +40,13 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
+      console.log('📧 Sending OTP request for:', email);
       const data = await apiRequest('/api/otp/send', {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
+
+      console.log('✅ OTP response:', data);
 
       if (data.success) {
         setOtpSent(true);
@@ -54,9 +57,27 @@ export default function AdminLogin() {
       } else {
         setError(data.error || 'Failed to send OTP. Please try again.');
       }
-    } catch (err) {
-      console.error('Send OTP error:', err);
-      setError('Unable to send OTP. Please check your connection and try again.');
+    } catch (err: any) {
+      console.error('❌ Send OTP error:', err);
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      });
+      
+      // Provide more specific error messages
+      let errorMessage = 'Unable to send OTP. Please check your connection and try again.';
+      if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (err.message?.includes('429')) {
+        errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
+      } else if (err.message?.includes('500')) {
+        errorMessage = 'Server error. Please try again in a moment.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

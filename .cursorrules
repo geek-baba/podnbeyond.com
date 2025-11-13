@@ -1,0 +1,44 @@
+# Cursor Rules for podnbeyond.com
+
+## Project Overview
+This is a hotel/property management system with:
+- Backend: Node.js/Express with Prisma ORM
+- Frontend: Next.js with TypeScript
+- Features: Booking management, channel manager, loyalty system, RBAC, communications hub
+
+## Coding Standards
+- Use TypeScript for frontend code
+- Follow existing code style and patterns
+- Use Prisma for database operations
+- Implement proper error handling and logging
+- Follow the existing file structure
+
+## Key Modules
+- Channel Manager: `backend/modules/channelManager.js`
+- RBAC: `backend/lib/rbac.js`
+- Loyalty System: `backend/routes/loyalty.js`
+- Cron Service: `backend/services/cronService.js`
+- Template Engine: `backend/services/template-engine.js`
+- Thread Linking: `backend/services/thread-linking.js`
+- Conversations: `backend/routes/conversations.js`
+
+## Important Notes
+- Check `backend/env.example` for required environment variables
+- Database migrations are in `backend/prisma/migrations/`
+- Documentation is in the `docs/` directory
+- Use PM2 for process management (see `ecosystem.config.js`)
+
+## Agent Context Documents
+When working on specific features, refer to these comprehensive context documents:
+- **Communication Hub Redesign**: `docs/COMMUNICATION_HUB_AGENT_CONTEXT.md` - Complete context for Communication Hub redesign project including architecture, implementation status, RBAC integration, SLA tracking, thread linking, and next steps
+- **Communication Hub Plans**: 
+  - `docs/COMMUNICATION_HUB_REDESIGN.md` - Original redesign proposal
+  - `docs/COMMUNICATION_HUB_PHASED_PLAN_V2.md` - Updated phased implementation plan
+
+## When Making Changes
+- Update relevant documentation in `docs/`
+- Follow existing patterns in similar files
+- Test changes thoroughly before committing
+- Consider database migrations for schema changes
+- For Communication Hub work: Always check `COMMUNICATION_HUB_AGENT_CONTEXT.md` first to understand current implementation status
+

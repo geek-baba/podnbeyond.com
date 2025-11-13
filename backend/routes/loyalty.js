@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+
+// Initialize Prisma client lazily to avoid startup issues
+let prisma;
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 /**
  * GET /api/loyalty/accounts
@@ -9,7 +17,7 @@ const prisma = new PrismaClient();
  */
 router.get('/accounts', async (req, res) => {
   try {
-    const accounts = await prisma.loyaltyAccount.findMany({
+    const accounts = await getPrisma().loyaltyAccount.findMany({
       include: {
         user: {
           select: {
@@ -72,7 +80,7 @@ router.patch('/accounts/:id', async (req, res) => {
     }
 
     // Get the loyalty account first
-    const loyaltyAccount = await prisma.loyaltyAccount.findUnique({
+    const loyaltyAccount = await getPrisma().loyaltyAccount.findUnique({
       where: { id: parseInt(id) },
       include: { user: true }
     });
@@ -87,7 +95,7 @@ router.patch('/accounts/:id', async (req, res) => {
       if (email) userUpdateData.email = email;
       if (phone !== undefined) userUpdateData.phone = phone || null;
 
-      await prisma.user.update({
+      await getPrisma().user.update({
         where: { id: loyaltyAccount.userId },
         data: userUpdateData
       });
@@ -99,7 +107,7 @@ router.patch('/accounts/:id', async (req, res) => {
       loyaltyUpdateData.points = loyaltyAccount.points + parseInt(addPoints);
       
       // Create points ledger entry for audit trail
-      await prisma.pointsLedger.create({
+      await getPrisma().pointsLedger.create({
         data: {
           userId: loyaltyAccount.userId,
           points: parseInt(addPoints),
@@ -114,7 +122,7 @@ router.patch('/accounts/:id', async (req, res) => {
     if (tier) loyaltyUpdateData.tier = tier;
     loyaltyUpdateData.lastUpdated = new Date();
 
-    const updatedAccount = await prisma.loyaltyAccount.update({
+    const updatedAccount = await getPrisma().loyaltyAccount.update({
       where: { id: parseInt(id) },
       data: loyaltyUpdateData,
       include: {

@@ -32,21 +32,56 @@ export async function apiRequest<T = any>(
   const baseUrl = getApiUrl();
   const url = `${baseUrl}${endpoint}`;
   
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+  console.log('🌐 API Request:', {
+    method: options?.method || 'GET',
+    url,
+    baseUrl,
+    endpoint,
+    isClient: typeof window !== 'undefined',
   });
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      error: `HTTP ${response.status}: ${response.statusText}`,
-    }));
-    throw new Error(error.error || error.message || 'API request failed');
+    console.log('📡 API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      url: response.url,
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          error: `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+      
+      console.error('❌ API Error Response:', errorData);
+      throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ API Success:', { endpoint, hasData: !!data });
+    return data;
+  } catch (error: any) {
+    console.error('❌ API Request Failed:', {
+      endpoint,
+      url,
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+    });
+    throw error;
   }
-
-  return response.json();
 }
 
