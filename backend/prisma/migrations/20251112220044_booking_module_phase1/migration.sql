@@ -232,6 +232,7 @@ WHERE NOT EXISTS (
 );
 
 -- Create stay records for existing bookings
+-- Note: Cast enum to text for comparison since new enum values may not be committed yet
 INSERT INTO "stays" ("bookingId", "roomTypeId", "roomId", "checkInDate", "checkOutDate", "numGuests", "ratePlanId", "status", "createdAt", "updatedAt")
 SELECT 
   "id" as "bookingId",
@@ -242,10 +243,10 @@ SELECT
   "guests" as "numGuests",
   "ratePlanId",
   CASE 
-    WHEN "status" = 'CONFIRMED' THEN 'CONFIRMED'::"StayStatus"
-    WHEN "status" = 'CHECKED_IN' THEN 'CHECKED_IN'::"StayStatus"
-    WHEN "status" = 'CHECKED_OUT' THEN 'CHECKED_OUT'::"StayStatus"
-    WHEN "status" = 'CANCELLED' THEN 'CANCELLED'::"StayStatus"
+    WHEN "status"::text = 'CONFIRMED' THEN 'CONFIRMED'::"StayStatus"
+    WHEN "status"::text = 'CHECKED_IN' THEN 'CHECKED_IN'::"StayStatus"
+    WHEN "status"::text = 'CHECKED_OUT' THEN 'CHECKED_OUT'::"StayStatus"
+    WHEN "status"::text = 'CANCELLED' THEN 'CANCELLED'::"StayStatus"
     ELSE 'PENDING'::"StayStatus"
   END as "status",
   "createdAt",
