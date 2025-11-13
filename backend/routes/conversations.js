@@ -375,56 +375,146 @@ router.get('/:id', async (req, res) => {
     }
 
     const threadId = parseInt(req.params.id);
+    
+    if (isNaN(threadId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid conversation ID',
+        message: 'Conversation ID must be a valid number.'
+      });
+    }
+
+    console.log(`Fetching conversation ${threadId} for user ${userId}`);
 
     // Get accessible property IDs
     const accessiblePropertyIds = await getAccessiblePropertyIds(userId);
 
-    const thread = await getPrisma().thread.findUnique({
-      where: { id: threadId },
-      include: {
-        property: true,
-        booking: {
-          include: {
-            roomType: true,
-            ratePlan: true,
+    let thread;
+    try {
+      thread = await getPrisma().thread.findUnique({
+        where: { id: threadId },
+        include: {
+          property: {
+            select: { id: true, name: true, slug: true },
           },
-        },
-        assignedUser: {
-          select: { id: true, name: true, email: true },
-        },
-        emails: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            attachments: true,
-            events: true,
+          booking: {
+            select: {
+              id: true,
+              guestName: true,
+              checkIn: true,
+              checkOut: true,
+              email: true,
+              phone: true,
+              status: true,
+            },
+            include: {
+              roomType: {
+                select: { id: true, name: true, code: true },
+              },
+              ratePlan: {
+                select: { id: true, name: true, code: true },
+              },
+            },
           },
-        },
-        messageLogs: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            contact: {
-              select: { id: true, phone: true, name: true, email: true },
+          assignedUser: {
+            select: { id: true, name: true, email: true },
+          },
+          emails: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              attachments: true,
+              events: true,
+            },
+          },
+          messageLogs: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              contact: {
+                select: { id: true, phone: true, name: true, email: true },
+              },
+            },
+          },
+          callLogs: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              contact: {
+                select: { id: true, phone: true, name: true, email: true },
+              },
+            },
+          },
+          notes: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              author: {
+                select: { id: true, name: true, email: true },
+              },
             },
           },
         },
-        callLogs: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            contact: {
-              select: { id: true, phone: true, name: true, email: true },
+      });
+    } catch (queryError) {
+      console.error('Prisma query error:', queryError);
+      console.error('Query error details:', {
+        threadId,
+        userId,
+        errorName: queryError.name,
+        errorMessage: queryError.message,
+        errorCode: queryError.code,
+      });
+      
+      // Check if it's a field/relation error
+      if (queryError.message && queryError.message.includes('Unknown argument') || 
+          queryError.message && queryError.message.includes('Unknown column') ||
+          queryError.code === 'P2009' || queryError.code === 'P2021') {
+        // Fallback to simpler query without new fields
+        console.log('Attempting fallback query without new fields...');
+        try {
+          thread = await getPrisma().thread.findUnique({
+            where: { id: threadId },
+            include: {
+              property: {
+                select: { id: true, name: true, slug: true },
+              },
+              booking: {
+                select: {
+                  id: true,
+                  guestName: true,
+                  checkIn: true,
+                  checkOut: true,
+                  email: true,
+                  phone: true,
+                  status: true,
+                },
+              },
+              emails: {
+                orderBy: { createdAt: 'asc' },
+                include: {
+                  attachments: true,
+                  events: true,
+                },
+              },
             },
-          },
-        },
-        notes: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            author: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        },
-      },
-    });
+          });
+          
+          // Set defaults for missing fields
+          if (thread) {
+            thread.messageLogs = [];
+            thread.callLogs = [];
+            thread.notes = [];
+            thread.status = thread.status || 'NEW';
+            thread.priority = thread.priority || 'NORMAL';
+            thread.assignedTo = thread.assignedTo || null;
+            thread.assignedUser = null;
+            thread.unreadCount = thread.unreadCount || 0;
+          }
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          throw queryError; // Throw original error
+        }
+      } else {
+        throw queryError;
+      }
+    }
 
     if (!thread) {
       return res.status(404).json({ 
