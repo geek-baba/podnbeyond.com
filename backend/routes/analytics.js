@@ -15,26 +15,32 @@ function getPrisma() {
  * Get user's accessible property IDs based on RBAC
  */
 async function getAccessiblePropertyIds(userId) {
-  const userRoles = await getPrisma().userRole.findMany({
-    where: { userId },
-    include: { role: true },
-  });
+  try {
+    const userRoles = await getPrisma().userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
 
-  const hasOrgAccess = userRoles.some(
-    (r) =>
-      ['ADMIN', 'SUPERADMIN'].includes(r.roleKey) &&
-      r.scopeType === 'ORG'
-  );
+    const hasOrgAccess = userRoles.some(
+      (r) =>
+        ['ADMIN', 'SUPERADMIN'].includes(r.roleKey) &&
+        r.scopeType === 'ORG'
+    );
 
-  if (hasOrgAccess) {
-    return null; // null means all properties
+    if (hasOrgAccess) {
+      return null; // null means all properties
+    }
+
+    const propertyIds = userRoles
+      .filter((r) => r.scopeType === 'PROPERTY' && r.scopeId)
+      .map((r) => r.scopeId);
+
+    return propertyIds.length > 0 ? propertyIds : [];
+  } catch (error) {
+    console.error('Error in getAccessiblePropertyIds:', error);
+    // Return empty array on error to prevent crashes
+    return [];
   }
-
-  const propertyIds = userRoles
-    .filter((r) => r.scopeType === 'PROPERTY' && r.scopeId)
-    .map((r) => r.scopeId);
-
-  return propertyIds.length > 0 ? propertyIds : [];
 }
 
 /**
@@ -43,28 +49,42 @@ async function getAccessiblePropertyIds(userId) {
  */
 router.get('/conversations', async (req, res) => {
   try {
+    console.log('Analytics request received:', {
+      query: req.query,
+      hasUser: !!req.user,
+      userId: req.user?.id,
+    });
+
     let userId = req.user?.id || req.query.userId;
     if (!userId) {
+      console.log('No userId found in request');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
+    console.log('Processing userId:', userId);
+
     // If userId is an email, look up the user ID
     if (userId && userId.includes('@')) {
+      console.log('Looking up user by email:', userId);
       const user = await getPrisma().user.findUnique({
         where: { email: userId },
         select: { id: true },
       });
       if (user) {
         userId = user.id;
+        console.log('Found user ID:', userId);
       } else {
+        console.log('User not found for email:', userId);
         return res.status(401).json({ success: false, error: 'User not found' });
       }
     }
 
     const { startDate, endDate, propertyId } = req.query;
     
+    console.log('Getting accessible property IDs for userId:', userId);
     // Get accessible property IDs
     const accessiblePropertyIds = await getAccessiblePropertyIds(userId);
+    console.log('Accessible property IDs:', accessiblePropertyIds);
 
     // Build date filter - use lastMessageAt if available, otherwise createdAt
     // Note: We'll filter by createdAt for now, but seed data might use lastMessageAt
@@ -349,21 +369,28 @@ router.get('/conversations', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Analytics error:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('❌ Analytics error:', error);
+    console.error('Error name:', error?.name || 'Unknown');
+    console.error('Error message:', error?.message || 'No message');
+    console.error('Error stack:', error?.stack || 'No stack trace');
+    console.error('Error code:', error?.code || 'No code');
+    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
     // Always include error details for better debugging
-    res.status(500).json({ 
+    const errorResponse = { 
       success: false, 
       error: 'Failed to fetch analytics',
-      details: error.message || 'Unknown error',
-      // Include more details in production for debugging
-      ...(process.env.NODE_ENV === 'production' ? {
-        errorName: error.name,
-        errorCode: error.code,
-      } : {})
-    });
+      details: error?.message || 'Unknown error',
+      errorName: error?.name || 'Error',
+    };
+    
+    // Include more details in production for debugging
+    if (process.env.NODE_ENV === 'production') {
+      errorResponse.errorCode = error?.code;
+      errorResponse.errorType = error?.constructor?.name;
+    }
+    
+    res.status(500).json(errorResponse);
   }
 });
 
