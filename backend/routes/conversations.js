@@ -109,30 +109,59 @@ async function autoAssignConversation(thread, propertyId) {
  * Calculate SLA breach status
  */
 function calculateSLA(thread, channel) {
-  if (thread.status === 'RESOLVED' || thread.status === 'ARCHIVED') {
-    return { breached: false };
+  // Handle backward compatibility - thread might not have status/priority
+  const status = thread.status || 'NEW';
+  const priority = thread.priority || 'NORMAL';
+  
+  if (status === 'RESOLVED' || status === 'ARCHIVED') {
+    return { 
+      breached: false,
+      minutesSinceCreation: 0,
+      targetMinutes: 0
+    };
   }
 
-  const now = new Date();
-  const createdAt = new Date(thread.createdAt);
-  const minutesSinceCreation = (now - createdAt) / (1000 * 60);
+  try {
+    const now = new Date();
+    const createdAt = new Date(thread.createdAt);
+    
+    // Validate dates
+    if (isNaN(createdAt.getTime())) {
+      console.warn('Invalid createdAt date for thread:', thread.id, thread.createdAt);
+      return {
+        breached: false,
+        minutesSinceCreation: 0,
+        targetMinutes: 0
+      };
+    }
+    
+    const minutesSinceCreation = (now - createdAt) / (1000 * 60);
 
-  // SLA targets
-  const slaTargets = {
-    WHATSAPP: 5,
-    SMS: 5,
-    EMAIL: 30,
-    VOICE: 5,
-  };
+    // SLA targets
+    const slaTargets = {
+      WHATSAPP: 5,
+      SMS: 5,
+      EMAIL: 30,
+      VOICE: 5,
+    };
 
-  const targetMinutes = thread.priority === 'URGENT' ? 5 : slaTargets[channel] || 30;
-  const breached = minutesSinceCreation > targetMinutes;
+    const targetMinutes = priority === 'URGENT' ? 5 : slaTargets[channel] || 30;
+    const breached = minutesSinceCreation > targetMinutes;
 
-  return {
-    breached,
-    minutesSinceCreation: Math.floor(minutesSinceCreation),
-    targetMinutes,
-  };
+    return {
+      breached,
+      minutesSinceCreation: Math.floor(minutesSinceCreation),
+      targetMinutes,
+    };
+  } catch (error) {
+    console.error('Error calculating SLA for thread:', thread.id, error);
+    // Return safe defaults on error
+    return {
+      breached: false,
+      minutesSinceCreation: 0,
+      targetMinutes: 0
+    };
+  }
 }
 
 /**
@@ -459,16 +488,29 @@ router.get('/:id', async (req, res) => {
     ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     // Calculate SLA
+    // Handle backward compatibility - thread might not have status/priority if migration not applied
     const primaryChannel = messages.length > 0 ? messages[messages.length - 1].channel : 'EMAIL';
-    const sla = calculateSLA(thread, primaryChannel);
+    const threadStatus = thread.status || 'NEW'; // Default to NEW if status doesn't exist
+    const threadPriority = thread.priority || 'NORMAL'; // Default to NORMAL if priority doesn't exist
+    const sla = calculateSLA({ ...thread, status: threadStatus, priority: threadPriority }, primaryChannel);
+
+    // Build conversation response with backward compatibility
+    const conversationResponse = {
+      ...thread,
+      status: threadStatus,
+      priority: threadPriority,
+      assignedTo: thread.assignedTo || null,
+      assignedUser: thread.assignedUser || null,
+      messages,
+      sla,
+      // Add default values for fields that might not exist
+      unreadCount: thread.unreadCount || 0,
+      participants: thread.participants || [],
+    };
 
     res.json({
       success: true,
-      conversation: {
-        ...thread,
-        messages,
-        sla,
-      },
+      conversation: conversationResponse,
     });
   } catch (error) {
     console.error('Conversation fetch error:', error);
