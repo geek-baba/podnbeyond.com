@@ -959,10 +959,11 @@ export default function CommunicationHub() {
                       conversations.map((conv) => (
                         <div
                           key={conv.id}
-                          className={`p-4 rounded-lg transition-all border ${
+                          onClick={() => loadConversationDetails(conv.id)}
+                          className={`p-4 rounded-lg transition-all border cursor-pointer ${
                             selectedConversation?.id === conv.id
                               ? 'bg-neutral-900 text-white border-neutral-900'
-                              : 'bg-white hover:bg-neutral-50 border-neutral-200'
+                              : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-neutral-300'
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -974,56 +975,53 @@ export default function CommunicationHub() {
                                 toggleConversationSelection(conv.id);
                               }}
                               onClick={(e) => e.stopPropagation()}
-                              className="mt-1 w-4 h-4 text-neutral-900 border-neutral-300 rounded focus:ring-neutral-900"
+                              className="mt-1 w-4 h-4 text-neutral-900 border-neutral-300 rounded focus:ring-neutral-900 cursor-pointer"
                             />
-                            <div
-                              onClick={() => loadConversationDetails(conv.id)}
-                              className="flex-1 cursor-pointer"
-                            >
-                          <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className={`font-semibold text-sm line-clamp-1 flex-1 ${
-                                  selectedConversation?.id === conv.id ? 'text-white' : 'text-neutral-900'
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className={`font-semibold text-sm line-clamp-1 flex-1 ${
+                                      selectedConversation?.id === conv.id ? 'text-white' : 'text-neutral-900'
+                                    }`}>
+                                      {getChannelIcon(conv.primaryChannel)} {conv.subject}
+                                    </h4>
+                                    {conv.unreadCount > 0 && (
+                                      <Badge variant="warning" size="sm">
+                                        {conv.unreadCount}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge variant={getStatusColor(conv.status)} size="sm">
+                                      {conv.status.replace(/_/g, ' ')}
+                                    </Badge>
+                                    <Badge variant={getPriorityColor(conv.priority)} size="sm">
+                                      {conv.priority}
+                                    </Badge>
+                                    {conv.sla.breached && (
+                                      <Badge variant="error" size="sm">SLA Breached</Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <p className={`text-xs mb-1 ${
+                                selectedConversation?.id === conv.id ? 'text-neutral-300' : 'text-neutral-600'
+                              }`}>
+                                {conv.property?.name || 'No Property'} • {conv.participants[0] || 'Unknown'}
+                              </p>
+                              <p className={`text-xs ${
+                                selectedConversation?.id === conv.id ? 'text-neutral-400' : 'text-neutral-500'
+                              }`}>
+                                {new Date(conv.lastActivity).toLocaleString()}
+                              </p>
+                              {conv.assignedUser && (
+                                <p className={`text-xs mt-1 ${
+                                  selectedConversation?.id === conv.id ? 'text-neutral-400' : 'text-neutral-500'
                                 }`}>
-                                  {getChannelIcon(conv.primaryChannel)} {conv.subject}
-                                </h4>
-                                {conv.unreadCount > 0 && (
-                                  <Badge variant="warning" size="sm">
-                                    {conv.unreadCount}
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant={getStatusColor(conv.status)} size="sm">
-                                  {conv.status.replace(/_/g, ' ')}
-                                </Badge>
-                                <Badge variant={getPriorityColor(conv.priority)} size="sm">
-                                  {conv.priority}
-                                </Badge>
-                                {conv.sla.breached && (
-                                  <Badge variant="error" size="sm">SLA Breached</Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <p className={`text-xs mb-1 ${
-                            selectedConversation?.id === conv.id ? 'text-neutral-300' : 'text-neutral-600'
-                          }`}>
-                            {conv.property?.name || 'No Property'} • {conv.participants[0] || 'Unknown'}
-                          </p>
-                          <p className={`text-xs ${
-                            selectedConversation?.id === conv.id ? 'text-neutral-400' : 'text-neutral-500'
-                          }`}>
-                            {new Date(conv.lastActivity).toLocaleString()}
-                          </p>
-                          {conv.assignedUser && (
-                            <p className={`text-xs mt-1 ${
-                              selectedConversation?.id === conv.id ? 'text-neutral-400' : 'text-neutral-500'
-                            }`}>
-                              👤 {conv.assignedUser.name}
-                            </p>
-                          )}
+                                  👤 {conv.assignedUser.name}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
