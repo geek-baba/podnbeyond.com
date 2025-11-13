@@ -162,12 +162,54 @@ jobs:
             
                 # Run Prisma migrations - critical for schema updates
                 cd backend
+                echo "Checking migration status..."
+                MIGRATION_STATUS=$(npx prisma migrate status 2>&1 || true)
+                echo "$MIGRATION_STATUS"
+                
+                # Check if there are any failed migrations
+                if echo "$MIGRATION_STATUS" | grep -qi "failed"; then
+                  echo "⚠️  Found failed migrations, attempting recovery..."
+                  
+                  # Check if the specific migration we're fixing is failed
+                  if echo "$MIGRATION_STATUS" | grep -q "20251112220044_booking_module_phase1"; then
+                    echo "Found failed migration: 20251112220044_booking_module_phase1"
+                    echo "This migration failed due to enum default value issue (now fixed)."
+                    echo "Attempting to resolve by marking as rolled back..."
+                    
+                    # Try to mark as rolled back - this is safe since we've fixed the migration SQL
+                    # The migration likely failed early (at enum default value step), so it's safe to roll back
+                    if npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1" 2>&1; then
+                      echo "✓ Migration marked as rolled back successfully"
+                      echo "Will retry migration with fixed SQL..."
+                    else
+                      echo "⚠️  Could not automatically resolve failed migration"
+                      echo "The migration may have partially succeeded."
+                      echo ""
+                      echo "To manually resolve, SSH into the server and run:"
+                      echo "  cd backend"
+                      echo "  export DATABASE_URL='your-database-url'"
+                      echo "  npx prisma migrate resolve --rolled-back '20251112220044_booking_module_phase1'"
+                      echo ""
+                      echo "Or if the migration partially succeeded, check database state and:"
+                      echo "  npx prisma migrate resolve --applied '20251112220044_booking_module_phase1'"
+                      echo ""
+                      echo "Then retry the deployment."
+                      exit 1
+                    fi
+                  else
+                    echo "⚠️  Found other failed migrations that need manual resolution"
+                    echo "$MIGRATION_STATUS"
+                    exit 1
+                  fi
+                fi
+                
                 echo "Running Prisma migrations..."
                 if npx prisma migrate deploy; then
                   echo "✓ Migrations applied successfully"
                 else
                   echo "⚠️  Migration failed, checking migration status..."
                   npx prisma migrate status
+                  echo ""
                   echo "ERROR: Migration failed! Manual intervention required."
                   echo "Please check the migration status and fix any issues before deploying."
                   exit 1
