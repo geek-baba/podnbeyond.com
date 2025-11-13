@@ -463,9 +463,16 @@ router.get('/:id', async (req, res) => {
       });
       
       // Check if it's a field/relation error
-      if (queryError.message && queryError.message.includes('Unknown argument') || 
-          queryError.message && queryError.message.includes('Unknown column') ||
-          queryError.code === 'P2009' || queryError.code === 'P2021') {
+      const isFieldRelationError = (
+        (queryError.message && queryError.message.includes('Unknown argument')) ||
+        (queryError.message && queryError.message.includes('Unknown column')) ||
+        (queryError.message && queryError.message.includes('does not exist')) ||
+        queryError.code === 'P2009' ||
+        queryError.code === 'P2021' ||
+        queryError.code === 'P2011'
+      );
+      
+      if (isFieldRelationError) {
         // Fallback to simpler query without new fields
         console.log('Attempting fallback query without new fields...');
         try {
@@ -536,8 +543,9 @@ router.get('/:id', async (req, res) => {
     }
 
     // Build unified message timeline
+    // Safely handle arrays that might be undefined/null
     const messages = [
-      ...thread.emails.map((email) => ({
+      ...(thread.emails || []).map((email) => ({
         id: `email-${email.id}`,
         type: 'EMAIL',
         channel: 'EMAIL',
@@ -547,10 +555,10 @@ router.get('/:id', async (req, res) => {
         fromName: email.fromName,
         timestamp: email.createdAt,
         status: email.status,
-        attachments: email.attachments,
-        events: email.events,
+        attachments: email.attachments || [],
+        events: email.events || [],
       })),
-      ...thread.messageLogs.map((msg) => ({
+      ...(thread.messageLogs || []).map((msg) => ({
         id: `message-${msg.id}`,
         type: 'MESSAGE',
         channel: msg.channel,
@@ -561,7 +569,7 @@ router.get('/:id', async (req, res) => {
         status: msg.status,
         providerMessageId: msg.providerMessageId,
       })),
-      ...thread.callLogs.map((call) => ({
+      ...(thread.callLogs || []).map((call) => ({
         id: `call-${call.id}`,
         type: 'CALL',
         channel: 'VOICE',
