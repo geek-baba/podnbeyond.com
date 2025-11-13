@@ -804,8 +804,7 @@ export function formatCurrency(amount: number, currency: string = 'INR'): string
  */
 export function calculateOutstandingBalance(booking: Booking): number {
   const totalPaid = booking.payments?.reduce((sum, payment) => {
-    // Handle both COMPLETED and CAPTURED status (for backward compatibility)
-    if (payment.status === 'COMPLETED' || payment.status === 'CAPTURED') {
+    if (payment.status === 'COMPLETED') {
       return sum + Math.abs(payment.amount);
     }
     return sum;

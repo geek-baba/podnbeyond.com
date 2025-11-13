@@ -80,7 +80,7 @@ export default function BookingPayments({
   };
 
   const totalPaid = payments
-    .filter((p) => p.status === 'CAPTURED' || p.status === 'COMPLETED')
+    .filter((p) => p.status === 'COMPLETED')
     .reduce((sum, p) => sum + Math.abs(p.amount), 0);
 
   const totalRefunded = payments
@@ -178,7 +178,7 @@ export default function BookingPayments({
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {(payment.status === 'CAPTURED' || payment.status === 'COMPLETED') && onIssueRefund && (
+                    {payment.status === 'COMPLETED' && onIssueRefund && (
                       <button
                         onClick={() => {
                           setSelectedPayment(payment.id);
