@@ -34,7 +34,6 @@ export default function BookingPayments({
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-      case 'CAPTURED':
         return 'bg-green-100 text-green-800';
       case 'AUTHORIZED':
         return 'bg-blue-100 text-blue-800';

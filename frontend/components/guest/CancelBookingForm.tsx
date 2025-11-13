@@ -40,7 +40,7 @@ export default function CancelBookingForm({ booking, token, onSuccess, onCancel 
       // Calculate cancellation fee client-side based on cancellation policy
       // In production, this would be calculated on the backend
       const totalPaid = (booking.payments || []).reduce((sum, p) => {
-        if (p.status === 'CAPTURED') return sum + p.amount;
+        if (p.status === 'COMPLETED') return sum + p.amount;
         return sum;
       }, 0);
       
@@ -118,7 +118,7 @@ export default function CancelBookingForm({ booking, token, onSuccess, onCancel 
   };
 
   const totalPaid = (booking.payments || []).reduce((sum, payment) => {
-    if (payment.status === 'CAPTURED') {
+    if (payment.status === 'COMPLETED') {
       return sum + payment.amount;
     }
     return sum;

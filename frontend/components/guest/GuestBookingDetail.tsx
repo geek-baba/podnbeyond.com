@@ -20,7 +20,7 @@ interface GuestBookingDetailProps {
 export default function GuestBookingDetail({ booking }: GuestBookingDetailProps) {
   const outstandingBalance = calculateOutstandingBalance(booking);
   const totalPaid = (booking.payments || []).reduce((sum, payment) => {
-    if (payment.status === 'CAPTURED') {
+    if (payment.status === 'COMPLETED') {
       return sum + payment.amount;
     }
     return sum;
@@ -220,7 +220,7 @@ export default function GuestBookingDetail({ booking }: GuestBookingDetailProps)
                   </div>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      payment.status === 'CAPTURED'
+                      payment.status === 'COMPLETED'
                         ? 'bg-green-100 text-green-800'
                         : payment.status === 'PENDING'
                         ? 'bg-yellow-100 text-yellow-800'

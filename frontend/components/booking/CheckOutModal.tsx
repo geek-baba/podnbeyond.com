@@ -53,7 +53,7 @@ export default function CheckOutModal({
 
   const outstandingBalance = calculateOutstandingBalance(booking);
   const totalPaid = (booking.payments || []).reduce((sum, payment) => {
-    if (payment.status === 'CAPTURED' || payment.status === 'COMPLETED') {
+    if (payment.status === 'COMPLETED') {
       return sum + payment.amount;
     }
     return sum;
