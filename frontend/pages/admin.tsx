@@ -940,9 +940,11 @@ useEffect(() => {
 
                   <Card variant="default" padding="lg">
                     <div className="text-sm font-semibold text-neutral-600 mb-2">Total Bookings</div>
-                    <div className="text-4xl font-bold text-sanctuary-500">{bookings?.length || 0}</div>
+                    <div className="text-4xl font-bold text-sanctuary-500">
+                      {bookingsLoading ? '...' : bookingsCount}
+                    </div>
                     <div className="text-sm text-neutral-500 mt-2">
-                      {bookings?.filter(b => b.status === 'CONFIRMED').length || 0} confirmed
+                      {bookingsLoading ? 'Loading...' : 'Click Bookings tab to view'}
                     </div>
                   </Card>
 
