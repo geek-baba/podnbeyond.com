@@ -1,0 +1,175 @@
+-- Migration: Communication Hub Enhancements
+-- Description: Add workflow fields, status tracking, and unified message linking to Thread model
+-- Date: 2025-11-13
+
+-- Step 1: Create new enums
+CREATE TYPE "ConversationStatus" AS ENUM (
+  'NEW',
+  'IN_PROGRESS',
+  'WAITING_FOR_GUEST',
+  'RESOLVED',
+  'ARCHIVED'
+);
+
+CREATE TYPE "Priority" AS ENUM (
+  'LOW',
+  'NORMAL',
+  'HIGH',
+  'URGENT'
+);
+
+-- Step 2: Add new columns to email_threads table (with defaults)
+-- First, add columns as nullable
+ALTER TABLE "email_threads" 
+  ADD COLUMN "status" "ConversationStatus",
+  ADD COLUMN "assignedTo" TEXT,
+  ADD COLUMN "priority" "Priority",
+  ADD COLUMN "firstResponseAt" TIMESTAMP(3),
+  ADD COLUMN "resolvedAt" TIMESTAMP(3),
+  ADD COLUMN "slaBreached" BOOLEAN,
+  ADD COLUMN "unreadCount" INTEGER,
+  ADD COLUMN "tags" TEXT[];
+
+-- Step 2a: Set default values for existing rows
+UPDATE "email_threads" 
+SET 
+  "status" = CASE 
+    WHEN "isArchived" = true THEN 'ARCHIVED'::"ConversationStatus"
+    ELSE 'NEW'::"ConversationStatus"
+  END,
+  "priority" = 'NORMAL'::"Priority",
+  "slaBreached" = false,
+  "unreadCount" = 0,
+  "tags" = ARRAY[]::TEXT[]
+WHERE "status" IS NULL;
+
+-- Step 2b: Make columns NOT NULL where required
+ALTER TABLE "email_threads" 
+  ALTER COLUMN "status" SET NOT NULL,
+  ALTER COLUMN "status" SET DEFAULT 'NEW',
+  ALTER COLUMN "priority" SET NOT NULL,
+  ALTER COLUMN "priority" SET DEFAULT 'NORMAL',
+  ALTER COLUMN "slaBreached" SET NOT NULL,
+  ALTER COLUMN "slaBreached" SET DEFAULT false,
+  ALTER COLUMN "unreadCount" SET NOT NULL,
+  ALTER COLUMN "unreadCount" SET DEFAULT 0,
+  ALTER COLUMN "tags" SET DEFAULT ARRAY[]::TEXT[];
+
+-- Step 3: Add foreign key constraint for assignedTo (if it doesn't exist)
+-- Note: assignedTo references users.id, which is TEXT
+-- We'll add the foreign key constraint after ensuring data integrity
+
+-- Step 4: Add threadId to message_logs table
+ALTER TABLE "message_logs" 
+  ADD COLUMN "threadId" INTEGER;
+
+-- Step 5: Add threadId to call_logs table
+ALTER TABLE "call_logs" 
+  ADD COLUMN "threadId" INTEGER;
+
+-- Step 6: Create conversation_notes table
+CREATE TABLE "conversation_notes" (
+  "id" SERIAL NOT NULL,
+  "threadId" INTEGER NOT NULL,
+  "authorId" TEXT NOT NULL,
+  "content" TEXT NOT NULL,
+  "isInternal" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+
+  CONSTRAINT "conversation_notes_pkey" PRIMARY KEY ("id")
+);
+
+-- Step 7: Add foreign key constraints
+-- Add foreign key for assignedTo (with SET NULL on delete for safety)
+ALTER TABLE "email_threads" 
+  ADD CONSTRAINT "email_threads_assignedTo_fkey" 
+  FOREIGN KEY ("assignedTo") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Add foreign key for message_logs.threadId
+ALTER TABLE "message_logs" 
+  ADD CONSTRAINT "message_logs_threadId_fkey" 
+  FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Add foreign key for call_logs.threadId
+ALTER TABLE "call_logs" 
+  ADD CONSTRAINT "call_logs_threadId_fkey" 
+  FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Add foreign key for conversation_notes.threadId
+ALTER TABLE "conversation_notes" 
+  ADD CONSTRAINT "conversation_notes_threadId_fkey" 
+  FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Add foreign key for conversation_notes.authorId
+ALTER TABLE "conversation_notes" 
+  ADD CONSTRAINT "conversation_notes_authorId_fkey" 
+  FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Step 8: Create indexes
+CREATE INDEX "email_threads_assignedTo_idx" ON "email_threads"("assignedTo");
+CREATE INDEX "email_threads_status_idx" ON "email_threads"("status");
+CREATE INDEX "email_threads_isArchived_idx" ON "email_threads"("isArchived");
+CREATE INDEX "message_logs_threadId_idx" ON "message_logs"("threadId");
+CREATE INDEX "call_logs_threadId_idx" ON "call_logs"("threadId");
+CREATE INDEX "conversation_notes_threadId_idx" ON "conversation_notes"("threadId");
+CREATE INDEX "conversation_notes_authorId_idx" ON "conversation_notes"("authorId");
+CREATE INDEX "conversation_notes_createdAt_idx" ON "conversation_notes"("createdAt");
+
+-- Step 9: (Moved to Step 2a - already handled above)
+-- Existing threads have been updated with default values
+
+-- Step 10: Link existing message_logs to threads based on bookingId
+-- Only link if both thread and message_log have the same bookingId
+UPDATE "message_logs" ml
+SET "threadId" = t.id
+FROM "email_threads" t
+WHERE ml."bookingId" IS NOT NULL
+  AND t."bookingId" = ml."bookingId"
+  AND ml."threadId" IS NULL
+  AND t."bookingId" IS NOT NULL;
+
+-- Step 11: Link existing call_logs to threads based on bookingId
+-- Only link if both thread and call_log have the same bookingId
+UPDATE "call_logs" cl
+SET "threadId" = t.id
+FROM "email_threads" t
+WHERE cl."bookingId" IS NOT NULL
+  AND t."bookingId" = cl."bookingId"
+  AND cl."threadId" IS NULL
+  AND t."bookingId" IS NOT NULL;
+
+-- Step 12: Update lastMessageAt for threads that have linked messages/calls
+-- Set lastMessageAt to the latest activity from emails, messages, or calls
+UPDATE "email_threads" t
+SET "lastMessageAt" = GREATEST(
+  COALESCE(t."lastMessageAt", '1970-01-01'::timestamp),
+  COALESCE((
+    SELECT MAX(e."createdAt")
+    FROM "emails" e
+    WHERE e."threadId" = t.id
+  ), '1970-01-01'::timestamp),
+  COALESCE((
+    SELECT MAX(ml."createdAt")
+    FROM "message_logs" ml
+    WHERE ml."threadId" = t.id
+  ), '1970-01-01'::timestamp),
+  COALESCE((
+    SELECT MAX(cl."createdAt")
+    FROM "call_logs" cl
+    WHERE cl."threadId" = t.id
+  ), '1970-01-01'::timestamp)
+)
+WHERE EXISTS (
+  SELECT 1 FROM "emails" e WHERE e."threadId" = t.id
+) OR EXISTS (
+  SELECT 1 FROM "message_logs" ml WHERE ml."threadId" = t.id
+) OR EXISTS (
+  SELECT 1 FROM "call_logs" cl WHERE cl."threadId" = t.id
+);
+
+-- Migration complete
+-- Note: Existing threads have been updated with default values
+-- Message logs and call logs have been linked to threads based on bookingId
+-- You may need to manually link additional messages/calls that don't have bookingIds
+
