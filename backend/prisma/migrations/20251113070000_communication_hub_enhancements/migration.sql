@@ -217,47 +217,65 @@ CREATE INDEX IF NOT EXISTS "conversation_notes_createdAt_idx" ON "conversation_n
 
 -- Step 10: Link existing message_logs to threads based on bookingId
 -- Only link if both thread and message_log have the same bookingId
-UPDATE "message_logs" ml
-SET "threadId" = t.id
-FROM "email_threads" t
-WHERE ml."bookingId" IS NOT NULL
-  AND t."bookingId" = ml."bookingId"
-  AND ml."threadId" IS NULL
-  AND t."bookingId" IS NOT NULL;
+-- Only run if threadId column exists in message_logs
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'message_logs' AND column_name = 'threadId') THEN
+    UPDATE "message_logs" ml
+    SET "threadId" = t.id
+    FROM "email_threads" t
+    WHERE ml."bookingId" IS NOT NULL
+      AND t."bookingId" = ml."bookingId"
+      AND ml."threadId" IS NULL
+      AND t."bookingId" IS NOT NULL;
+  END IF;
+END $$;
 
 -- Step 11: Link existing call_logs to threads based on bookingId
 -- Only link if both thread and call_log have the same bookingId
-UPDATE "call_logs" cl
-SET "threadId" = t.id
-FROM "email_threads" t
-WHERE cl."bookingId" IS NOT NULL
-  AND t."bookingId" = cl."bookingId"
-  AND cl."threadId" IS NULL
-  AND t."bookingId" IS NOT NULL;
+-- Only run if threadId column exists in call_logs
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_logs' AND column_name = 'threadId') THEN
+    UPDATE "call_logs" cl
+    SET "threadId" = t.id
+    FROM "email_threads" t
+    WHERE cl."bookingId" IS NOT NULL
+      AND t."bookingId" = cl."bookingId"
+      AND cl."threadId" IS NULL
+      AND t."bookingId" IS NOT NULL;
+  END IF;
+END $$;
 
 -- Step 12: Update lastMessageAt for threads that have linked messages/calls
 -- Set lastMessageAt to the latest activity from emails, messages, or calls
--- Use a subquery to find the maximum timestamp from all sources
-UPDATE "email_threads" t
-SET "lastMessageAt" = (
-  SELECT MAX(ts) FROM (
-    SELECT t."lastMessageAt" as ts
-    UNION ALL
-    SELECT e."createdAt" as ts FROM "emails" e WHERE e."threadId" = t.id
-    UNION ALL
-    SELECT ml."createdAt" as ts FROM "message_logs" ml WHERE ml."threadId" = t.id
-    UNION ALL
-    SELECT cl."createdAt" as ts FROM "call_logs" cl WHERE cl."threadId" = t.id
-  ) AS all_timestamps
-  WHERE ts IS NOT NULL
-)
-WHERE EXISTS (
-  SELECT 1 FROM "emails" e WHERE e."threadId" = t.id
-) OR EXISTS (
-  SELECT 1 FROM "message_logs" ml WHERE ml."threadId" = t.id
-) OR EXISTS (
-  SELECT 1 FROM "call_logs" cl WHERE cl."threadId" = t.id
-);
+-- Only run if threadId columns exist in message_logs and call_logs
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'message_logs' AND column_name = 'threadId')
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_logs' AND column_name = 'threadId') THEN
+    UPDATE "email_threads" t
+    SET "lastMessageAt" = (
+      SELECT MAX(ts) FROM (
+        SELECT t."lastMessageAt" as ts
+        UNION ALL
+        SELECT e."createdAt" as ts FROM "emails" e WHERE e."threadId" = t.id
+        UNION ALL
+        SELECT ml."createdAt" as ts FROM "message_logs" ml WHERE ml."threadId" = t.id
+        UNION ALL
+        SELECT cl."createdAt" as ts FROM "call_logs" cl WHERE cl."threadId" = t.id
+      ) AS all_timestamps
+      WHERE ts IS NOT NULL
+    )
+    WHERE EXISTS (
+      SELECT 1 FROM "emails" e WHERE e."threadId" = t.id
+    ) OR EXISTS (
+      SELECT 1 FROM "message_logs" ml WHERE ml."threadId" = t.id
+    ) OR EXISTS (
+      SELECT 1 FROM "call_logs" cl WHERE cl."threadId" = t.id
+    );
+  END IF;
+END $$;
 
 -- Migration complete
 -- Note: Existing threads have been updated with default values
