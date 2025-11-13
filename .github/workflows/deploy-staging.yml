@@ -21,8 +21,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  # Debounce: Wait briefly to batch rapid commits and reduce cancellation emails
+  # This waits 20 seconds before starting deployment, allowing multiple rapid commits
+  # to be batched into a single deployment. If new commits arrive during this time,
+  # this workflow will be cancelled and the new workflow will handle the latest commits.
+  wait-for-batching:
     runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Wait for batching rapid commits
+        run: |
+          echo "⏳ Waiting 20 seconds to batch rapid commits..."
+          echo "If new commits arrive during this time, this workflow will be cancelled"
+          echo "and the new workflow will handle the latest commits."
+          sleep 20
+          echo "✓ Batching period complete, proceeding with deployment"
+
+  build-and-deploy:
+    needs: wait-for-batching
+    runs-on: ubuntu-latest
+    # Continue even if wait job was cancelled (new workflow will handle it)
+    if: always()
 
     steps:
       - name: Checkout repository
