@@ -394,26 +394,11 @@ router.get('/:id', async (req, res) => {
       thread = await getPrisma().thread.findUnique({
         where: { id: threadId },
         include: {
-          property: {
-            select: { id: true, name: true, slug: true },
-          },
+          property: true,
           booking: {
-            select: {
-              id: true,
-              guestName: true,
-              checkIn: true,
-              checkOut: true,
-              email: true,
-              phone: true,
-              status: true,
-            },
             include: {
-              roomType: {
-                select: { id: true, name: true, code: true },
-              },
-              ratePlan: {
-                select: { id: true, name: true, code: true },
-              },
+              roomType: true,
+              ratePlan: true,
             },
           },
           assignedUser: {
