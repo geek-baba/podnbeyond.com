@@ -12,7 +12,11 @@ ALTER TYPE "BookingStatus" ADD VALUE IF NOT EXISTS 'CHECKED_OUT';
 ALTER TYPE "BookingStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
 
 -- Update BookingSource enum - Need to handle migration carefully
--- First, create a new enum with the new values
+-- First, drop the default value constraint (if it exists)
+ALTER TABLE "bookings" 
+  ALTER COLUMN "source" DROP DEFAULT;
+
+-- Create a new enum with the new values
 CREATE TYPE "BookingSource_new" AS ENUM (
   'WEB_DIRECT',
   'OTA_BOOKING_COM',
@@ -26,7 +30,7 @@ CREATE TYPE "BookingSource_new" AS ENUM (
   'OTHER'
 );
 
--- Map old values to new values
+-- Map old values to new values and change column type to text first
 ALTER TABLE "bookings" 
   ALTER COLUMN "source" TYPE text USING (
     CASE "source"::text
@@ -48,6 +52,10 @@ ALTER TABLE "bookings"
 -- Drop old enum and rename new one
 DROP TYPE "BookingSource";
 ALTER TYPE "BookingSource_new" RENAME TO "BookingSource";
+
+-- Restore the default value with the new enum type
+ALTER TABLE "bookings" 
+  ALTER COLUMN "source" SET DEFAULT 'WEB_DIRECT'::"BookingSource";
 
 -- Create StayStatus enum
 CREATE TYPE "StayStatus" AS ENUM (
