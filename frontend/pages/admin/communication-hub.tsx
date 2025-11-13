@@ -393,9 +393,11 @@ export default function CommunicationHub() {
       }
       
       // Load guest context if we have a participant email or booking
-      const identifier = data.conversation.participants[0] || 
+      const participants = Array.isArray(data.conversation.participants) ? data.conversation.participants : [];
+      const messages = Array.isArray(data.conversation.messages) ? data.conversation.messages : [];
+      const identifier = participants[0] || 
                         (data.conversation.booking?.email) ||
-                        (data.conversation.messages.find((m: any) => m.from)?.from);
+                        (messages.find((m: any) => m.from)?.from);
       if (identifier) {
         loadGuestContext(identifier);
       }
@@ -659,7 +661,7 @@ export default function CommunicationHub() {
           credentials: 'include',
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            to: selectedConversation.participants.filter(p => 
+            to: (Array.isArray(selectedConversation.participants) ? selectedConversation.participants : []).filter(p => 
               p !== (process.env.NEXT_PUBLIC_MAIL_FROM || 'support@capsulepodhotel.com')
             ),
             subject: selectedConversation.subject.startsWith('Re:') 
@@ -679,8 +681,10 @@ export default function CommunicationHub() {
         }
       } else {
         // WhatsApp/SMS
-        const phone = selectedConversation.participants.find(p => /\+?\d/.test(p)) || 
-                     selectedConversation.messages.find(m => m.type === 'MESSAGE' || m.type === 'CALL')?.from;
+        const participants = Array.isArray(selectedConversation.participants) ? selectedConversation.participants : [];
+        const messages = Array.isArray(selectedConversation.messages) ? selectedConversation.messages : [];
+        const phone = participants.find(p => /\+?\d/.test(p)) || 
+                     messages.find(m => m.type === 'MESSAGE' || m.type === 'CALL')?.from;
         if (!phone) {
           alert('No phone number found for this conversation');
           return;
@@ -1199,7 +1203,7 @@ export default function CommunicationHub() {
                             )}
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {selectedConversation.participants.map((email, idx) => (
+                            {(Array.isArray(selectedConversation.participants) ? selectedConversation.participants : []).map((email, idx) => (
                               <Badge key={idx} variant="neutral" size="sm">
                                 {email}
                               </Badge>
@@ -1244,7 +1248,7 @@ export default function CommunicationHub() {
                     <Card variant="default" padding="lg">
                       <h4 className="text-lg font-bold text-neutral-900 mb-4">Message Timeline</h4>
                       <div className="space-y-4 max-h-[300px] xl:max-h-[400px] overflow-y-auto pr-1">
-                        {selectedConversation.messages.map((message) => (
+                        {(Array.isArray(selectedConversation.messages) ? selectedConversation.messages : []).map((message) => (
                           <div
                             key={message.id}
                             className={`p-4 rounded-lg border ${
