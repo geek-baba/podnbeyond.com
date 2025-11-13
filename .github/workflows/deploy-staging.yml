@@ -160,11 +160,24 @@ jobs:
             fi
             cd ..
             
-            # Run Prisma migrations
-            cd backend
-            npx prisma migrate deploy || (echo "Migration failed, trying db push..." && npx prisma db push --accept-data-loss --skip-generate)
-            npx prisma generate
-            cd ..
+                # Run Prisma migrations - critical for schema updates
+                cd backend
+                echo "Running Prisma migrations..."
+                if npx prisma migrate deploy; then
+                  echo "✓ Migrations applied successfully"
+                else
+                  echo "⚠️  Migration failed, checking migration status..."
+                  npx prisma migrate status
+                  echo "ERROR: Migration failed! Manual intervention required."
+                  echo "Please check the migration status and fix any issues before deploying."
+                  exit 1
+                fi
+                
+                # Generate Prisma client
+                echo "Generating Prisma client..."
+                npx prisma generate
+                echo "✓ Prisma client generated"
+                cd ..
             
             # Create .env.local for Next.js runtime (rewrites need this at runtime)
             echo "NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}" > frontend/.env.local
