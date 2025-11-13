@@ -303,9 +303,14 @@ async function seedBookings(loyaltyUsers, properties) {
   const bookings = [];
   const totalBookings = 1500; // ~125 bookings per month
   
-  // Get all room types and rate plans
+  // Get all room types and rate plans (READ ONLY - uses existing data)
   const allRoomTypes = await prisma.roomType.findMany({
-    include: { ratePlans: true, property: true }
+    include: { 
+      ratePlans: true, 
+      property: {
+        include: { brand: true }
+      }
+    }
   });
   
   // Get cancellation policies
@@ -1036,14 +1041,29 @@ async function main() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   
   try {
-    // Get existing data
-    const properties = await prisma.property.findMany();
+    // Get existing data (READ ONLY - does not modify brands or properties)
+    // IMPORTANT: This script preserves all existing brands and properties.
+    // It only creates bookings, loyalty users, communications, and related data.
+    const properties = await prisma.property.findMany({
+      include: {
+        brand: true,
+        roomTypes: {
+          include: {
+            ratePlans: true
+          }
+        }
+      }
+    });
     if (properties.length === 0) {
       console.error('❌ No properties found. Please run property seed script first.');
       process.exit(1);
     }
     
-    console.log(`📊 Found ${properties.length} properties\n`);
+    console.log(`📊 Found ${properties.length} properties (preserved - not modified)\n`);
+    properties.forEach(p => {
+      console.log(`  ✓ ${p.name} (Brand: ${p.brand?.name || 'None'})`);
+    });
+    console.log('');
     
     // Step 1: Seed loyalty users
     const loyaltyUsers = await seedLoyaltyUsers();
