@@ -1,6 +1,10 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const { authenticate } = require('../middleware/auth');
 const router = express.Router();
+
+// Apply authentication to all guest-context routes
+router.use(authenticate);
 
 // Initialize Prisma client lazily to avoid startup issues
 let prisma;
@@ -173,7 +177,11 @@ router.get('/:identifier', async (req, res) => {
     });
   } catch (error) {
     console.error('Guest context error:', error);
-    res.status(500).json({ error: 'Failed to fetch guest context' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch guest context',
+      message: error.message 
+    });
   }
 });
 
@@ -215,7 +223,10 @@ router.get('/booking/:bookingId', async (req, res) => {
     });
 
     if (!booking) {
-      return res.status(404).json({ error: 'Booking not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Booking not found' 
+      });
     }
 
     // Get all conversations for this booking
@@ -259,7 +270,11 @@ router.get('/booking/:bookingId', async (req, res) => {
     });
   } catch (error) {
     console.error('Booking context error:', error);
-    res.status(500).json({ error: 'Failed to fetch booking context' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch booking context',
+      message: error.message 
+    });
   }
 });
 
