@@ -174,27 +174,48 @@ jobs:
                   if echo "$MIGRATION_STATUS" | grep -q "20251112220044_booking_module_phase1"; then
                     echo "Found failed migration: 20251112220044_booking_module_phase1"
                     echo "This migration failed due to enum default value issue (now fixed)."
-                    echo "Attempting to resolve by marking as rolled back..."
+                    echo "Attempting to recover using recovery script..."
                     
-                    # Try to mark as rolled back - this is safe since we've fixed the migration SQL
-                    # The migration likely failed early (at enum default value step), so it's safe to roll back
-                    if npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1" 2>&1; then
-                      echo "✓ Migration marked as rolled back successfully"
-                      echo "Will retry migration with fixed SQL..."
+                    # Run recovery script to clean up partial migration
+                    if [ -f "scripts/recover-failed-migration.js" ]; then
+                      echo "Running recovery script..."
+                      export DATABASE_URL="$DATABASE_URL"
+                      if node scripts/recover-failed-migration.js 2>&1; then
+                        echo "✓ Recovery script completed successfully"
+                        echo "Will retry migration with fixed SQL..."
+                      else
+                        echo "⚠️  Recovery script failed, trying direct resolution..."
+                        # Fallback to direct resolution
+                        if npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1" 2>&1; then
+                          echo "✓ Migration marked as rolled back successfully"
+                          echo "Will retry migration with fixed SQL..."
+                        else
+                          echo "⚠️  Could not automatically resolve failed migration"
+                          echo "The migration may have partially succeeded."
+                          echo ""
+                          echo "To manually resolve, SSH into the server and run:"
+                          echo "  cd backend"
+                          echo "  export DATABASE_URL='your-database-url'"
+                          echo "  node scripts/recover-failed-migration.js"
+                          echo ""
+                          echo "Or manually:"
+                          echo "  npx prisma migrate resolve --rolled-back '20251112220044_booking_module_phase1'"
+                          echo ""
+                          echo "Then retry the deployment."
+                          exit 1
+                        fi
+                      fi
                     else
-                      echo "⚠️  Could not automatically resolve failed migration"
-                      echo "The migration may have partially succeeded."
-                      echo ""
-                      echo "To manually resolve, SSH into the server and run:"
-                      echo "  cd backend"
-                      echo "  export DATABASE_URL='your-database-url'"
-                      echo "  npx prisma migrate resolve --rolled-back '20251112220044_booking_module_phase1'"
-                      echo ""
-                      echo "Or if the migration partially succeeded, check database state and:"
-                      echo "  npx prisma migrate resolve --applied '20251112220044_booking_module_phase1'"
-                      echo ""
-                      echo "Then retry the deployment."
-                      exit 1
+                      echo "⚠️  Recovery script not found, trying direct resolution..."
+                      # Fallback to direct resolution
+                      if npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1" 2>&1; then
+                        echo "✓ Migration marked as rolled back successfully"
+                        echo "Will retry migration with fixed SQL..."
+                      else
+                        echo "⚠️  Could not automatically resolve failed migration"
+                        echo "Please manually resolve the migration or check the database state."
+                        exit 1
+                      fi
                     fi
                   else
                     echo "⚠️  Found other failed migrations that need manual resolution"
