@@ -62,6 +62,27 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
     }
   }, [authStatus, router]);
 
+  const [properties, setProperties] = useState(initialProperties || []);
+  const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
+  const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
+  const [propertyRoomTypesLoaded, setPropertyRoomTypesLoaded] = useState(false);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
+  const [propertyEditorOpen, setPropertyEditorOpen] = useState(false);
+  const [propertyEditorLoading, setPropertyEditorLoading] = useState(false);
+  const [propertyEditorSaving, setPropertyEditorSaving] = useState(false);
+  const [propertyEditorError, setPropertyEditorError] = useState<string | null>(null);
+  const [propertyEditorPropertyId, setPropertyEditorPropertyId] = useState<number | null>(null);
+  const [propertyForm, setPropertyForm] = useState<any>(null);
+  const [roomTypeForms, setRoomTypeForms] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [currentTime, setCurrentTime] = useState('');
+  const [bookingsCount, setBookingsCount] = useState(0); // Client-side bookings count
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const defaultPropertyId = properties?.[0]?.id || null;
+  const defaultBrandId = brands?.[0]?.id || null;
+  const defaultScopeType: StaffScopeType = defaultPropertyId ? 'PROPERTY' : defaultBrandId ? 'BRAND' : 'ORG';
+  const defaultScopeId = defaultScopeType === 'PROPERTY' ? defaultPropertyId : defaultScopeType === 'BRAND' ? defaultBrandId : null;
+
   // Fetch bookings count client-side after authentication
   useEffect(() => {
     if (authStatus === 'authenticated') {
@@ -83,24 +104,6 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       fetchBookingsCount();
     }
   }, [authStatus]);
-  const [properties, setProperties] = useState(initialProperties || []);
-  const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
-  const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
-  const [propertyRoomTypesLoaded, setPropertyRoomTypesLoaded] = useState(false);
-  const [propertiesLoading, setPropertiesLoading] = useState(false);
-  const [propertyEditorOpen, setPropertyEditorOpen] = useState(false);
-  const [propertyEditorLoading, setPropertyEditorLoading] = useState(false);
-  const [propertyEditorSaving, setPropertyEditorSaving] = useState(false);
-  const [propertyEditorError, setPropertyEditorError] = useState<string | null>(null);
-  const [propertyEditorPropertyId, setPropertyEditorPropertyId] = useState<number | null>(null);
-  const [propertyForm, setPropertyForm] = useState<any>(null);
-  const [roomTypeForms, setRoomTypeForms] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [currentTime, setCurrentTime] = useState('');
-  const defaultPropertyId = properties?.[0]?.id || null;
-  const defaultBrandId = brands?.[0]?.id || null;
-  const defaultScopeType: StaffScopeType = defaultPropertyId ? 'PROPERTY' : defaultBrandId ? 'BRAND' : 'ORG';
-  const defaultScopeId = defaultScopeType === 'PROPERTY' ? defaultPropertyId : defaultScopeType === 'BRAND' ? defaultBrandId : null;
   
   // Payment Gateway Settings
   const [paymentSettings, setPaymentSettings] = useState({
