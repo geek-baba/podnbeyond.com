@@ -89,7 +89,6 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       const fetchBookingsCount = async () => {
         try {
           setBookingsLoading(true);
-          const { getBookings } = await import('../../lib/booking');
           const response = await getBookings({ page: 1, limit: 1 });
           if (response.success && response.data) {
             setBookingsCount(response.data.total || 0);
