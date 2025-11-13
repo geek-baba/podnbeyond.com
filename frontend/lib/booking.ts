@@ -3,7 +3,15 @@
  * Provides TypeScript types and API functions for booking management
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { getApiUrl } from './api';
+
+// Get API base URL (relative for client-side, full URL for server-side)
+function getBookingApiUrl(): string {
+  const baseUrl = getApiUrl();
+  // If baseUrl is empty (client-side), use relative URL
+  // If baseUrl has value (server-side), append /api
+  return baseUrl ? `${baseUrl}/api` : '/api';
+}
 
 // ============================================================================
 // Type Definitions
@@ -282,7 +290,8 @@ export async function getBookings(filters: BookingFilters = {}): Promise<Booking
   if (filters.sortBy) params.append('sortBy', filters.sortBy);
   if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
 
-  const response = await fetch(`${API_BASE_URL}/bookings?${params.toString()}`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings?${params.toString()}`, {
     method: 'GET',
     credentials: 'include',
     headers: {
@@ -322,7 +331,8 @@ export async function getBookings(filters: BookingFilters = {}): Promise<Booking
  * Get booking by ID
  */
 export async function getBooking(id: number): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}`, {
     method: 'GET',
     credentials: 'include',
     headers: {
@@ -341,7 +351,8 @@ export async function getBooking(id: number): Promise<BookingDetailResponse> {
  * Create booking
  */
 export async function createBooking(bookingData: Partial<Booking>): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -361,7 +372,8 @@ export async function createBooking(bookingData: Partial<Booking>): Promise<Book
  * Update booking
  */
 export async function updateBooking(id: number, bookingData: Partial<Booking>): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: {
@@ -381,7 +393,8 @@ export async function updateBooking(id: number, bookingData: Partial<Booking>): 
  * Check-in booking
  */
 export async function checkInBooking(id: number, data: { roomAssignments?: Array<{ stayId: number; roomId: number }> }): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/check-in`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/check-in`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -401,7 +414,8 @@ export async function checkInBooking(id: number, data: { roomAssignments?: Array
  * Check-out booking
  */
 export async function checkOutBooking(id: number, data: { finalCharges?: number }): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/check-out`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/check-out`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -421,7 +435,8 @@ export async function checkOutBooking(id: number, data: { finalCharges?: number 
  * Cancel booking
  */
 export async function cancelBooking(id: number, data: { reason?: string; processRefund?: boolean }): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/cancel`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/cancel`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -448,7 +463,8 @@ export async function modifyBooking(id: number, data: Partial<Booking>): Promise
  * Mark booking as no-show
  */
 export async function markNoShow(id: number, data: { reason?: string; noShowFee?: number }): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/no-show`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/no-show`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -468,7 +484,8 @@ export async function markNoShow(id: number, data: { reason?: string; noShowFee?
  * Reject booking
  */
 export async function rejectBooking(id: number, data: { reason?: string }): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/reject`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/reject`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -488,7 +505,8 @@ export async function rejectBooking(id: number, data: { reason?: string }): Prom
  * Get booking audit log
  */
 export async function getBookingAuditLog(id: number): Promise<{ success: boolean; data: BookingAuditLog[] }> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/audit-log`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/audit-log`, {
     method: 'GET',
     credentials: 'include',
     headers: {
@@ -507,7 +525,8 @@ export async function getBookingAuditLog(id: number): Promise<{ success: boolean
  * Calculate cancellation fee
  */
 export async function calculateCancellationFee(id: number, data: { cancellationDate?: string }): Promise<{ success: boolean; data: { fee: number; refund: number; breakdown: any } }> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${id}/calculate-cancellation-fee`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${id}/calculate-cancellation-fee`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -537,7 +556,8 @@ export async function createPayment(bookingId: number, data: {
   externalTxnId?: string;
   notes?: string;
 }): Promise<{ success: boolean; data: { payment: Payment; booking: Booking } }> {
-  const response = await fetch(`${API_BASE_URL}/payments`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/payments`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -564,7 +584,8 @@ export async function chargeCard(bookingId: number, data: {
   cardId?: string;
   notes?: string;
 }): Promise<{ success: boolean; data: { payment: Payment; booking: Booking } }> {
-  const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payments/charge-card`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/bookings/${bookingId}/payments/charge-card`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -588,7 +609,8 @@ export async function issueRefund(paymentId: number, data: {
   reason?: string;
   processRefund?: boolean;
 }): Promise<{ success: boolean; data: { refund: Payment; booking: Booking } }> {
-  const response = await fetch(`${API_BASE_URL}/payments/${paymentId}/refund`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/payments/${paymentId}/refund`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -612,7 +634,8 @@ export async function issueRefund(paymentId: number, data: {
  * Get guest booking by token
  */
 export async function getGuestBooking(token: string): Promise<BookingDetailResponse & { token: string }> {
-  const response = await fetch(`${API_BASE_URL}/guest/bookings/${token}`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/guest/bookings/${token}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -630,7 +653,8 @@ export async function getGuestBooking(token: string): Promise<BookingDetailRespo
  * Update guest booking by token
  */
 export async function updateGuestBooking(token: string, bookingData: Partial<Booking>): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/guest/bookings/${token}`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/guest/bookings/${token}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -649,7 +673,8 @@ export async function updateGuestBooking(token: string, bookingData: Partial<Boo
  * Cancel guest booking by token
  */
 export async function cancelGuestBooking(token: string, data: { reason?: string }): Promise<BookingDetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/guest/bookings/${token}/cancel`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/guest/bookings/${token}/cancel`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -668,7 +693,8 @@ export async function cancelGuestBooking(token: string, data: { reason?: string 
  * Request modification for guest booking
  */
 export async function requestGuestBookingModification(token: string, data: { requestedChanges: any; reason?: string }): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_BASE_URL}/guest/bookings/${token}/request-modification`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/guest/bookings/${token}/request-modification`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -691,7 +717,8 @@ export async function getGuestBookings(email?: string, phone?: string): Promise<
   if (email) params.append('email', email);
   if (phone) params.append('phone', phone);
 
-  const response = await fetch(`${API_BASE_URL}/guest/bookings?${params.toString()}`, {
+  const apiUrl = getBookingApiUrl();
+  const response = await fetch(`${apiUrl}/guest/bookings?${params.toString()}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

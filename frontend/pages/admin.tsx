@@ -61,6 +61,28 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       router.push('/admin/login');
     }
   }, [authStatus, router]);
+
+  // Fetch bookings count client-side after authentication
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      const fetchBookingsCount = async () => {
+        try {
+          setBookingsLoading(true);
+          const { getBookings } = await import('../../lib/booking');
+          const response = await getBookings({ page: 1, limit: 1 });
+          if (response.success && response.data) {
+            setBookingsCount(response.data.total || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching bookings count:', error);
+          // Silently fail - bookings count is not critical for dashboard
+        } finally {
+          setBookingsLoading(false);
+        }
+      };
+      fetchBookingsCount();
+    }
+  }, [authStatus]);
   const [properties, setProperties] = useState(initialProperties || []);
   const [roomTypes, setRoomTypes] = useState(initialRoomTypes || []);
   const [propertyRoomTypeData, setPropertyRoomTypeData] = useState<Record<number, { property: any; roomTypes: any[] }>>({});
@@ -3139,50 +3161,42 @@ export async function getServerSideProps() {
   try {
     console.log('Fetching admin data from:', API_URL);
 
-    // Fetch all data with proper error handling
-    const [brandsRes, propertiesRes, bookingsRes, usersRes] = await Promise.all([
-      fetch(`${API_URL}/api/brands`).catch(e => { console.error('Brands fetch failed:', e); return null; }),
-      fetch(`${API_URL}/api/properties`).catch(e => { console.error('Properties fetch failed:', e); return null; }),
-      fetch(`${API_URL}/api/bookings`).catch(e => { console.error('Bookings fetch failed:', e); return null; }),
-      fetch(`${API_URL}/api/users`).catch(e => { console.error('Users fetch failed:', e); return null; }),
-    ]);
+            // Fetch all data with proper error handling
+            // Note: Bookings API requires authentication, so we skip it in getServerSideProps
+            // Bookings will be fetched client-side after authentication
+            const [brandsRes, propertiesRes, usersRes] = await Promise.all([
+              fetch(`${API_URL}/api/brands`).catch(e => { console.error('Brands fetch failed:', e); return null; }),
+              fetch(`${API_URL}/api/properties`).catch(e => { console.error('Properties fetch failed:', e); return null; }),
+              fetch(`${API_URL}/api/users`).catch(e => { console.error('Users fetch failed:', e); return null; }),
+            ]);
 
-    // Parse responses, handling errors gracefully
-    let brands = [];
-    let properties = [];
-    let bookings = [];
-    let users = [];
+            // Parse responses, handling errors gracefully
+            let brands = [];
+            let properties = [];
+            let bookings = []; // Will be fetched client-side after authentication
+            let users = [];
 
-    if (brandsRes && brandsRes.ok) {
-      try {
-        const brandsData = await brandsRes.json();
-        brands = brandsData.brands || brandsData.data || [];
-      } catch (e) {
-        console.error('Error parsing brands response:', e);
-      }
-    }
+            if (brandsRes && brandsRes.ok) {
+              try {
+                const brandsData = await brandsRes.json();
+                brands = brandsData.brands || brandsData.data || [];
+              } catch (e) {
+                console.error('Error parsing brands response:', e);
+              }
+            }
 
-    if (propertiesRes && propertiesRes.ok) {
-      try {
-        const propertiesData = await propertiesRes.json();
-        properties = propertiesData.properties || propertiesData.data || [];
-      } catch (e) {
-        console.error('Error parsing properties response:', e);
-      }
-    }
+            if (propertiesRes && propertiesRes.ok) {
+              try {
+                const propertiesData = await propertiesRes.json();
+                properties = propertiesData.properties || propertiesData.data || [];
+              } catch (e) {
+                console.error('Error parsing properties response:', e);
+              }
+            }
 
-    if (bookingsRes && bookingsRes.ok) {
-      try {
-        const bookingsData = await bookingsRes.json();
-        bookings = bookingsData.data || bookingsData.bookings || [];
-      } catch (e) {
-        console.error('Error parsing bookings response:', e);
-        // Bookings may require authentication, so this is expected
-      }
-    } else {
-      // Bookings endpoint requires authentication, so it may fail in getServerSideProps
-      console.log('Bookings fetch failed (may require authentication)');
-    }
+            // Bookings API requires authentication, so we skip it in getServerSideProps
+            // Bookings will be fetched client-side in the component after user authentication
+            console.log('Bookings will be fetched client-side after authentication');
 
     if (usersRes && usersRes.ok) {
       try {
@@ -3210,29 +3224,30 @@ export async function getServerSideProps() {
       }
     }
 
-    console.log('Admin data fetched:', { 
-      brands: brands.length, 
-      properties: properties.length, 
-      bookings: Array.isArray(bookings) ? bookings.length : 0 
-    });
+            console.log('Admin data fetched:', { 
+              brands: brands.length, 
+              properties: properties.length,
+              loyalty: loyaltyAccounts.length,
+              users: users.length
+            });
 
-    return {
-      props: {
-        brands,
-        properties,
-        bookings: Array.isArray(bookings) ? bookings : [],
-        users,
-        roomTypes: Array.isArray(roomTypes) ? roomTypes : [],
-        loyalty: loyaltyAccounts,
-        stats: {
-          brands: brands.length,
-          properties: properties.length,
-          bookings: Array.isArray(bookings) ? bookings.length : 0,
-          loyalty: loyaltyAccounts.length,
-          users: users.length,
-        }
-      }
-    };
+            return {
+              props: {
+                brands,
+                properties,
+                bookings: [], // Will be fetched client-side after authentication
+                users,
+                roomTypes: Array.isArray(roomTypes) ? roomTypes : [],
+                loyalty: loyaltyAccounts,
+                stats: {
+                  brands: brands.length,
+                  properties: properties.length,
+                  bookings: 0, // Will be updated client-side
+                  loyalty: loyaltyAccounts.length,
+                  users: users.length,
+                }
+              }
+            };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
     
