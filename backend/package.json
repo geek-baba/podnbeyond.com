@@ -10,7 +10,8 @@
     "lint": "echo 'No linter configured yet'",
     "seed": "node prisma/seed.js",
     "seed:conversations": "node seed_conversations.js",
-    "backfill:room-types": "node scripts/backfillRoomTypes.js"
+    "backfill:room-types": "node scripts/backfillRoomTypes.js",
+    "cleanup:seed-data": "node scripts/cleanup-seed-data.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
