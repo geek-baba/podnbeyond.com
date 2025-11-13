@@ -1,0 +1,1383 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  HOLD
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  NO_SHOW
+  REJECTED
+  COMPLETED
+  FAILED
+}
+
+enum BookingSource {
+  WEB_DIRECT
+  OTA_BOOKING_COM
+  OTA_MMT
+  OTA_GOIBIBO
+  OTA_YATRA
+  OTA_AGODA
+  WALK_IN
+  PHONE
+  CORPORATE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum StayStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum LoyaltyTier {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum RoomStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum BrandStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum RoleKey {
+  GUEST
+  MEMBER
+  STAFF_FRONTDESK
+  STAFF_OPS
+  MANAGER
+  ADMIN
+  SUPERADMIN
+}
+
+enum ScopeType {
+  ORG
+  BRAND
+  PROPERTY
+}
+
+enum ContentType {
+  HERO_SECTION
+  ABOUT_SECTION
+  ROOMS_SECTION
+  AMENITIES_SECTION
+  TESTIMONIALS_SECTION
+  CONTACT_SECTION
+  FOOTER_SECTION
+}
+
+enum ImageType {
+  HERO_BACKGROUND
+  ROOM_IMAGE
+  AMENITY_ICON
+  TESTIMONIAL_AVATAR
+  GALLERY_IMAGE
+  LOGO
+  FAVICON
+}
+
+// ============================================================================
+// AUTH & RBAC MODELS (NextAuth.js + Custom RBAC)
+// ============================================================================
+
+// Organization - Single org for now, future-proof for multi-org
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?
+  settings    Json? // org-level settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+  invites   Invite[]
+
+  @@map("organizations")
+}
+
+// User - Core user model (NextAuth compatible)
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Custom relations
+  userRoles        UserRole[]
+  loyaltyAccount   LoyaltyAccount?
+  sentInvites      Invite[]          @relation("InvitedBy")
+  auditLogs        AuditLog[]
+  pointsLedger     PointsLedger[]
+  emailThreads     Thread[] // Email conversations
+  bookingAuditLogs BookingAuditLog[] // Booking audit logs
+  roomAssignments  RoomAssignment[] // Room assignments
+
+  @@map("users")
+}
+
+// Account - NextAuth OAuth accounts
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+// Session - NextAuth sessions
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// VerificationToken - NextAuth email verification
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// OTP Codes for email authentication
+model OTPCode {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String // SHA-256 hash of the 6-digit OTP
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_codes")
+}
+
+// Role - Predefined roles with descriptions
+model Role {
+  id          Int      @id @default(autoincrement())
+  key         RoleKey  @unique
+  name        String
+  description String?
+  permissions String[] @default([]) // List of action permissions
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+// UserRole - Many-to-many with scope support
+model UserRole {
+  id      Int     @id @default(autoincrement())
+  userId  String
+  roleKey RoleKey
+
+  // Scope fields
+  scopeType ScopeType @default(ORG)
+  scopeId   Int? // orgId, brandId, or propertyId depending on scopeType
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role          @relation(fields: [roleKey], references: [key])
+  organization Organization? @relation(fields: [scopeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleKey, scopeType, scopeId])
+  @@index([userId])
+  @@index([roleKey])
+  @@index([scopeType, scopeId])
+  @@map("user_roles")
+}
+
+// Invite - Staff invitation system
+model Invite {
+  id         Int       @id @default(autoincrement())
+  email      String
+  roleKey    RoleKey
+  scopeType  ScopeType @default(ORG)
+  scopeId    Int?
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+
+  // Invited by
+  invitedBy String
+  inviter   User   @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  // Organization
+  orgId        Int
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("invites")
+}
+
+// AuditLog - Track all admin actions
+model AuditLog {
+  id          Int    @id @default(autoincrement())
+  actorUserId String
+  actor       User   @relation(fields: [actorUserId], references: [id])
+
+  action     String // e.g., "booking.cancel", "loyalty.adjust", "user.invite"
+  targetType String? // e.g., "Booking", "User", "Property"
+  targetId   String? // ID of the affected entity
+
+  metadata  Json? // Additional context (old values, changes, etc.)
+  ip        String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// PointsLedger - Loyalty points transaction log
+model PointsLedger {
+  id               Int    @id @default(autoincrement())
+  loyaltyAccountId Int
+  userId           String
+
+  points    Int // Positive for earn, negative for burn
+  reason    String // e.g., "Booking #123", "Redeemed for discount", "Manual adjustment"
+  bookingId Int? // Link to booking if applicable
+
+  balanceBefore Int
+  balanceAfter  Int
+
+  createdBy     String? // userId of admin who made manual adjustment
+  createdByUser User?   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([loyaltyAccountId])
+  @@index([userId])
+  @@index([bookingId])
+  @@index([createdAt])
+  @@map("points_ledger")
+}
+
+// ============================================================================
+// BUSINESS MODELS
+// ============================================================================
+
+// Brand model for multi-brand architecture (inspired by 9h nine hours)
+model Brand {
+  id             Int         @id @default(autoincrement())
+  name           String      @unique // e.g., "POD N BEYOND | Capsule", "POD N BEYOND | Smart"
+  slug           String      @unique
+  description    String?
+  tagline        String? // e.g., "Budget-friendly capsule experience"
+  concept        String? // Detailed brand philosophy
+  logoUrl        String?
+  primaryColor   String?     @default("#1e3a8a") // Brand color in hex
+  accentColor    String?     @default("#f59e0b")
+  targetAudience String? // e.g., "Budget travelers", "Business professionals", "Women only"
+  features       String[]    @default([])
+  amenities      String[]    @default([])
+  images         String[]    @default([])
+  status         BrandStatus @default(ACTIVE)
+  sortOrder      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relationships
+  properties Property[]
+
+  @@map("brands")
+}
+
+// Property/Hotel model for multi-property support
+model Property {
+  id                   Int            @id @default(autoincrement())
+  name                 String
+  slug                 String         @unique
+  location             String
+  address              String?
+  city                 String
+  state                String         @default("Jharkhand")
+  pincode              String?
+  phone                String?
+  email                String?
+  rating               Float?         @default(0)
+  totalRatings         Int            @default(0)
+  description          String?
+  amenities            String[]       @default([])
+  features             String[]       @default([])
+  images               String[]       @default([])
+  latitude             Float?
+  longitude            Float?
+  status               PropertyStatus @default(ACTIVE)
+  timezone             String?        @default("Asia/Kolkata")
+  defaultBuffer        Int            @default(0)
+  currency             String?        @default("INR")
+  checkInCutoffMinutes Int?           @default(0)
+  overbookingEnabled   Boolean        @default(true)
+
+  // Brand relationship
+  brandId Int?
+  brand   Brand? @relation(fields: [brandId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  rooms                Room[]
+  roomTypes            RoomType[]
+  inventories          Inventory[]
+  bufferRules          BufferRule[]
+  bookings             Booking[]
+  otaMappings          OTAMapping[]
+  ratePlans            RatePlan[]
+  cancellationPolicies CancellationPolicy[] // Cancellation policies for this property
+  emailThreads         Thread[] // Email conversations about this property
+  idempotencyKeys      IdempotencyKey[]
+
+  @@map("properties")
+}
+
+model RoomType {
+  id          Int      @id @default(autoincrement())
+  propertyId  Int
+  property    Property @relation(fields: [propertyId], references: [id])
+  name        String
+  code        String?  @unique
+  description String?
+  baseRooms   Int      @default(0)
+  capacity    Int      @default(1)
+  bedConfig   String?
+  amenities   String[] @default([])
+  features    String[] @default([])
+  isActive    Boolean  @default(true)
+  images      String[] @default([])
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rooms       Room[]
+  inventories Inventory[]
+  bufferRules BufferRule[]
+  ratePlans   RatePlan[]
+  bookings    Booking[]
+  stays       Stay[]
+  otaMappings OTAMapping[]
+
+  @@index([propertyId, isActive])
+  @@map("room_types")
+}
+
+// Updated Room model to match new specifications (optional physical room mapping)
+model Room {
+  id            Int        @id @default(autoincrement())
+  name          String
+  type          String
+  capacity      Int
+  description   String?
+  pricePerNight Float
+  status        RoomStatus @default(ACTIVE)
+
+  // Property relationship
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  // Room type relationship (optional physical room tracking)
+  roomTypeId Int?
+  roomType   RoomType? @relation(fields: [roomTypeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  bookings        Booking[]
+  stays           Stay[]
+  roomAssignments RoomAssignment[]
+  images          RoomImage[]
+
+  @@map("rooms")
+}
+
+// New RatePlan model
+model RatePlan {
+  id                 Int       @id @default(autoincrement())
+  propertyId         Int
+  property           Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId         Int
+  roomType           RoomType  @relation(fields: [roomTypeId], references: [id])
+  name               String
+  code               String?
+  description        String?
+  refundable         Boolean   @default(true)
+  seasonalPrice      Float
+  currency           String?   @default("INR")
+  taxConfig          Json?
+  minLOS             Int?      @default(1)
+  maxLOS             Int?
+  weekdayMask        String? // e.g. "1111100" for weekdays
+  startDate          DateTime?
+  endDate            DateTime?
+  bookingWindowStart Int?
+  bookingWindowEnd   Int?
+  cancellationPolicy String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  bookings    Booking[]
+  stays       Stay[]
+  otaMappings OTAMapping[]
+
+  @@unique([propertyId, roomTypeId, name])
+  @@index([roomTypeId])
+  @@map("rate_plans")
+}
+
+model Booking {
+  id                   Int           @id @default(autoincrement())
+  guestName            String
+  email                String
+  phone                String?
+  checkIn              DateTime
+  checkOut             DateTime
+  guests               Int           @default(1)
+  rooms                Int           @default(1)
+  totalPrice           Float
+  specialRequests      String?
+  status               BookingStatus @default(PENDING)
+  currency             String?       @default("INR")
+  netAmount            Float?        @default(0)
+  taxAmount            Float?        @default(0)
+  holdToken            String?       @unique
+  holdExpiresAt        DateTime?
+  source               BookingSource @default(WEB_DIRECT)
+  externalBookingId    String? // External booking ID from channel
+  externalChannel      String? // Channel name (makemytrip, yatra, etc.)
+  externalConfirmation Json?
+
+  // New fields for Phase 1
+  confirmationNumber  String? @unique // Internal PNR
+  sourceReservationId String? // OTA booking ID (aliased from externalBookingId for clarity)
+  sourceCommissionPct Float? // OTA commission percentage
+  commissionAmount    Float? // Calculated commission
+  notesInternal       String? @db.Text // Staff-only notes
+  notesGuest          String? @db.Text // Guest-visible notes
+
+  // Relationship to Room
+  roomId Int?
+  room   Room? @relation(fields: [roomId], references: [id])
+
+  // Link to property & room type
+  propertyId Int
+  property   Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId Int
+  roomType   RoomType  @relation(fields: [roomTypeId], references: [id])
+  ratePlanId Int?
+  ratePlan   RatePlan? @relation(fields: [ratePlanId], references: [id])
+
+  // Cancellation policy
+  cancellationPolicyId Int?
+  cancellationPolicy   CancellationPolicy? @relation(fields: [cancellationPolicyId], references: [id])
+
+  // Relationship to Payments
+  payments Payment[]
+
+  // Relationship to Loyalty Account
+  loyaltyAccountId Int?
+  loyaltyAccount   LoyaltyAccount? @relation(fields: [loyaltyAccountId], references: [id])
+
+  // New relationships for Phase 1
+  stays            Stay[] // 1:N for multi-room bookings
+  bookingGuests    BookingGuest[] // 1:N for multiple guests
+  bookingAuditLogs BookingAuditLog[] // Audit trail
+  roomAssignments  RoomAssignment[] // Room assignments at check-in
+
+  // Email threads related to this booking
+  emailThreads Thread[]
+
+  inventoryLocks InventoryLock[]
+  holdLogs       HoldLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId, status])
+  @@index([roomTypeId, checkIn, checkOut])
+  @@index([confirmationNumber])
+  @@index([sourceReservationId])
+  @@map("bookings")
+}
+
+model Payment {
+  id                Int           @id @default(autoincrement())
+  bookingId         Int
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  amount            Float
+  status            PaymentStatus @default(PENDING)
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+// ============================================================================
+// BOOKING MODULE ENHANCEMENTS (Phase 1)
+// ============================================================================
+
+// CancellationPolicy - Flexible cancellation policies
+model CancellationPolicy {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String? @db.Text
+
+  // Rules (JSON structure)
+  // Example: { "freeUntilHours": 24, "firstNightPenalty": true, "percentage": 100 }
+  rules Json
+
+  // Human-readable description
+  humanReadable String? @db.Text
+
+  isActive Boolean @default(true)
+
+  // Property scope (null = global policy)
+  propertyId Int?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([isActive])
+  @@map("cancellation_policies")
+}
+
+// Stay - Individual stay record (supports multi-room bookings)
+model Stay {
+  id        Int     @id @default(autoincrement())
+  bookingId Int
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  roomTypeId Int
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  roomId     Int? // Assigned at check-in
+  room       Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  checkInDate  DateTime
+  checkOutDate DateTime
+  numGuests    Int      @default(1)
+
+  ratePlanId Int?
+  ratePlan   RatePlan? @relation(fields: [ratePlanId], references: [id])
+
+  // Rate breakdown (JSON: date -> amount -> tax)
+  // Example: { "2024-01-01": { "base": 1000, "tax": 180, "total": 1180 } }
+  nightlyRates Json?
+
+  // Status
+  status StayStatus @default(PENDING)
+
+  // Relationships
+  roomAssignments RoomAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([roomTypeId])
+  @@index([roomId])
+  @@index([status])
+  @@map("stays")
+}
+
+// BookingGuest - Guest information for bookings (supports multiple guests)
+model BookingGuest {
+  id        Int     @id @default(autoincrement())
+  bookingId Int
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  // Guest details
+  name    String
+  email   String?
+  phone   String?
+  country String?
+
+  // Guest type
+  isPrimary Boolean @default(false)
+  age       Int?
+
+  // Loyalty
+  loyaltyAccountId Int?
+  loyaltyAccount   LoyaltyAccount? @relation(fields: [loyaltyAccountId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([email])
+  @@index([phone])
+  @@map("booking_guests")
+}
+
+// BookingAuditLog - Complete audit trail for booking actions
+model BookingAuditLog {
+  id        Int     @id @default(autoincrement())
+  bookingId Int
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  // Actor
+  performedBy     String? // user_id or "system"
+  performedByUser User?   @relation(fields: [performedBy], references: [id], onDelete: SetNull)
+
+  // Action
+  action String // CREATE, UPDATE, CONFIRM, CANCEL, CHECK_IN, CHECK_OUT, MODIFY, etc.
+
+  // Changes
+  // Example: { "field": "status", "oldValue": "PENDING", "newValue": "CONFIRMED" }
+  meta Json?
+
+  // Timestamp
+  timestamp DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([performedBy])
+  @@map("booking_audit_logs")
+}
+
+// RoomAssignment - Room assignments at check-in
+model RoomAssignment {
+  id        Int     @id @default(autoincrement())
+  bookingId Int
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  stayId    Int?
+  stay      Stay?   @relation(fields: [stayId], references: [id], onDelete: Cascade)
+
+  roomId Int
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  // Assignment details
+  assignedAt     DateTime @default(now())
+  assignedBy     String? // user_id
+  assignedByUser User?    @relation(fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  // Check-in/out
+  checkedInAt  DateTime?
+  checkedOutAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([stayId])
+  @@index([roomId])
+  @@index([assignedBy])
+  @@map("room_assignments")
+}
+
+// Updated LoyaltyAccount model to match specifications
+model LoyaltyAccount {
+  id            Int         @id @default(autoincrement())
+  memberNumber  String      @unique // Simple 6-digit number like "000001"
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points        Int         @default(0)
+  lifetimeStays Int         @default(0) // Track total stays for tier qualification
+  tier          LoyaltyTier @default(SILVER) // Auto-calculated based on points/stays
+  lastUpdated   DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relationship to Bookings
+  bookings      Booking[]
+  bookingGuests BookingGuest[] // Guests linked to loyalty account
+
+  @@index([userId])
+  @@index([memberNumber])
+  @@map("loyalty_accounts")
+}
+
+// New OTASyncLog model
+model OTASyncLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+
+  @@map("ota_sync_logs")
+}
+
+model OTAMapping {
+  id                   Int       @id @default(autoincrement())
+  propertyId           Int
+  property             Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId           Int?
+  roomType             RoomType? @relation(fields: [roomTypeId], references: [id])
+  ratePlanId           Int?
+  ratePlan             RatePlan? @relation(fields: [ratePlanId], references: [id])
+  provider             String
+  externalPropertyCode String
+  externalRoomCode     String?
+  externalRateCode     String?
+  credentials          Json?
+  isActive             Boolean   @default(true)
+  supportsPush         Boolean   @default(true)
+  supportsPull         Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([provider, propertyId, roomTypeId, ratePlanId])
+  @@map("ota_mappings")
+}
+
+model Inventory {
+  id            Int      @id @default(autoincrement())
+  propertyId    Int
+  property      Property @relation(fields: [propertyId], references: [id])
+  roomTypeId    Int
+  roomType      RoomType @relation(fields: [roomTypeId], references: [id])
+  date          DateTime
+  baseAvailable Int      @default(0)
+  bufferPercent Int      @default(0)
+  sellable      Int      @default(0)
+  booked        Int      @default(0)
+  holds         Int      @default(0)
+  freeToSell    Int      @default(0)
+  overbooked    Int      @default(0)
+  updatedBy     String?
+  updatedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  inventoryLocks InventoryLock[]
+  audits         InventoryAudit[]
+
+  @@unique([roomTypeId, date], name: "roomTypeId_date")
+  @@index([propertyId, date])
+  @@map("inventories")
+}
+
+model InventoryLock {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  bookingId   Int?
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  holdToken   String?
+  lockedAt    DateTime  @default(now())
+  releasedAt  DateTime?
+  change      Int       @default(0)
+  type        String    @default("HOLD") // HOLD / BOOKED / RELEASE
+  metadata    Json?
+
+  @@index([inventoryId, lockedAt])
+  @@map("inventory_locks")
+}
+
+model BufferRule {
+  id          Int       @id @default(autoincrement())
+  propertyId  Int
+  property    Property  @relation(fields: [propertyId], references: [id])
+  roomTypeId  Int?
+  roomType    RoomType? @relation(fields: [roomTypeId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  percent     Int       @default(0)
+  daysOfWeek  String? // e.g. "1111100"
+  notes       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  updatedById String?
+
+  @@index([propertyId, isActive])
+  @@index([roomTypeId])
+  @@map("buffer_rules")
+}
+
+model InventoryAudit {
+  id          Int       @id @default(autoincrement())
+  inventoryId Int
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  changeType  String
+  beforeState Json?
+  afterState  Json?
+  reason      String?
+  createdAt   DateTime  @default(now())
+  createdById String?
+
+  @@index([inventoryId, createdAt])
+  @@map("inventory_audits")
+}
+
+model HoldLog {
+  id         Int       @id @default(autoincrement())
+  bookingId  Int?
+  booking    Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  holdToken  String
+  roomTypeId Int
+  propertyId Int
+  checkIn    DateTime
+  checkOut   DateTime
+  rooms      Int       @default(1)
+  guests     Int       @default(1)
+  status     String    @default("ACTIVE") // ACTIVE / RELEASED / CONFIRMED / EXPIRED
+  expiresAt  DateTime?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([holdToken])
+  @@index([propertyId, roomTypeId, status])
+  @@map("hold_logs")
+}
+
+model IdempotencyKey {
+  id           Int       @id @default(autoincrement())
+  key          String    @unique
+  method       String
+  path         String
+  requestHash  String
+  responseBody Json?
+  statusCode   Int?
+  propertyId   Int?
+  property     Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+
+  @@index([method, path])
+  @@map("idempotency_keys")
+}
+
+// CMS Models for Content Management
+
+model Content {
+  id          Int         @id @default(autoincrement())
+  type        ContentType
+  title       String?
+  subtitle    String?
+  description String?
+  content     String? // JSON content for complex sections
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("contents")
+}
+
+model Image {
+  id           Int       @id @default(autoincrement())
+  type         ImageType
+  filename     String
+  originalName String
+  path         String
+  url          String
+  altText      String?
+  title        String?
+  description  String?
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relationship to Room Images
+  roomImages RoomImage[]
+
+  // Relationship to Testimonials
+  testimonials Testimonial[]
+
+  // Relationship to Amenities
+  amenities Amenity[]
+
+  @@map("images")
+}
+
+model RoomImage {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  room      Room     @relation(fields: [roomId], references: [id])
+  imageId   Int
+  image     Image    @relation(fields: [imageId], references: [id])
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("room_images")
+}
+
+model Testimonial {
+  id            Int      @id @default(autoincrement())
+  guestName     String
+  guestEmail    String?
+  rating        Int      @default(5)
+  title         String?
+  content       String
+  avatarImageId Int?
+  avatarImage   Image?   @relation(fields: [avatarImageId], references: [id])
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model Amenity {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  iconName    String?
+  iconImageId Int?
+  iconImage   Image?   @relation(fields: [iconImageId], references: [id])
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("amenities")
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  type        String   @default("text") // text, number, boolean, json, image
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ============================================================================
+// EMAIL SYSTEM MODELS (Postmark Integration)
+// ============================================================================
+
+enum EmailStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
+}
+
+enum EmailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum EmailEventType {
+  DELIVERY
+  BOUNCE
+  SPAM_COMPLAINT
+  OPEN
+  CLICK
+  LINK_CLICK
+}
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  SPAM_COMPLAINT
+  MANUAL_SUPPRESSION
+  UNSUBSCRIBE
+}
+
+model Thread {
+  id            Int      @id @default(autoincrement())
+  subject       String
+  participants  String[] @default([]) // Array of email addresses
+  lastMessageAt DateTime @default(now())
+  isArchived    Boolean  @default(false)
+
+  // Relations
+  userId String? // User who owns this thread (if applicable)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  bookingId Int? // Link to booking if email is booking-related
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  propertyId Int? // Link to property if email is property-related
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  emails Email[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([propertyId])
+  @@index([lastMessageAt])
+  @@map("email_threads")
+}
+
+model Email {
+  id       Int    @id @default(autoincrement())
+  threadId Int
+  thread   Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  // Email metadata
+  messageId String         @unique // Postmark MessageID or custom ID
+  direction EmailDirection
+  status    EmailStatus    @default(QUEUED)
+
+  // Sender/Recipients
+  fromEmail String
+  fromName  String?
+  toEmails  String[] @default([])
+  ccEmails  String[] @default([])
+  bccEmails String[] @default([])
+  replyTo   String?
+
+  // Content
+  subject  String
+  htmlBody String? @db.Text
+  textBody String? @db.Text
+
+  // Postmark specific
+  postmarkId String? @unique // Postmark MessageID for sent emails
+  tag        String? // Postmark tag for categorization
+  metadata   Json? // Additional metadata
+
+  // Relations
+  attachments Attachment[]
+  events      EmailEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([threadId])
+  @@index([fromEmail])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@map("emails")
+}
+
+model Attachment {
+  id      Int   @id @default(autoincrement())
+  emailId Int
+  email   Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  filename    String
+  contentType String
+  size        Int // bytes
+
+  // Storage
+  storageUrl  String? // S3/local path
+  postmarkUrl String? // Postmark URL for inbound attachments
+
+  createdAt DateTime @default(now())
+
+  @@index([emailId])
+  @@map("email_attachments")
+}
+
+model EmailEvent {
+  id      Int   @id @default(autoincrement())
+  emailId Int
+  email   Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  eventType EmailEventType
+  timestamp DateTime       @default(now())
+
+  // Event details
+  recipient String?
+  details   Json? // Bounce reason, spam details, etc.
+  userAgent String? // For opens/clicks
+  ip        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([emailId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("email_events")
+}
+
+model Suppression {
+  id           Int               @id @default(autoincrement())
+  email        String            @unique
+  reason       SuppressionReason
+  origin       String? // Which email triggered the suppression
+  suppressedAt DateTime          @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("email_suppressions")
+}
+
+// ============================================================================
+// COMMUNICATION INTEGRATIONS MODELS (Gupshup + Exotel)
+// ============================================================================
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum MessageChannel {
+  WHATSAPP
+  SMS
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ANSWERED
+  COMPLETED
+  BUSY
+  FAILED
+  NO_ANSWER
+  CANCELLED
+}
+
+// Contact - Unified contact information
+model Contact {
+  id       Int     @id @default(autoincrement())
+  phone    String  @unique
+  name     String?
+  email    String?
+  metadata Json? // Additional contact info
+
+  // Relations
+  messageLogs MessageLog[]
+  callLogs    CallLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone])
+  @@map("contacts")
+}
+
+// MessageLog - Track all WhatsApp/SMS messages via Gupshup
+model MessageLog {
+  id        Int      @id @default(autoincrement())
+  contactId Int?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Message details
+  channel        MessageChannel
+  direction      MessageDirection
+  status         MessageStatus    @default(PENDING)
+  phone          String // Phone number (normalized)
+  message        String?          @db.Text
+  templateId     String? // Gupshup template ID
+  templateParams Json? // Template parameters
+
+  // Provider info
+  provider          String  @default("GUPSHUP")
+  providerMessageId String? @unique // External message ID from Gupshup
+  providerStatus    String? // Provider-specific status
+
+  // Metadata
+  metadata     Json? // Additional provider metadata
+  errorMessage String? @db.Text
+
+  // Relations
+  bookingId Int? // Link to booking if message is booking-related
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  @@index([contactId])
+  @@index([phone])
+  @@index([providerMessageId])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@index([bookingId])
+  @@map("message_logs")
+}
+
+// CallLog - Track all voice calls via Exotel
+model CallLog {
+  id        Int      @id @default(autoincrement())
+  contactId Int?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Call details
+  direction  CallDirection
+  status     CallStatus    @default(INITIATED)
+  fromNumber String // Caller number
+  toNumber   String // Called number
+  duration   Int? // Call duration in seconds
+
+  // Provider info
+  provider       String  @default("EXOTEL")
+  providerCallId String? @unique // External call ID from Exotel
+  providerStatus String? // Provider-specific status
+
+  // IVR/Flow info
+  flowId  String? // Exotel flow ID if applicable
+  ivrData Json? // IVR interaction data
+
+  // Metadata
+  metadata     Json? // Additional provider metadata
+  errorMessage String? @db.Text
+  recordingUrl String? // Call recording URL if available
+
+  // Relations
+  bookingId Int? // Link to booking if call is booking-related
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  initiatedAt DateTime?
+  answeredAt  DateTime?
+  completedAt DateTime?
+
+  @@index([contactId])
+  @@index([fromNumber])
+  @@index([toNumber])
+  @@index([providerCallId])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@index([bookingId])
+  @@map("call_logs")
+}
+
+// Third-Party Integration Configuration
+model ThirdPartyIntegration {
+  id       Int     @id @default(autoincrement())
+  provider String // e.g., "RAZORPAY", "POSTMARK", "GUPSHUP", "EXOTEL", "GO_MMT", "BOOKING_COM", "EASEMYTRIP", "CLEARTRIP"
+  name     String // Display name, e.g., "Razorpay Payment Gateway"
+  category String // "PAYMENT", "EMAIL", "MESSAGING", "VOICE", "OTA"
+  enabled  Boolean @default(false)
+
+  // Configuration stored as JSON (encrypted sensitive fields)
+  config Json // Provider-specific configuration
+  // Example structure:
+  // {
+  //   "apiKey": "encrypted_value",
+  //   "apiSecret": "encrypted_value",
+  //   "webhookSecret": "encrypted_value",
+  //   "hotelId": "value",
+  //   "subdomain": "value",
+  //   etc.
+  // }
+
+  // Metadata
+  description      String? @db.Text
+  documentationUrl String?
+  webhookUrl       String? // Webhook URL for this integration
+  testMode         Boolean @default(false) // For payment gateways
+
+  // Status tracking
+  lastTestedAt DateTime?
+  lastError    String?   @db.Text
+  status       String    @default("INACTIVE") // "ACTIVE", "INACTIVE", "ERROR", "TESTING"
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String? // User ID who created/updated
+
+  @@unique([provider])
+  @@index([category])
+  @@index([enabled])
+  @@index([status])
+  @@map("third_party_integrations")
+}

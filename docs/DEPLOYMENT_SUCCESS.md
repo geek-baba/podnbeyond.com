@@ -98,7 +98,7 @@ Successfully deployed **capsulepodhotel.com** with clean OTP authentication syst
 NODE_ENV=production
 PORT=4000
 DATABASE_URL=postgresql://podnbeyond_prod:***@localhost:5432/podnbeyond_prod
-POSTMARK_SERVER_TOKEN=92aef1ce-c614-4ee5-aaff-eebf52d29cd0 (NEW - rotated)
+POSTMARK_SERVER_TOKEN=***ROTATED*** (NEW - rotated)
 EMAIL_FROM=noreply@capsulepodhotel.com
 FRONTEND_URL=https://capsulepodhotel.com
 ```
@@ -138,9 +138,9 @@ FRONTEND_URL=https://capsulepodhotel.com
 ```env
 NODE_ENV=production
 PORT=4000
-DATABASE_URL="postgresql://podnbeyond_prod:prod_secure_2024_XyZ@localhost:5432/podnbeyond_prod"
-POSTMARK_SERVER_TOKEN="92aef1ce-c614-4ee5-aaff-eebf52d29cd0"
-POSTMARK_WEBHOOK_SECRET="production-webhook-123"
+DATABASE_URL="postgresql://podnbeyond_prod:***@localhost:5432/podnbeyond_prod"
+POSTMARK_SERVER_TOKEN="***ROTATED***"
+POSTMARK_WEBHOOK_SECRET="***ROTATED***"
 EMAIL_FROM="noreply@capsulepodhotel.com"
 MAIL_FROM="noreply@capsulepodhotel.com"
 FRONTEND_URL="https://capsulepodhotel.com"
