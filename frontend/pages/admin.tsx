@@ -3184,7 +3184,7 @@ export async function getServerSideProps() {
       }
     }
 
-    const roomTypes = []; // Room types loaded separately per property
+    const roomTypes: any[] = []; // Room types loaded separately per property
 
     // Fetch real loyalty accounts from API
     let loyaltyAccounts = [];
