@@ -31,6 +31,10 @@ app.get('/api/health', (req, res) => {
 // Routes - Register public routes first (OTP, Auth) before protected routes
 const otpRoutes = require('./routes/otp');
 const authRoutes = require('./routes/auth');
+const brandsRoutes = require('./routes/brands');
+const propertiesRoutes = require('./routes/properties');
+const usersRoutes = require('./routes/users');
+const loyaltyRoutes = require('./routes/loyalty');
 const bookingRoutes = require('./routes/booking');
 const guestRoutes = require('./routes/guest');
 const cancellationPolicyRoutes = require('./routes/cancellationPolicy');
@@ -39,6 +43,10 @@ const paymentRoutes = require('./routes/payment');
 // Public routes (no authentication required)
 app.use('/api/otp', otpRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/brands', brandsRoutes);
+app.use('/api/properties', propertiesRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
 
 // Protected routes (require authentication)
 app.use('/api', bookingRoutes);

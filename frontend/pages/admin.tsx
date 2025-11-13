@@ -3131,19 +3131,23 @@ export async function getServerSideProps() {
     console.log('Fetching admin data from:', API_URL);
 
     // Fetch all data with proper error handling
-    const [brandsRes, propertiesRes, bookingsRes, usersRes, roomTypesRes] = await Promise.all([
+    const [brandsRes, propertiesRes, bookingsRes, usersRes] = await Promise.all([
       fetch(`${API_URL}/api/brands`).catch(e => { console.error('Brands fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/properties`).catch(e => { console.error('Properties fetch failed:', e); return null; }),
-      fetch(`${API_URL}/api/booking/bookings`).catch(e => { console.error('Bookings fetch failed:', e); return null; }),
+      fetch(`${API_URL}/api/bookings`).catch(e => { console.error('Bookings fetch failed:', e); return null; }),
       fetch(`${API_URL}/api/users`).catch(e => { console.error('Users fetch failed:', e); return null; }),
-      fetch(`${API_URL}/api/booking/rooms`).catch(e => { console.error('Room types fetch failed:', e); return null; }),
     ]);
 
-    const brands = brandsRes ? (await brandsRes.json()).brands || [] : [];
-    const properties = propertiesRes ? (await propertiesRes.json()).properties || [] : [];
-    const bookings = bookingsRes ? (await bookingsRes.json()).bookings || [] : [];
-    const users = usersRes ? (await usersRes.json()).users || [] : [];
-    const roomTypes = roomTypesRes ? await roomTypesRes.json() : [];
+    const brandsData = brandsRes ? await brandsRes.json() : {};
+    const propertiesData = propertiesRes ? await propertiesRes.json() : {};
+    const bookingsData = bookingsRes ? await bookingsRes.json() : {};
+    const usersData = usersRes ? await usersRes.json() : {};
+
+    const brands = brandsData.brands || brandsData.data || [];
+    const properties = propertiesData.properties || propertiesData.data || [];
+    const bookings = bookingsData.data || bookingsData.bookings || [];
+    const users = usersData.users || usersData.data || [];
+    const roomTypes = []; // Room types loaded separately per property
 
     // Fetch real loyalty accounts from API
     const loyaltyRes = await fetch(`${API_URL}/api/loyalty/accounts`).catch(e => { 
