@@ -141,24 +141,19 @@ WHERE cl."bookingId" IS NOT NULL
 
 -- Step 12: Update lastMessageAt for threads that have linked messages/calls
 -- Set lastMessageAt to the latest activity from emails, messages, or calls
+-- Use a subquery to find the maximum timestamp from all sources
 UPDATE "email_threads" t
-SET "lastMessageAt" = GREATEST(
-  COALESCE(t."lastMessageAt", '1970-01-01'::timestamp),
-  COALESCE((
-    SELECT MAX(e."createdAt")
-    FROM "emails" e
-    WHERE e."threadId" = t.id
-  ), '1970-01-01'::timestamp),
-  COALESCE((
-    SELECT MAX(ml."createdAt")
-    FROM "message_logs" ml
-    WHERE ml."threadId" = t.id
-  ), '1970-01-01'::timestamp),
-  COALESCE((
-    SELECT MAX(cl."createdAt")
-    FROM "call_logs" cl
-    WHERE cl."threadId" = t.id
-  ), '1970-01-01'::timestamp)
+SET "lastMessageAt" = (
+  SELECT MAX(ts) FROM (
+    SELECT t."lastMessageAt" as ts
+    UNION ALL
+    SELECT e."createdAt" as ts FROM "emails" e WHERE e."threadId" = t.id
+    UNION ALL
+    SELECT ml."createdAt" as ts FROM "message_logs" ml WHERE ml."threadId" = t.id
+    UNION ALL
+    SELECT cl."createdAt" as ts FROM "call_logs" cl WHERE cl."threadId" = t.id
+  ) AS all_timestamps
+  WHERE ts IS NOT NULL
 )
 WHERE EXISTS (
   SELECT 1 FROM "emails" e WHERE e."threadId" = t.id
