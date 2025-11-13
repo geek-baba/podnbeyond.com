@@ -13,18 +13,16 @@
 
   process.on('uncaughtException', (error) => {
     try {
-      originalWrite('❌ UNCAUGHT EXCEPTION\n');
-      originalWrite(`Error name: ${error.name}\n`);
-      originalWrite(`Error message: ${error.message}\n`);
+      // Use console.error for PM2 compatibility
+      console.error('❌ UNCAUGHT EXCEPTION');
+      console.error(`Error name: ${error.name}`);
+      console.error(`Error message: ${error.message}`);
       if (error.stack) {
-        originalWrite(`Stack trace: ${error.stack}\n`);
+        console.error(`Stack trace: ${error.stack}`);
       }
       if (error.code) {
-        originalWrite(`Error code: ${error.code}\n`);
+        console.error(`Error code: ${error.code}`);
       }
-      originalWrite('\n');
-      // Force flush
-      process.stderr._handle && process.stderr._handle.setBlocking && process.stderr._handle.setBlocking(true);
     } catch (logError) {
       // If we can't even log, write to a file as last resort
       try {
@@ -35,24 +33,22 @@
       }
     }
     // Exit after a short delay to ensure logs are written
-    setTimeout(() => process.exit(1), 200);
+    setTimeout(() => process.exit(1), 500);
   });
 
   process.on('unhandledRejection', (reason, promise) => {
     try {
-      originalWrite('❌ UNHANDLED REJECTION\n');
+      // Use console.error for PM2 compatibility
+      console.error('❌ UNHANDLED REJECTION');
       if (reason instanceof Error) {
-        originalWrite(`Error name: ${reason.name}\n`);
-        originalWrite(`Error message: ${reason.message}\n`);
+        console.error(`Error name: ${reason.name}`);
+        console.error(`Error message: ${reason.message}`);
         if (reason.stack) {
-          originalWrite(`Stack trace: ${reason.stack}\n`);
+          console.error(`Stack trace: ${reason.stack}`);
         }
       } else {
-        originalWrite(`Reason: ${String(reason)}\n`);
+        console.error(`Reason: ${String(reason)}`);
       }
-      originalWrite('\n');
-      // Force flush
-      process.stderr._handle && process.stderr._handle.setBlocking && process.stderr._handle.setBlocking(true);
     } catch (logError) {
       // Ignore logging errors
     }
@@ -60,37 +56,38 @@
 })();
 
 // Log startup immediately (before any requires)
-process.stdout.write('🚀 Starting backend server...\n');
-process.stdout.write(`📁 Working directory: ${process.cwd()}\n`);
-process.stdout.write(`📦 Node version: ${process.version}\n`);
+// Use console.log for PM2 compatibility (PM2 buffers process.stdout.write)
+console.log('🚀 Starting backend server...');
+console.log(`📁 Working directory: ${process.cwd()}`);
+console.log(`📦 Node version: ${process.version}`);
 
 // Try to require core modules with error handling
 let express, cors, cookieParser, rateLimit;
 try {
-  process.stdout.write('Loading express...\n');
+  console.log('Loading express...');
   express = require('express');
-  process.stdout.write('Loading cors...\n');
+  console.log('Loading cors...');
   cors = require('cors');
-  process.stdout.write('Loading cookie-parser...\n');
+  console.log('Loading cookie-parser...');
   cookieParser = require('cookie-parser');
-  process.stdout.write('Loading express-rate-limit...\n');
+  console.log('Loading express-rate-limit...');
   rateLimit = require('express-rate-limit');
-  process.stdout.write('✓ Core modules loaded\n');
+  console.log('✓ Core modules loaded');
 } catch (error) {
-  process.stderr.write(`❌ ERROR: Failed to load core modules\n`);
-  process.stderr.write(`Error: ${error.message}\n`);
-  process.stderr.write(`Stack: ${error.stack}\n`);
+  console.error('❌ ERROR: Failed to load core modules');
+  console.error(`Error: ${error.message}`);
+  console.error(`Stack: ${error.stack}`);
   process.exit(1);
 }
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-// Log startup information (with flush to ensure logs are written)
-process.stdout.write(`📍 Port: ${port}\n`);
-process.stdout.write(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}\n`);
-process.stdout.write(`🗄️  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}\n`);
-process.stdout.write('\n');
+// Log startup information
+console.log(`📍 Port: ${port}`);
+console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🗄️  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+console.log('');
 
 // Rate limiting configurations
 const authLimiter = rateLimit({
@@ -133,24 +130,23 @@ let realtimeRoutes, broadcastEvent, initHoldReleaseJob;
 // Load routes one by one to identify which one fails
 const loadRoute = (name, path) => {
   try {
-    process.stdout.write(`Loading route: ${name}...\n`);
+    console.log(`Loading route: ${name}...`);
     const route = require(path);
-    process.stdout.write(`✓ Loaded route: ${name}\n`);
+    console.log(`✓ Loaded route: ${name}`);
     return route;
   } catch (error) {
-    process.stderr.write(`❌ ERROR: Failed to load route ${name} from ${path}\n`);
-    process.stderr.write(`Error name: ${error.name}\n`);
-    process.stderr.write(`Error message: ${error.message}\n`);
+    console.error(`❌ ERROR: Failed to load route ${name} from ${path}`);
+    console.error(`Error name: ${error.name}`);
+    console.error(`Error message: ${error.message}`);
     if (error.stack) {
-      process.stderr.write(`Stack trace: ${error.stack}\n`);
+      console.error(`Stack trace: ${error.stack}`);
     }
-    process.stderr.write('\n');
     throw error; // Re-throw to be caught by outer try-catch
   }
 };
 
 try {
-  process.stdout.write('Loading routes...\n');
+  console.log('Loading routes...');
   bookingRoutes = loadRoute('booking', './routes/booking');
   loyaltyRoutes = loadRoute('loyalty', './routes/loyalty');
   usersRoutes = loadRoute('users', './routes/users');
@@ -170,25 +166,23 @@ try {
   templatesRoutes = loadRoute('templates', './routes/templates');
   analyticsRoutes = loadRoute('analytics', './routes/analytics');
   
-  process.stdout.write('Loading realtime module...\n');
+  console.log('Loading realtime module...');
   const realtimeModule = loadRoute('realtime', './routes/realtime');
   realtimeRoutes = realtimeModule.router;
   broadcastEvent = realtimeModule.broadcastEvent;
   
-  process.stdout.write('Loading holdReleaseJob...\n');
+  console.log('Loading holdReleaseJob...');
   const holdReleaseJobModule = require('./jobs/holdReleaseJob');
   initHoldReleaseJob = holdReleaseJobModule.initHoldReleaseJob;
-  process.stdout.write('✓ All routes loaded successfully\n');
-  process.stdout.write('\n');
+  console.log('✓ All routes loaded successfully');
+  console.log('');
 } catch (error) {
-  process.stderr.write('❌ ERROR: Failed to load routes\n');
-  process.stderr.write(`Error name: ${error.name}\n`);
-  process.stderr.write(`Error message: ${error.message}\n`);
+  console.error('❌ ERROR: Failed to load routes');
+  console.error(`Error name: ${error.name}`);
+  console.error(`Error message: ${error.message}`);
   if (error.stack) {
-    process.stderr.write(`Stack trace: ${error.stack}\n`);
+    console.error(`Stack trace: ${error.stack}`);
   }
-  // Flush stderr to ensure logs are written
-  process.stderr.write('\n');
   // Exit immediately - server cannot start without routes
   process.exit(1);
 }
@@ -199,16 +193,16 @@ global.broadcastEvent = broadcastEvent;
 // Import cron service with error handling
 let cronService;
 try {
-  process.stdout.write('Loading cronService...\n');
+  console.log('Loading cronService...');
   cronService = require('./services/cronService');
-  process.stdout.write('✓ cronService loaded\n');
+  console.log('✓ cronService loaded');
 } catch (error) {
-  process.stderr.write('❌ ERROR: Failed to load cronService\n');
-  process.stderr.write(`Error: ${error.message}\n`);
+  console.error('❌ ERROR: Failed to load cronService');
+  console.error(`Error: ${error.message}`);
   if (error.stack) {
-    process.stderr.write(`Stack: ${error.stack}\n`);
+    console.error(`Stack: ${error.stack}`);
   }
-  process.stderr.write('⚠️  Server will continue to start, but cron service will not be available\n');
+  console.error('⚠️  Server will continue to start, but cron service will not be available');
   // Don't exit - allow server to start without cron service
   cronService = null;
 }
@@ -330,9 +324,9 @@ app.get('/api/health', (req, res) => {
 // Start server with error handling
 try {
   app.listen(port, () => {
-    process.stdout.write(`✅ Backend running at http://localhost:${port}\n`);
-    process.stdout.write(`✅ Server started successfully at ${new Date().toISOString()}\n`);
-    process.stdout.write('\n'); // Flush
+    console.log(`✅ Backend running at http://localhost:${port}`);
+    console.log(`✅ Server started successfully at ${new Date().toISOString()}`);
+    console.log('');
     
     // Start the cron service for external bookings (disabled for local development)
     // Uncomment the line below to enable external booking sync on production
@@ -353,17 +347,14 @@ try {
     }
   });
 } catch (error) {
-  process.stderr.write('❌ ERROR: Failed to start server\n');
-  process.stderr.write(`Error name: ${error.name}\n`);
-  process.stderr.write(`Error message: ${error.message}\n`);
+  console.error('❌ ERROR: Failed to start server');
+  console.error(`Error name: ${error.name}`);
+  console.error(`Error message: ${error.message}`);
   if (error.stack) {
-    process.stderr.write(`Stack trace: ${error.stack}\n`);
+    console.error(`Stack trace: ${error.stack}`);
   }
-  process.stderr.write('\n'); // Flush
-  // Don't exit immediately - let error handlers log it first
-  setTimeout(() => {
-    process.exit(1);
-  }, 100); // Small delay to ensure logs are flushed
+  // Exit immediately - server cannot start
+  process.exit(1);
 }
 
 // Handle server errors
