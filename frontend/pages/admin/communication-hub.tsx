@@ -339,27 +339,35 @@ export default function CommunicationHub() {
       // The backend gets userId from req.user.id (set by authenticate middleware)
       setConversationDetailsLoading(true);
 
+      console.log(`Loading conversation details for ID: ${conversationId}`);
       const response = await fetch(`/api/conversations/${conversationId}`, {
         credentials: 'include',
         headers: getAuthHeaders(),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ 
-          error: `HTTP ${response.status}: ${response.statusText}` 
-        }));
-        throw new Error(
-          errorData.error || errorData.message || `Failed to load conversation (HTTP ${response.status})`
-        );
+      console.log(`Response status: ${response.status}, ok: ${response.ok}`);
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', parseError);
+        throw new Error(`Invalid response from server (HTTP ${response.status})`);
       }
       
-      const data = await response.json();
+      if (!response.ok) {
+        const errorMessage = data.error || data.message || `HTTP ${response.status}: ${response.statusText}`;
+        console.error('API error response:', { status: response.status, data });
+        throw new Error(errorMessage);
+      }
+      
       if (!data.success) {
-        throw new Error(
-          data.error || data.message || 'Failed to load conversation'
-        );
+        const errorMessage = data.error || data.message || 'Failed to load conversation';
+        console.error('API returned success: false:', data);
+        throw new Error(errorMessage);
       }
 
+      console.log('Conversation loaded successfully:', data.conversation?.id);
       setSelectedConversation(data.conversation);
       
       // Mark as read when viewing
@@ -391,12 +399,27 @@ export default function CommunicationHub() {
       loadQuickReplyTemplates(data.conversation);
     } catch (error) {
       console.error('Failed to load conversation details:', error);
+      console.error('Error details:', {
+        conversationId,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : typeof error,
+      });
+      
+      // Don't update selectedConversation on error - keep current selection if any
+      // setSelectedConversation(null); // Commented out to prevent clearing current selection
+      
       if (showErrors) {
-        alert(
-          error instanceof Error
-            ? error.message
-            : 'Failed to load conversation details. Please try again.'
-        );
+        // Only show alert for actual errors, not for intentional silent failures
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Failed to load conversation details. Please try again.';
+        
+        // Check if it's a network error
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          alert('Network error: Could not connect to the server. Please check your connection and try again.');
+        } else {
+          alert(errorMessage);
+        }
       }
     } finally {
       setConversationDetailsLoading(false);
