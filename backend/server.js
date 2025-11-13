@@ -40,28 +40,34 @@ process.on('unhandledRejection', (reason, promise) => {
 // Log startup immediately (before any requires)
 // Use console.log for PM2 compatibility (PM2 buffers process.stdout.write)
 console.log('🚀 Starting backend server...');
-console.log('Step 1: About to log working directory');
-console.log('📁 Working directory: ' + process.cwd());
-console.log('Step 2: About to log Node version');
-console.log('📦 Node version: ' + process.version);
-console.log('Step 3: About to start loading modules');
+process.stdout.write('Step 1: About to log working directory\n');
+process.stdout.write('📁 Working directory: ' + process.cwd() + '\n');
+process.stdout.write('Step 2: About to log Node version\n');
+process.stdout.write('📦 Node version: ' + process.version + '\n');
+process.stdout.write('Step 3: About to start loading modules\n');
+process.stdout.write('Step 4: Reached module loading section\n');
 
 // Try to require core modules with error handling
+process.stdout.write('Step 5: About to require express\n');
 let express, cors, cookieParser, rateLimit;
 try {
-  console.log('Loading express...');
+  process.stdout.write('Step 6: Requiring express...\n');
   express = require('express');
-  console.log('Loading cors...');
+  process.stdout.write('Step 7: Express loaded, requiring cors...\n');
   cors = require('cors');
-  console.log('Loading cookie-parser...');
+  process.stdout.write('Step 8: CORS loaded, requiring cookie-parser...\n');
   cookieParser = require('cookie-parser');
-  console.log('Loading express-rate-limit...');
+  process.stdout.write('Step 9: Cookie-parser loaded, requiring express-rate-limit...\n');
   rateLimit = require('express-rate-limit');
+  process.stdout.write('Step 10: Express-rate-limit loaded\n');
   console.log('✓ Core modules loaded');
 } catch (error) {
+  process.stderr.write('❌ ERROR: Failed to load core modules\n');
+  process.stderr.write('Error: ' + error.message + '\n');
+  process.stderr.write('Stack: ' + (error.stack || 'No stack trace') + '\n');
   console.error('❌ ERROR: Failed to load core modules');
-  console.error(`Error: ${error.message}`);
-  console.error(`Stack: ${error.stack}`);
+  console.error('Error: ' + error.message);
+  console.error('Stack: ' + (error.stack || 'No stack trace'));
   process.exit(1);
 }
 
