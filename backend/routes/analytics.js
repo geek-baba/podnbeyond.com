@@ -245,7 +245,8 @@ router.get('/conversations', async (req, res) => {
         weekStart.setHours(0, 0, 0, 0);
         key = weekStart.toISOString().split('T')[0]; // YYYY-MM-DD for week start
       } else if (timePeriod === 'month') {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        key = `${date.getFullYear()}-${month}`; // YYYY-MM
       } else if (timePeriod === 'year') {
         key = String(date.getFullYear()); // YYYY
       }
@@ -276,7 +277,8 @@ router.get('/conversations', async (req, res) => {
         key = weekStart.toISOString().split('T')[0];
         current.setDate(current.getDate() + 7); // Move to next week
       } else if (timePeriod === 'month') {
-        key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        key = `${current.getFullYear()}-${month}`;
         current.setMonth(current.getMonth() + 1);
       } else if (timePeriod === 'year') {
         key = String(current.getFullYear());
@@ -300,10 +302,12 @@ router.get('/conversations', async (req, res) => {
 
     // Get user names for assignees
     const assigneeIds = topAssignees.map(a => a.assignedTo).filter(Boolean);
-    const users = await getPrisma().user.findMany({
-      where: { id: { in: assigneeIds } },
-      select: { id: true, name: true, email: true },
-    });
+    const users = assigneeIds.length > 0 
+      ? await getPrisma().user.findMany({
+          where: { id: { in: assigneeIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
 
     const assigneeMap = {};
     users.forEach(u => assigneeMap[u.id] = u);
