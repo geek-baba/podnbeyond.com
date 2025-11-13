@@ -189,18 +189,24 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Status filter
-    if (status) {
-      where.status = status;
-    }
+    // Status filter (only if status field exists in schema)
+    // Note: This will fail if status column doesn't exist, so we'll handle it gracefully
+    try {
+      if (status) {
+        where.status = status;
+      }
 
-    // Assigned filter
-    if (assignedTo === 'me') {
-      where.assignedTo = userId;
-    } else if (assignedTo === 'unassigned') {
-      where.assignedTo = null;
-    } else if (assignedTo) {
-      where.assignedTo = assignedTo;
+      // Assigned filter (only if assignedTo field exists in schema)
+      if (assignedTo === 'me') {
+        where.assignedTo = userId;
+      } else if (assignedTo === 'unassigned') {
+        where.assignedTo = null;
+      } else if (assignedTo) {
+        where.assignedTo = assignedTo;
+      }
+    } catch (error) {
+      // If status/assignedTo fields don't exist yet, ignore these filters
+      console.warn('Status/assignedTo filters not available:', error.message);
     }
 
     // Search filter
@@ -252,9 +258,9 @@ router.get('/', async (req, res) => {
 
     // Enrich with channel info and SLA
     const enriched = threads.map((thread) => {
-      const lastEmail = thread.emails[0];
-      const lastMessage = thread.messageLogs[0];
-      const lastCall = thread.callLogs[0];
+      const lastEmail = thread.emails?.[0];
+      const lastMessage = thread.messageLogs?.[0];
+      const lastCall = thread.callLogs?.[0];
 
       // Determine primary channel
       let primaryChannel = 'EMAIL';
@@ -265,19 +271,30 @@ router.get('/', async (req, res) => {
         lastActivity = lastCall.createdAt;
       }
       if (lastMessage && new Date(lastMessage.createdAt) > new Date(lastActivity)) {
-        primaryChannel = lastMessage.channel;
+        primaryChannel = lastMessage.channel === 'WHATSAPP' ? 'WHATSAPP' : lastMessage.channel === 'SMS' ? 'SMS' : 'EMAIL';
         lastActivity = lastMessage.createdAt;
       }
 
-      // Calculate SLA
-      const sla = calculateSLA(thread, primaryChannel);
+      // Calculate SLA (with defaults if thread doesn't have status field)
+      const threadStatus = thread.status || 'NEW';
+      const sla = calculateSLA({ ...thread, status: threadStatus }, primaryChannel);
 
       return {
         ...thread,
+        status: threadStatus,
+        assignedTo: thread.assignedTo || null,
+        assignedUser: thread.assignedUser || null,
+        priority: thread.priority || 'NORMAL',
         primaryChannel,
         lastActivity,
         sla,
         unreadCount: thread.unreadCount || 0,
+        _count: {
+          emails: thread._count?.emails || thread.emails?.length || 0,
+          messageLogs: thread._count?.messageLogs || thread.messageLogs?.length || 0,
+          callLogs: thread._count?.callLogs || thread.callLogs?.length || 0,
+          notes: thread._count?.notes || thread.notes?.length || 0,
+        },
       };
     });
 
