@@ -1,42 +1,95 @@
-// Add error handler for unhandled errors
-// MUST be set up first before any other code runs
-process.on('uncaughtException', (error) => {
-  console.error('❌ UNCAUGHT EXCEPTION:', error);
-  console.error('Stack trace:', error.stack);
-  console.error('Error name:', error.name);
-  console.error('Error message:', error.message);
-  // Don't exit immediately - let PM2 handle it, but log everything
-  // Flush stdout to ensure logs are written
-  process.stdout.write('\n');
-  process.stderr.write('\n');
-});
+// CRITICAL: Set up error handlers FIRST before any other code
+// Use immediate function to ensure handlers are set up synchronously
+(function setupErrorHandlers() {
+  // Write directly to stderr (unbuffered) to ensure errors are logged
+  const originalWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = function(chunk, encoding, callback) {
+    originalWrite(chunk, encoding, callback);
+    // Force flush
+    if (typeof callback !== 'function') {
+      process.stderr._handle && process.stderr._handle.setBlocking && process.stderr._handle.setBlocking(true);
+    }
+  };
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ UNHANDLED REJECTION at:', promise);
-  console.error('Reason:', reason);
-  if (reason instanceof Error) {
-    console.error('Stack trace:', reason.stack);
-  }
-  // Flush stdout to ensure logs are written
-  process.stdout.write('\n');
-  process.stderr.write('\n');
-});
+  process.on('uncaughtException', (error) => {
+    try {
+      originalWrite('❌ UNCAUGHT EXCEPTION\n');
+      originalWrite(`Error name: ${error.name}\n`);
+      originalWrite(`Error message: ${error.message}\n`);
+      if (error.stack) {
+        originalWrite(`Stack trace: ${error.stack}\n`);
+      }
+      if (error.code) {
+        originalWrite(`Error code: ${error.code}\n`);
+      }
+      originalWrite('\n');
+      // Force flush
+      process.stderr._handle && process.stderr._handle.setBlocking && process.stderr._handle.setBlocking(true);
+    } catch (logError) {
+      // If we can't even log, write to a file as last resort
+      try {
+        require('fs').appendFileSync('/tmp/server-crash.log', 
+          `${new Date().toISOString()}: ${error.toString()}\n${error.stack || ''}\n\n`);
+      } catch (e) {
+        // Give up
+      }
+    }
+    // Exit after a short delay to ensure logs are written
+    setTimeout(() => process.exit(1), 200);
+  });
 
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const rateLimit = require('express-rate-limit');
+  process.on('unhandledRejection', (reason, promise) => {
+    try {
+      originalWrite('❌ UNHANDLED REJECTION\n');
+      if (reason instanceof Error) {
+        originalWrite(`Error name: ${reason.name}\n`);
+        originalWrite(`Error message: ${reason.message}\n`);
+        if (reason.stack) {
+          originalWrite(`Stack trace: ${reason.stack}\n`);
+        }
+      } else {
+        originalWrite(`Reason: ${String(reason)}\n`);
+      }
+      originalWrite('\n');
+      // Force flush
+      process.stderr._handle && process.stderr._handle.setBlocking && process.stderr._handle.setBlocking(true);
+    } catch (logError) {
+      // Ignore logging errors
+    }
+  });
+})();
+
+// Log startup immediately (before any requires)
+process.stdout.write('🚀 Starting backend server...\n');
+process.stdout.write(`📁 Working directory: ${process.cwd()}\n`);
+process.stdout.write(`📦 Node version: ${process.version}\n`);
+
+// Try to require core modules with error handling
+let express, cors, cookieParser, rateLimit;
+try {
+  process.stdout.write('Loading express...\n');
+  express = require('express');
+  process.stdout.write('Loading cors...\n');
+  cors = require('cors');
+  process.stdout.write('Loading cookie-parser...\n');
+  cookieParser = require('cookie-parser');
+  process.stdout.write('Loading express-rate-limit...\n');
+  rateLimit = require('express-rate-limit');
+  process.stdout.write('✓ Core modules loaded\n');
+} catch (error) {
+  process.stderr.write(`❌ ERROR: Failed to load core modules\n`);
+  process.stderr.write(`Error: ${error.message}\n`);
+  process.stderr.write(`Stack: ${error.stack}\n`);
+  process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT || 4000;
 
 // Log startup information (with flush to ensure logs are written)
-process.stdout.write('🚀 Starting backend server...\n');
 process.stdout.write(`📍 Port: ${port}\n`);
 process.stdout.write(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}\n`);
 process.stdout.write(`🗄️  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}\n`);
-process.stdout.write(`📁 Working directory: ${process.cwd()}\n`);
-process.stdout.write(`📦 Node version: ${process.version}\n`);
-// Flush immediately
 process.stdout.write('\n');
 
 // Rate limiting configurations
@@ -146,11 +199,16 @@ global.broadcastEvent = broadcastEvent;
 // Import cron service with error handling
 let cronService;
 try {
+  process.stdout.write('Loading cronService...\n');
   cronService = require('./services/cronService');
+  process.stdout.write('✓ cronService loaded\n');
 } catch (error) {
-  console.error('❌ ERROR: Failed to load cronService:', error);
-  console.error('Stack trace:', error.stack);
-  console.error('⚠️  Server will continue to start, but cron service will not be available');
+  process.stderr.write('❌ ERROR: Failed to load cronService\n');
+  process.stderr.write(`Error: ${error.message}\n`);
+  if (error.stack) {
+    process.stderr.write(`Stack: ${error.stack}\n`);
+  }
+  process.stderr.write('⚠️  Server will continue to start, but cron service will not be available\n');
   // Don't exit - allow server to start without cron service
   cronService = null;
 }
