@@ -1,6 +1,10 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const { authenticate } = require('../middleware/auth');
 const router = express.Router();
+
+// Apply authentication to all analytics routes
+router.use(authenticate);
 
 // Initialize Prisma client lazily to avoid startup issues
 let prisma;
