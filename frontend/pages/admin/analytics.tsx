@@ -125,13 +125,31 @@ export default function AnalyticsPage() {
       
       const params = new URLSearchParams();
       // Pass userId with fallbacks (same as communication-hub.tsx)
-      params.append('userId', session?.user?.id || session?.user?.email || '');
+      const userId = session?.user?.id || session?.user?.email;
+      if (!userId) {
+        console.error('No user ID found in session:', session);
+        alert('Failed to load analytics: User session not found. Please log in again.');
+        setLoading(false);
+        return;
+      }
+      params.append('userId', userId);
       params.append('startDate', startDate);
       params.append('endDate', endDate);
       params.append('timePeriod', timePeriod);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
 
-          const response = await fetch(`/api/analytics/conversations?${params.toString()}`);
+      const response = await fetch(`/api/analytics/conversations?${params.toString()}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       console.log('Analytics API response:', data); // Debug log
       console.log('Analytics performance data:', data.analytics?.performance); // Debug performance metrics
@@ -176,7 +194,12 @@ export default function AnalyticsPage() {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.propertyId) params.append('propertyId', filters.propertyId);
 
-      const response = await fetch(`/api/analytics/export?${params.toString()}&format=${format}`);
+      const response = await fetch(`/api/analytics/export?${params.toString()}&format=${format}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

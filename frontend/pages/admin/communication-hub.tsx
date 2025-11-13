@@ -259,7 +259,18 @@ export default function CommunicationHub() {
       }
 
       console.log('Loading conversations with params:', params.toString());
-      const response = await fetch(`/api/conversations?${params.toString()}`);
+      const response = await fetch(`/api/conversations?${params.toString()}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       console.log('Conversations API response:', data);
       if (data.success) {
