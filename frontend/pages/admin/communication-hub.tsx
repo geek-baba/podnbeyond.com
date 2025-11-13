@@ -343,10 +343,20 @@ export default function CommunicationHub() {
         credentials: 'include',
         headers: getAuthHeaders(),
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ 
+          error: `HTTP ${response.status}: ${response.statusText}` 
+        }));
         throw new Error(
-          data.error || `Failed to load conversation (HTTP ${response.status})`
+          errorData.error || errorData.message || `Failed to load conversation (HTTP ${response.status})`
+        );
+      }
+      
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(
+          data.error || data.message || 'Failed to load conversation'
         );
       }
 

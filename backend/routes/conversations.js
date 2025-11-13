@@ -337,7 +337,12 @@ router.get('/:id', async (req, res) => {
   try {
     const userId = req.user?.id || req.query.userId;
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      console.error('GET /api/conversations/:id - No userId found. req.user:', req.user, 'req.query:', req.query);
+      return res.status(401).json({ 
+        success: false,
+        error: 'Unauthorized',
+        message: 'User ID is required. Please ensure you are authenticated.' 
+      });
     }
 
     const threadId = parseInt(req.params.id);
@@ -393,13 +398,21 @@ router.get('/:id', async (req, res) => {
     });
 
     if (!thread) {
-      return res.status(404).json({ error: 'Conversation not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Conversation not found',
+        message: `Thread with ID ${threadId} does not exist.` 
+      });
     }
 
     // Check RBAC access
     if (accessiblePropertyIds !== null) {
       if (!thread.propertyId || !accessiblePropertyIds.includes(thread.propertyId)) {
-        return res.status(403).json({ error: 'Access denied' });
+        return res.status(403).json({ 
+          success: false,
+          error: 'Access denied',
+          message: 'You do not have permission to view this conversation.' 
+        });
       }
     }
 
@@ -459,7 +472,12 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Conversation fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch conversation' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch conversation',
+      message: error.message || 'An unexpected error occurred while fetching the conversation.'
+    });
   }
 });
 
