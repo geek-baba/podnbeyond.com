@@ -183,7 +183,11 @@ export default function CommunicationHub() {
       setTimeout(() => {
         if (authStatus === 'authenticated' && session?.user?.id) {
           es.close();
-          const newEs = new EventSource(`/api/realtime/events?userId=${session.user.id}`);
+          const sessionToken = typeof window !== 'undefined' ? localStorage.getItem('pod-session-token') : null;
+          const eventUrl = sessionToken 
+            ? `/api/realtime/events?userId=${session.user.id}&token=${encodeURIComponent(sessionToken)}`
+            : `/api/realtime/events?userId=${session.user.id}`;
+          const newEs = new EventSource(eventUrl);
           setEventSource(newEs);
         }
       }, 5000);
@@ -209,9 +213,26 @@ export default function CommunicationHub() {
     }
   }, [authStatus, filters]);
 
+  // Helper function to get auth headers
+  const getAuthHeaders = (): HeadersInit => {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    if (typeof window !== 'undefined') {
+      const sessionToken = localStorage.getItem('pod-session-token');
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+    }
+    return headers;
+  };
+
   const loadIntegrations = async () => {
     try {
-      const response = await fetch('/api/integrations');
+      const response = await fetch('/api/integrations', {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
       if (data.success && data.integrations) {
         const postmark = data.integrations.find((i: any) => i.provider === 'POSTMARK');
@@ -230,7 +251,10 @@ export default function CommunicationHub() {
 
   const loadProperties = async () => {
     try {
-      const response = await fetch('/api/properties');
+      const response = await fetch('/api/properties', {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
       if (data.success && data.properties) {
         setProperties(data.properties.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug })));
@@ -261,9 +285,7 @@ export default function CommunicationHub() {
       console.log('Loading conversations with params:', params.toString());
       const response = await fetch(`/api/conversations?${params.toString()}`, {
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -289,7 +311,11 @@ export default function CommunicationHub() {
     try {
       const params = new URLSearchParams();
       if (session?.user?.id) params.append('userId', session.user.id);
-      const response = await fetch(`/api/conversations/${conversationId}?${params.toString()}`);
+      
+      const response = await fetch(`/api/conversations/${conversationId}?${params.toString()}`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
       if (data.success) {
         setSelectedConversation(data.conversation);
@@ -299,6 +325,8 @@ export default function CommunicationHub() {
           try {
             await fetch(`/api/conversations/${conversationId}/mark-read?userId=${session?.user?.id || ''}`, {
               method: 'POST',
+              credentials: 'include',
+              headers: getAuthHeaders(),
             });
             // Update local state
             setConversations(prev => prev.map(c => 
@@ -329,7 +357,10 @@ export default function CommunicationHub() {
 
   const loadGuestContext = async (identifier: string) => {
     try {
-      const response = await fetch(`/api/guest-context/${encodeURIComponent(identifier)}`);
+      const response = await fetch(`/api/guest-context/${encodeURIComponent(identifier)}`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
       if (data.success) {
         setGuestContext(data.guest);
@@ -358,7 +389,10 @@ export default function CommunicationHub() {
       };
       params.append('channel', channelMap[conversation.primaryChannel] || 'WHATSAPP');
       
-      const response = await fetch(`/api/templates?${params.toString()}`);
+      const response = await fetch(`/api/templates?${params.toString()}`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
       if (data.success) {
         // Get templates that are relevant for quick replies (FAQ, CUSTOM, or matching type)
@@ -384,7 +418,8 @@ export default function CommunicationHub() {
       setLoadingTemplate(true);
       const response = await fetch(`/api/templates/${template.id}/preview`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ bookingId: selectedConversation.booking.id }),
       });
       
@@ -420,7 +455,8 @@ export default function CommunicationHub() {
     try {
       const response = await fetch(`/api/conversations/${conversationId}/status?userId=${session?.user?.id || ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ status }),
       });
       const data = await response.json();
@@ -438,7 +474,8 @@ export default function CommunicationHub() {
     try {
       const response = await fetch(`/api/conversations/${conversationId}/priority?userId=${session?.user?.id || ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ priority }),
       });
       const data = await response.json();
@@ -456,7 +493,8 @@ export default function CommunicationHub() {
     try {
       const response = await fetch(`/api/conversations/${conversationId}/assign?userId=${session?.user?.id || ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ assignedTo }),
       });
       const data = await response.json();
@@ -504,7 +542,8 @@ export default function CommunicationHub() {
       setBulkActionLoading(true);
       const response = await fetch('/api/conversations/bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           conversationIds: Array.from(selectedConversationIds),
           action,
@@ -542,7 +581,8 @@ export default function CommunicationHub() {
         // Email reply
         const response = await fetch('/api/email/send', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             to: selectedConversation.participants.filter(p => 
               p !== (process.env.NEXT_PUBLIC_MAIL_FROM || 'support@capsulepodhotel.com')
@@ -573,7 +613,8 @@ export default function CommunicationHub() {
 
         const response = await fetch('/api/notify/booking', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             phone,
             message: replyForm.message,
@@ -605,7 +646,8 @@ export default function CommunicationHub() {
     try {
       const response = await fetch(`/api/conversations/${selectedConversation.id}/notes?userId=${session?.user?.id || ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: getAuthHeaders(),
         body: JSON.stringify({ content: noteForm.content }),
       });
       const data = await response.json();
