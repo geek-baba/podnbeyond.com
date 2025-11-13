@@ -134,16 +134,24 @@ END $$;
 -- Note: assignedTo references users.id, which is TEXT
 -- We'll add the foreign key constraint after ensuring data integrity
 
--- Step 4: Add threadId to message_logs table
-ALTER TABLE "message_logs" 
-  ADD COLUMN "threadId" INTEGER;
+-- Step 4: Add threadId to message_logs table (if it doesn't exist)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'message_logs' AND column_name = 'threadId') THEN
+    ALTER TABLE "message_logs" ADD COLUMN "threadId" INTEGER;
+  END IF;
+END $$;
 
--- Step 5: Add threadId to call_logs table
-ALTER TABLE "call_logs" 
-  ADD COLUMN "threadId" INTEGER;
+-- Step 5: Add threadId to call_logs table (if it doesn't exist)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'call_logs' AND column_name = 'threadId') THEN
+    ALTER TABLE "call_logs" ADD COLUMN "threadId" INTEGER;
+  END IF;
+END $$;
 
--- Step 6: Create conversation_notes table
-CREATE TABLE "conversation_notes" (
+-- Step 6: Create conversation_notes table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS "conversation_notes" (
   "id" SERIAL NOT NULL,
   "threadId" INTEGER NOT NULL,
   "authorId" TEXT NOT NULL,
