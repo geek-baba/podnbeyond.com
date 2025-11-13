@@ -274,14 +274,9 @@ export default function CommunicationHub() {
       if (filters.search) params.append('search', filters.search);
       if (filters.channel) params.append('channel', filters.channel);
       
-      // Get user ID from session - try multiple possible locations
-      const userId = (session as any)?.user?.id || (session as any)?.id || session?.user?.email;
-      if (userId) {
-        params.append('userId', userId);
-      } else {
-        console.warn('No user ID found in session:', session);
-      }
-
+      // Note: userId is not needed in query params as it's extracted from the authenticated session
+      // The backend gets userId from req.user.id (set by authenticate middleware)
+      
       console.log('Loading conversations with params:', params.toString());
       const response = await fetch(`/api/conversations?${params.toString()}`, {
         credentials: 'include',
@@ -323,7 +318,7 @@ export default function CommunicationHub() {
         // Mark as read when viewing
         if (data.conversation.unreadCount > 0) {
           try {
-            await fetch(`/api/conversations/${conversationId}/mark-read?userId=${session?.user?.id || ''}`, {
+            await fetch(`/api/conversations/${conversationId}/mark-read`, {
               method: 'POST',
               credentials: 'include',
               headers: getAuthHeaders(),
@@ -453,7 +448,7 @@ export default function CommunicationHub() {
 
   const updateStatus = async (conversationId: number, status: ConversationStatus) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/status?userId=${session?.user?.id || ''}`, {
+      const response = await fetch(`/api/conversations/${conversationId}/status`, {
         method: 'POST',
         credentials: 'include',
         headers: getAuthHeaders(),
@@ -472,7 +467,7 @@ export default function CommunicationHub() {
 
   const updatePriority = async (conversationId: number, priority: Priority) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/priority?userId=${session?.user?.id || ''}`, {
+      const response = await fetch(`/api/conversations/${conversationId}/priority`, {
         method: 'POST',
         credentials: 'include',
         headers: getAuthHeaders(),
@@ -491,7 +486,7 @@ export default function CommunicationHub() {
 
   const assignConversation = async (conversationId: number, assignedTo: string | null) => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/assign?userId=${session?.user?.id || ''}`, {
+      const response = await fetch(`/api/conversations/${conversationId}/assign`, {
         method: 'POST',
         credentials: 'include',
         headers: getAuthHeaders(),
@@ -548,7 +543,6 @@ export default function CommunicationHub() {
           conversationIds: Array.from(selectedConversationIds),
           action,
           value: value || (action === 'assign' ? session?.user?.id : undefined),
-          userId: session?.user?.id,
         }),
       });
 
@@ -644,7 +638,7 @@ export default function CommunicationHub() {
     if (!selectedConversation || !noteForm.content) return;
 
     try {
-      const response = await fetch(`/api/conversations/${selectedConversation.id}/notes?userId=${session?.user?.id || ''}`, {
+      const response = await fetch(`/api/conversations/${selectedConversation.id}/notes`, {
         method: 'POST',
         credentials: 'include',
         headers: getAuthHeaders(),
