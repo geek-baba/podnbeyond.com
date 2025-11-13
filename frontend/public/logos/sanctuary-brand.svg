@@ -1,0 +1,13 @@
+<svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- POD N BEYOND | Sanctuary - Women-only -->
+  <text x="10" y="28" font-family="Inter, -apple-system, sans-serif" font-size="18" font-weight="600" fill="#1a1a1a">
+    POD N BEYOND
+  </text>
+  <text x="10" y="48" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="400" fill="#ec4899">
+    sanctuary
+  </text>
+  <!-- Sanctuary icon - minimal lotus/flower -->
+  <circle cx="158" cy="30" r="8" fill="none" stroke="#ec4899" stroke-width="2"/>
+  <circle cx="158" cy="30" r="4" fill="#ec4899"/>
+</svg>
+

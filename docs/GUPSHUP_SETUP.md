@@ -21,7 +21,7 @@ From the **Settings** tab (where you are now):
 3. Give it a name (e.g., "Pod & Beyond Production" or "Pod & Beyond Staging")
 4. Copy the generated API key immediately (you won't be able to see it again!)
    - This is `GUPSHUP_API_KEY`
-   - Format: Usually looks like `xxxxx xxxxx` (with space between two parts)
+   - Format: Usually looks like `mtpi6wvsuevqh0b g7dof8j6qijq6pyw6` (with space)
 
 #### Step 4: Get WhatsApp Business Number
 1. Go to **WhatsApp** → **Phone Numbers** (or similar section)
@@ -69,7 +69,7 @@ GUPSHUP_WEBHOOK_URL="https://staging.capsulepodhotel.com/webhooks/gupshup"
 **Example format:**
 ```bash
 GUPSHUP_ENABLED=true
-GUPSHUP_API_KEY="<your-api-key-from-dashboard>"
+GUPSHUP_API_KEY="mtpi6wvsuevqh0b g7dof8j6qijq6pyw6"
 GUPSHUP_APP_ID="2a22997e-c702-4180-afad-abab89a5aa4b"
 GUPSHUP_APP_NAME="podnbeyond"
 GUPSHUP_SOURCE="919876543210"

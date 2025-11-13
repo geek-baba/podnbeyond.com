@@ -1,0 +1,757 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum LoyaltyTier {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum RoomStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum BrandStatus {
+  ACTIVE
+  INACTIVE
+  COMING_SOON
+}
+
+enum RoleKey {
+  GUEST
+  MEMBER
+  STAFF_FRONTDESK
+  STAFF_OPS
+  MANAGER
+  ADMIN
+  SUPERADMIN
+}
+
+enum ScopeType {
+  ORG
+  BRAND
+  PROPERTY
+}
+
+enum ContentType {
+  HERO_SECTION
+  ABOUT_SECTION
+  ROOMS_SECTION
+  AMENITIES_SECTION
+  TESTIMONIALS_SECTION
+  CONTACT_SECTION
+  FOOTER_SECTION
+}
+
+enum ImageType {
+  HERO_BACKGROUND
+  ROOM_IMAGE
+  AMENITY_ICON
+  TESTIMONIAL_AVATAR
+  GALLERY_IMAGE
+  LOGO
+  FAVICON
+}
+
+// ============================================================================
+// AUTH & RBAC MODELS (NextAuth.js + Custom RBAC)
+// ============================================================================
+
+// Organization - Single org for now, future-proof for multi-org
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?
+  settings    Json? // org-level settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+  invites   Invite[]
+
+  @@map("organizations")
+}
+
+// User - Core user model (NextAuth compatible)
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Custom relations
+  userRoles      UserRole[]
+  loyaltyAccount LoyaltyAccount?
+  sentInvites    Invite[]        @relation("InvitedBy")
+  auditLogs      AuditLog[]
+  pointsLedger   PointsLedger[]
+  emailThreads   Thread[]        // Email conversations
+
+  @@map("users")
+}
+
+// Account - NextAuth OAuth accounts
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+// Session - NextAuth sessions
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// VerificationToken - NextAuth email verification
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// OTP Codes for email authentication
+model OTPCode {
+  id         String   @id @default(cuid())
+  email      String
+  codeHash   String   // SHA-256 hash of the 6-digit OTP
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_codes")
+}
+
+// Role - Predefined roles with descriptions
+model Role {
+  id          Int      @id @default(autoincrement())
+  key         RoleKey  @unique
+  name        String
+  description String?
+  permissions String[] @default([]) // List of action permissions
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+// UserRole - Many-to-many with scope support
+model UserRole {
+  id      Int     @id @default(autoincrement())
+  userId  String
+  roleKey RoleKey
+
+  // Scope fields
+  scopeType ScopeType @default(ORG)
+  scopeId   Int? // orgId, brandId, or propertyId depending on scopeType
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role          @relation(fields: [roleKey], references: [key])
+  organization Organization? @relation(fields: [scopeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleKey, scopeType, scopeId])
+  @@index([userId])
+  @@index([roleKey])
+  @@index([scopeType, scopeId])
+  @@map("user_roles")
+}
+
+// Invite - Staff invitation system
+model Invite {
+  id         Int       @id @default(autoincrement())
+  email      String
+  roleKey    RoleKey
+  scopeType  ScopeType @default(ORG)
+  scopeId    Int?
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+
+  // Invited by
+  invitedBy String
+  inviter   User   @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  // Organization
+  orgId        Int
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("invites")
+}
+
+// AuditLog - Track all admin actions
+model AuditLog {
+  id          Int    @id @default(autoincrement())
+  actorUserId String
+  actor       User   @relation(fields: [actorUserId], references: [id])
+
+  action     String // e.g., "booking.cancel", "loyalty.adjust", "user.invite"
+  targetType String? // e.g., "Booking", "User", "Property"
+  targetId   String? // ID of the affected entity
+
+  metadata  Json? // Additional context (old values, changes, etc.)
+  ip        String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// PointsLedger - Loyalty points transaction log
+model PointsLedger {
+  id               Int    @id @default(autoincrement())
+  loyaltyAccountId Int
+  userId           String
+
+  points    Int // Positive for earn, negative for burn
+  reason    String // e.g., "Booking #123", "Redeemed for discount", "Manual adjustment"
+  bookingId Int? // Link to booking if applicable
+
+  balanceBefore Int
+  balanceAfter  Int
+
+  createdBy     String? // userId of admin who made manual adjustment
+  createdByUser User?   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([loyaltyAccountId])
+  @@index([userId])
+  @@index([bookingId])
+  @@index([createdAt])
+  @@map("points_ledger")
+}
+
+// ============================================================================
+// BUSINESS MODELS
+// ============================================================================
+
+// Brand model for multi-brand architecture (inspired by 9h nine hours)
+model Brand {
+  id             Int         @id @default(autoincrement())
+  name           String      @unique // e.g., "POD N BEYOND | Capsule", "POD N BEYOND | Smart"
+  slug           String      @unique
+  description    String?
+  tagline        String? // e.g., "Budget-friendly capsule experience"
+  concept        String? // Detailed brand philosophy
+  logoUrl        String?
+  primaryColor   String?     @default("#1e3a8a") // Brand color in hex
+  accentColor    String?     @default("#f59e0b")
+  targetAudience String? // e.g., "Budget travelers", "Business professionals", "Women only"
+  features       String[]    @default([])
+  amenities      String[]    @default([])
+  images         String[]    @default([])
+  status         BrandStatus @default(ACTIVE)
+  sortOrder      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relationships
+  properties Property[]
+
+  @@map("brands")
+}
+
+// Property/Hotel model for multi-property support
+model Property {
+  id           Int            @id @default(autoincrement())
+  name         String
+  slug         String         @unique
+  location     String
+  address      String?
+  city         String
+  state        String         @default("Jharkhand")
+  pincode      String?
+  phone        String?
+  email        String?
+  rating       Float?         @default(0)
+  totalRatings Int            @default(0)
+  description  String?
+  amenities    String[]       @default([])
+  features     String[]       @default([])
+  images       String[]       @default([])
+  latitude     Float?
+  longitude    Float?
+  status       PropertyStatus @default(ACTIVE)
+
+  // Brand relationship
+  brandId Int?
+  brand   Brand? @relation(fields: [brandId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  rooms        Room[]
+  emailThreads Thread[] // Email conversations about this property
+
+  @@map("properties")
+}
+
+// Updated Room model to match specifications
+model Room {
+  id            Int        @id @default(autoincrement())
+  name          String
+  type          String
+  capacity      Int
+  description   String?
+  pricePerNight Float
+  status        RoomStatus @default(ACTIVE)
+
+  // Property relationship
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  bookings  Booking[]
+  images    RoomImage[]
+  ratePlans RatePlan[]
+
+  @@map("rooms")
+}
+
+// New RatePlan model
+model RatePlan {
+  id            Int      @id @default(autoincrement())
+  roomId        Int
+  seasonalPrice Float
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationship to Room
+  room Room @relation(fields: [roomId], references: [id])
+
+  @@map("rate_plans")
+}
+
+model Booking {
+  id              Int           @id @default(autoincrement())
+  guestName       String
+  email           String
+  phone           String?
+  checkIn         DateTime
+  checkOut        DateTime
+  guests          Int           @default(1)
+  totalPrice      Float
+  specialRequests String?
+  status          BookingStatus @default(PENDING)
+
+  // Relationship to Room
+  roomId Int
+  room   Room @relation(fields: [roomId], references: [id])
+
+  // Relationship to Payments
+  payments Payment[]
+
+  // Relationship to Loyalty Account
+  loyaltyAccountId Int?
+  loyaltyAccount   LoyaltyAccount? @relation(fields: [loyaltyAccountId], references: [id])
+
+  // External booking fields
+  externalBookingId String? // External booking ID from channel
+  externalChannel   String? // Channel name (makemytrip, yatra, etc.)
+  
+  // Email threads related to this booking
+  emailThreads Thread[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("bookings")
+}
+
+model Payment {
+  id                Int           @id @default(autoincrement())
+  bookingId         Int
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  amount            Float
+  status            PaymentStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+// Updated LoyaltyAccount model to match specifications
+model LoyaltyAccount {
+  id            Int         @id @default(autoincrement())
+  memberNumber  String      @unique // Simple 6-digit number like "123456"
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points        Int         @default(0)
+  lifetimeStays Int         @default(0) // Track total stays for tier qualification
+  tier          LoyaltyTier @default(SILVER) // Auto-calculated based on points/stays
+  lastUpdated   DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relationship to Bookings
+  bookings Booking[]
+
+  @@index([userId])
+  @@index([memberNumber])
+  @@map("loyalty_accounts")
+}
+
+// New OTASyncLog model
+model OTASyncLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+
+  @@map("ota_sync_logs")
+}
+
+// CMS Models for Content Management
+
+model Content {
+  id          Int         @id @default(autoincrement())
+  type        ContentType
+  title       String?
+  subtitle    String?
+  description String?
+  content     String? // JSON content for complex sections
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("contents")
+}
+
+model Image {
+  id           Int       @id @default(autoincrement())
+  type         ImageType
+  filename     String
+  originalName String
+  path         String
+  url          String
+  altText      String?
+  title        String?
+  description  String?
+  isActive     Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relationship to Room Images
+  roomImages RoomImage[]
+
+  // Relationship to Testimonials
+  testimonials Testimonial[]
+
+  // Relationship to Amenities
+  amenities Amenity[]
+
+  @@map("images")
+}
+
+model RoomImage {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  room      Room     @relation(fields: [roomId], references: [id])
+  imageId   Int
+  image     Image    @relation(fields: [imageId], references: [id])
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("room_images")
+}
+
+model Testimonial {
+  id            Int      @id @default(autoincrement())
+  guestName     String
+  guestEmail    String?
+  rating        Int      @default(5)
+  title         String?
+  content       String
+  avatarImageId Int?
+  avatarImage   Image?   @relation(fields: [avatarImageId], references: [id])
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model Amenity {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  iconName    String?
+  iconImageId Int?
+  iconImage   Image?   @relation(fields: [iconImageId], references: [id])
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("amenities")
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  type        String   @default("text") // text, number, boolean, json, image
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ============================================================================
+// EMAIL SYSTEM MODELS (Postmark Integration)
+// ============================================================================
+
+enum EmailStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
+}
+
+enum EmailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum EmailEventType {
+  DELIVERY
+  BOUNCE
+  SPAM_COMPLAINT
+  OPEN
+  CLICK
+  LINK_CLICK
+}
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  SPAM_COMPLAINT
+  MANUAL_SUPPRESSION
+  UNSUBSCRIBE
+}
+
+model Thread {
+  id              Int       @id @default(autoincrement())
+  subject         String
+  participants    String[]  @default([]) // Array of email addresses
+  lastMessageAt   DateTime  @default(now())
+  isArchived      Boolean   @default(false)
+  
+  // Relations
+  userId          String?   // User who owns this thread (if applicable)
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  bookingId       Int?      // Link to booking if email is booking-related
+  booking         Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  
+  propertyId      Int?      // Link to property if email is property-related
+  property        Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  
+  emails          Email[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([propertyId])
+  @@index([lastMessageAt])
+  @@map("email_threads")
+}
+
+model Email {
+  id              Int             @id @default(autoincrement())
+  threadId        Int
+  thread          Thread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  // Email metadata
+  messageId       String          @unique // Postmark MessageID or custom ID
+  direction       EmailDirection
+  status          EmailStatus     @default(QUEUED)
+  
+  // Sender/Recipients
+  fromEmail       String
+  fromName        String?
+  toEmails        String[]        @default([])
+  ccEmails        String[]        @default([])
+  bccEmails       String[]        @default([])
+  replyTo         String?
+  
+  // Content
+  subject         String
+  htmlBody        String?         @db.Text
+  textBody        String?         @db.Text
+  
+  // Postmark specific
+  postmarkId      String?         @unique // Postmark MessageID for sent emails
+  tag             String?         // Postmark tag for categorization
+  metadata        Json?           // Additional metadata
+  
+  // Relations
+  attachments     Attachment[]
+  events          EmailEvent[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([threadId])
+  @@index([fromEmail])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@map("emails")
+}
+
+model Attachment {
+  id              Int      @id @default(autoincrement())
+  emailId         Int
+  email           Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  
+  filename        String
+  contentType     String
+  size            Int      // bytes
+  
+  // Storage
+  storageUrl      String?  // S3/local path
+  postmarkUrl     String?  // Postmark URL for inbound attachments
+  
+  createdAt       DateTime @default(now())
+
+  @@index([emailId])
+  @@map("email_attachments")
+}
+
+model EmailEvent {
+  id              Int            @id @default(autoincrement())
+  emailId         Int
+  email           Email          @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  
+  eventType       EmailEventType
+  timestamp       DateTime       @default(now())
+  
+  // Event details
+  recipient       String?
+  details         Json?          // Bounce reason, spam details, etc.
+  userAgent       String?        // For opens/clicks
+  ip              String?
+  
+  createdAt       DateTime       @default(now())
+
+  @@index([emailId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("email_events")
+}
+
+model Suppression {
+  id              Int                @id @default(autoincrement())
+  email           String             @unique
+  reason          SuppressionReason
+  origin          String?            // Which email triggered the suppression
+  suppressedAt    DateTime           @default(now())
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([email])
+  @@map("email_suppressions")
+}

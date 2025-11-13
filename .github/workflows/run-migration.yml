@@ -1,0 +1,49 @@
+name: Run Integration Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run migration on'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  migrate-integrations:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Run migration on ${{ github.event.inputs.environment }}
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ github.event.inputs.environment == 'production' && secrets.PROD_DEPLOY_HOST || secrets.STAGING_DEPLOY_HOST }}
+          username: ${{ github.event.inputs.environment == 'production' && secrets.PROD_DEPLOY_USER || secrets.STAGING_DEPLOY_USER }}
+          key: ${{ github.event.inputs.environment == 'production' && secrets.PROD_SSH_KEY || secrets.STAGING_SSH_KEY }}
+          script: |
+            set -e
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            cd ${{ github.event.inputs.environment == 'production' && secrets.PROD_DEPLOY_PATH || secrets.STAGING_DEPLOY_PATH }}/backend
+            
+            export DATABASE_URL='${{ github.event.inputs.environment == 'production' && secrets.PROD_DATABASE_URL || secrets.STAGING_DATABASE_URL }}'
+            export POSTMARK_TOKEN='${{ github.event.inputs.environment == 'production' && secrets.PROD_POSTMARK_TOKEN || secrets.STAGING_POSTMARK_TOKEN }}'
+            export RAZORPAY_KEY_ID='${{ github.event.inputs.environment == 'production' && secrets.PROD_RAZORPAY_KEY_ID || secrets.STAGING_RAZORPAY_KEY_ID }}'
+            export RAZORPAY_KEY_SECRET='${{ github.event.inputs.environment == 'production' && secrets.PROD_RAZORPAY_KEY_SECRET || secrets.STAGING_RAZORPAY_KEY_SECRET }}'
+            export GUPSHUP_API_KEY='${{ github.event.inputs.environment == 'production' && secrets.PROD_GUPSHUP_API_KEY || secrets.STAGING_GUPSHUP_API_KEY }}'
+            export GUPSHUP_APP_ID='${{ github.event.inputs.environment == 'production' && secrets.PROD_GUPSHUP_APP_ID || secrets.STAGING_GUPSHUP_APP_ID }}'
+            export GUPSHUP_APP_NAME='${{ github.event.inputs.environment == 'production' && secrets.PROD_GUPSHUP_APP_NAME || secrets.STAGING_GUPSHUP_APP_NAME }}'
+            export GUPSHUP_SOURCE='${{ github.event.inputs.environment == 'production' && secrets.PROD_GUPSHUP_SOURCE || secrets.STAGING_GUPSHUP_SOURCE }}'
+            export GUPSHUP_ENABLED='${{ github.event.inputs.environment == 'production' && secrets.PROD_GUPSHUP_ENABLED || secrets.STAGING_GUPSHUP_ENABLED }}'
+            export EXOTEL_SID='${{ github.event.inputs.environment == 'production' && secrets.PROD_EXOTEL_SID || secrets.STAGING_EXOTEL_SID }}'
+            export EXOTEL_API_KEY='${{ github.event.inputs.environment == 'production' && secrets.PROD_EXOTEL_API_KEY || secrets.STAGING_EXOTEL_API_KEY }}'
+            export EXOTEL_API_TOKEN='${{ github.event.inputs.environment == 'production' && secrets.PROD_EXOTEL_API_TOKEN || secrets.STAGING_EXOTEL_API_TOKEN }}'
+            export EXOTEL_SUBDOMAIN='${{ github.event.inputs.environment == 'production' && secrets.PROD_EXOTEL_SUBDOMAIN || secrets.STAGING_EXOTEL_SUBDOMAIN }}'
+            export EXOTEL_FROM_NUMBER='${{ github.event.inputs.environment == 'production' && secrets.PROD_EXOTEL_FROM_NUMBER || secrets.STAGING_EXOTEL_FROM_NUMBER }}'
+            export EXOTEL_ENABLED='${{ github.event.inputs.environment == 'production' && secrets.PROD_EXOTEL_ENABLED || secrets.STAGING_EXOTEL_ENABLED }}'
+            
+            node scripts/migrate-integrations-from-env.js
+
