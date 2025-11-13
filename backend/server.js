@@ -40,13 +40,11 @@ process.on('unhandledRejection', (reason, promise) => {
 // Log startup immediately (before any requires)
 // Use console.log for PM2 compatibility (PM2 buffers process.stdout.write)
 console.log('🚀 Starting backend server...');
-try {
-  console.log('📁 Working directory: ' + process.cwd());
-  console.log('📦 Node version: ' + process.version);
-} catch (err) {
-  console.error('Error logging startup info:', err);
-  throw err;
-}
+console.log('Step 1: About to log working directory');
+console.log('📁 Working directory: ' + process.cwd());
+console.log('Step 2: About to log Node version');
+console.log('📦 Node version: ' + process.version);
+console.log('Step 3: About to start loading modules');
 
 // Try to require core modules with error handling
 let express, cors, cookieParser, rateLimit;
