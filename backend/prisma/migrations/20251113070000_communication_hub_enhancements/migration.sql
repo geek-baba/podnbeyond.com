@@ -29,41 +29,106 @@ BEGIN
 END $$;
 
 -- Step 2: Add new columns to email_threads table (with defaults)
--- First, add columns as nullable
-ALTER TABLE "email_threads" 
-  ADD COLUMN "status" "ConversationStatus",
-  ADD COLUMN "assignedTo" TEXT,
-  ADD COLUMN "priority" "Priority",
-  ADD COLUMN "firstResponseAt" TIMESTAMP(3),
-  ADD COLUMN "resolvedAt" TIMESTAMP(3),
-  ADD COLUMN "slaBreached" BOOLEAN,
-  ADD COLUMN "unreadCount" INTEGER,
-  ADD COLUMN "tags" TEXT[];
+-- Only add columns if they don't exist
+DO $$ 
+BEGIN
+  -- Add status column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'status') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "status" "ConversationStatus";
+  END IF;
+  
+  -- Add assignedTo column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'assignedTo') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "assignedTo" TEXT;
+  END IF;
+  
+  -- Add priority column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'priority') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "priority" "Priority";
+  END IF;
+  
+  -- Add firstResponseAt column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'firstResponseAt') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "firstResponseAt" TIMESTAMP(3);
+  END IF;
+  
+  -- Add resolvedAt column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'resolvedAt') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "resolvedAt" TIMESTAMP(3);
+  END IF;
+  
+  -- Add slaBreached column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'slaBreached') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "slaBreached" BOOLEAN;
+  END IF;
+  
+  -- Add unreadCount column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'unreadCount') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "unreadCount" INTEGER;
+  END IF;
+  
+  -- Add tags column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'tags') THEN
+    ALTER TABLE "email_threads" ADD COLUMN "tags" TEXT[];
+  END IF;
+END $$;
 
--- Step 2a: Set default values for existing rows
-UPDATE "email_threads" 
-SET 
-  "status" = CASE 
-    WHEN "isArchived" = true THEN 'ARCHIVED'::"ConversationStatus"
-    ELSE 'NEW'::"ConversationStatus"
-  END,
-  "priority" = 'NORMAL'::"Priority",
-  "slaBreached" = false,
-  "unreadCount" = 0,
-  "tags" = ARRAY[]::TEXT[]
-WHERE "status" IS NULL;
+-- Step 2a: Set default values for existing rows (only if columns exist)
+DO $$ 
+BEGIN
+  -- Update status if column exists
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'status') THEN
+    UPDATE "email_threads" 
+    SET 
+      "status" = CASE 
+        WHEN "isArchived" = true THEN 'ARCHIVED'::"ConversationStatus"
+        ELSE 'NEW'::"ConversationStatus"
+      END,
+      "priority" = COALESCE("priority", 'NORMAL'::"Priority"),
+      "slaBreached" = COALESCE("slaBreached", false),
+      "unreadCount" = COALESCE("unreadCount", 0),
+      "tags" = COALESCE("tags", ARRAY[]::TEXT[])
+    WHERE "status" IS NULL;
+  END IF;
+END $$;
 
--- Step 2b: Make columns NOT NULL where required
-ALTER TABLE "email_threads" 
-  ALTER COLUMN "status" SET NOT NULL,
-  ALTER COLUMN "status" SET DEFAULT 'NEW',
-  ALTER COLUMN "priority" SET NOT NULL,
-  ALTER COLUMN "priority" SET DEFAULT 'NORMAL',
-  ALTER COLUMN "slaBreached" SET NOT NULL,
-  ALTER COLUMN "slaBreached" SET DEFAULT false,
-  ALTER COLUMN "unreadCount" SET NOT NULL,
-  ALTER COLUMN "unreadCount" SET DEFAULT 0,
-  ALTER COLUMN "tags" SET DEFAULT ARRAY[]::TEXT[];
+-- Step 2b: Make columns NOT NULL where required (only if columns exist and are nullable)
+DO $$ 
+BEGIN
+  -- Set status NOT NULL and default
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'status' AND is_nullable = 'YES') THEN
+    ALTER TABLE "email_threads" 
+      ALTER COLUMN "status" SET NOT NULL,
+      ALTER COLUMN "status" SET DEFAULT 'NEW';
+  END IF;
+  
+  -- Set priority NOT NULL and default
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'priority' AND is_nullable = 'YES') THEN
+    ALTER TABLE "email_threads" 
+      ALTER COLUMN "priority" SET NOT NULL,
+      ALTER COLUMN "priority" SET DEFAULT 'NORMAL';
+  END IF;
+  
+  -- Set slaBreached NOT NULL and default
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'slaBreached' AND is_nullable = 'YES') THEN
+    ALTER TABLE "email_threads" 
+      ALTER COLUMN "slaBreached" SET NOT NULL,
+      ALTER COLUMN "slaBreached" SET DEFAULT false;
+  END IF;
+  
+  -- Set unreadCount NOT NULL and default
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'unreadCount' AND is_nullable = 'YES') THEN
+    ALTER TABLE "email_threads" 
+      ALTER COLUMN "unreadCount" SET NOT NULL,
+      ALTER COLUMN "unreadCount" SET DEFAULT 0;
+  END IF;
+  
+  -- Set tags default
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_threads' AND column_name = 'tags') THEN
+    ALTER TABLE "email_threads" 
+      ALTER COLUMN "tags" SET DEFAULT ARRAY[]::TEXT[];
+  END IF;
+END $$;
 
 -- Step 3: Add foreign key constraint for assignedTo (if it doesn't exist)
 -- Note: assignedTo references users.id, which is TEXT
@@ -90,41 +155,54 @@ CREATE TABLE "conversation_notes" (
   CONSTRAINT "conversation_notes_pkey" PRIMARY KEY ("id")
 );
 
--- Step 7: Add foreign key constraints
--- Add foreign key for assignedTo (with SET NULL on delete for safety)
-ALTER TABLE "email_threads" 
-  ADD CONSTRAINT "email_threads_assignedTo_fkey" 
-  FOREIGN KEY ("assignedTo") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- Step 7: Add foreign key constraints (if they don't exist)
+DO $$ 
+BEGIN
+  -- Add foreign key for assignedTo (with SET NULL on delete for safety)
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'email_threads_assignedTo_fkey') THEN
+    ALTER TABLE "email_threads" 
+      ADD CONSTRAINT "email_threads_assignedTo_fkey" 
+      FOREIGN KEY ("assignedTo") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+  
+  -- Add foreign key for message_logs.threadId
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'message_logs_threadId_fkey') THEN
+    ALTER TABLE "message_logs" 
+      ADD CONSTRAINT "message_logs_threadId_fkey" 
+      FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+  
+  -- Add foreign key for call_logs.threadId
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'call_logs_threadId_fkey') THEN
+    ALTER TABLE "call_logs" 
+      ADD CONSTRAINT "call_logs_threadId_fkey" 
+      FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+  
+  -- Add foreign key for conversation_notes.threadId
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'conversation_notes_threadId_fkey') THEN
+    ALTER TABLE "conversation_notes" 
+      ADD CONSTRAINT "conversation_notes_threadId_fkey" 
+      FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+  
+  -- Add foreign key for conversation_notes.authorId
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'conversation_notes_authorId_fkey') THEN
+    ALTER TABLE "conversation_notes" 
+      ADD CONSTRAINT "conversation_notes_authorId_fkey" 
+      FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
--- Add foreign key for message_logs.threadId
-ALTER TABLE "message_logs" 
-  ADD CONSTRAINT "message_logs_threadId_fkey" 
-  FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- Add foreign key for call_logs.threadId
-ALTER TABLE "call_logs" 
-  ADD CONSTRAINT "call_logs_threadId_fkey" 
-  FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- Add foreign key for conversation_notes.threadId
-ALTER TABLE "conversation_notes" 
-  ADD CONSTRAINT "conversation_notes_threadId_fkey" 
-  FOREIGN KEY ("threadId") REFERENCES "email_threads"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Add foreign key for conversation_notes.authorId
-ALTER TABLE "conversation_notes" 
-  ADD CONSTRAINT "conversation_notes_authorId_fkey" 
-  FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Step 8: Create indexes
-CREATE INDEX "email_threads_assignedTo_idx" ON "email_threads"("assignedTo");
-CREATE INDEX "email_threads_status_idx" ON "email_threads"("status");
-CREATE INDEX "email_threads_isArchived_idx" ON "email_threads"("isArchived");
-CREATE INDEX "message_logs_threadId_idx" ON "message_logs"("threadId");
-CREATE INDEX "call_logs_threadId_idx" ON "call_logs"("threadId");
-CREATE INDEX "conversation_notes_threadId_idx" ON "conversation_notes"("threadId");
-CREATE INDEX "conversation_notes_authorId_idx" ON "conversation_notes"("authorId");
-CREATE INDEX "conversation_notes_createdAt_idx" ON "conversation_notes"("createdAt");
+-- Step 8: Create indexes (if they don't exist)
+CREATE INDEX IF NOT EXISTS "email_threads_assignedTo_idx" ON "email_threads"("assignedTo");
+CREATE INDEX IF NOT EXISTS "email_threads_status_idx" ON "email_threads"("status");
+CREATE INDEX IF NOT EXISTS "email_threads_isArchived_idx" ON "email_threads"("isArchived");
+CREATE INDEX IF NOT EXISTS "message_logs_threadId_idx" ON "message_logs"("threadId");
+CREATE INDEX IF NOT EXISTS "call_logs_threadId_idx" ON "call_logs"("threadId");
+CREATE INDEX IF NOT EXISTS "conversation_notes_threadId_idx" ON "conversation_notes"("threadId");
+CREATE INDEX IF NOT EXISTS "conversation_notes_authorId_idx" ON "conversation_notes"("authorId");
+CREATE INDEX IF NOT EXISTS "conversation_notes_createdAt_idx" ON "conversation_notes"("createdAt");
 
 -- Step 9: (Moved to Step 2a - already handled above)
 -- Existing threads have been updated with default values
