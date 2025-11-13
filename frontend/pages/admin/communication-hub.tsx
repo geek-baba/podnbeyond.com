@@ -474,7 +474,8 @@ export default function CommunicationHub() {
       const data = await response.json();
       if (data.success) {
         // Get templates that are relevant for quick replies (FAQ, CUSTOM, or matching type)
-        const relevantTemplates = data.templates.filter((t: any) => 
+        const templates = Array.isArray(data.templates) ? data.templates : [];
+        const relevantTemplates = templates.filter((t: any) => 
           t.type === 'FAQ' || 
           t.type === 'CUSTOM' ||
           (conversation.booking && t.type === 'BOOKING_CONFIRMATION')
@@ -1384,10 +1385,10 @@ export default function CommunicationHub() {
                     {/* Internal Notes */}
                     <Card variant="default" padding="lg">
                       <h4 className="text-lg font-bold text-neutral-900 mb-4">
-                        Internal Notes ({selectedConversation.notes.length})
+                        Internal Notes ({(Array.isArray(selectedConversation.notes) ? selectedConversation.notes : []).length})
                       </h4>
                       <div className="space-y-3 mb-4 max-h-[200px] overflow-y-auto">
-                        {selectedConversation.notes.map((note) => (
+                        {(Array.isArray(selectedConversation.notes) ? selectedConversation.notes : []).map((note) => (
                           <div key={note.id} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
                             <div className="flex items-start justify-between mb-2">
                               <p className="font-semibold text-sm text-neutral-900">{note.author.name}</p>
