@@ -310,10 +310,10 @@ export default function CommunicationHub() {
 
   const loadConversationDetails = async (conversationId: number) => {
     try {
-      const params = new URLSearchParams();
-      if (session?.user?.id) params.append('userId', session.user.id);
+      // Note: userId is not needed in query params as it's extracted from the authenticated session
+      // The backend gets userId from req.user.id (set by authenticate middleware)
       
-      const response = await fetch(`/api/conversations/${conversationId}?${params.toString()}`, {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
         credentials: 'include',
         headers: getAuthHeaders(),
       });
