@@ -221,18 +221,17 @@ export default function CommunicationHub() {
   }, [authStatus, filters]);
 
   useEffect(() => {
+    // Auto-select first conversation only when conversations first load
+    // Don't re-trigger if already loading or if there's a selection
     if (
       !loading &&
       !conversationDetailsLoading &&
-      conversations.length > 0
+      conversations.length > 0 &&
+      !selectedConversation
     ) {
-      const currentId = selectedConversation?.id;
       const firstConversationId = conversations[0]?.id;
-
-      if (
-        !currentId ||
-        !conversations.some((conv) => conv.id === currentId)
-      ) {
+      if (firstConversationId) {
+        console.log('Auto-selecting first conversation:', firstConversationId);
         loadConversationDetails(firstConversationId, false);
       }
     }
@@ -240,8 +239,7 @@ export default function CommunicationHub() {
   }, [
     loading,
     conversationDetailsLoading,
-    conversations,
-    selectedConversation?.id,
+    conversations.length, // Only depend on length to avoid re-triggering when array reference changes
   ]);
 
   // Helper function to get auth headers
