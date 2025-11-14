@@ -17,42 +17,25 @@ function getPrisma() {
 
 /**
  * Channel Manager for External Travel Platform Integrations
- * Handles synchronization with MakeMyTrip, Yatra, and other OTAs
+ * Handles synchronization with Go-MMT, Booking.com, EaseMyTrip, and Cleartrip
  */
 class ChannelManager {
   constructor() {
     this.supportedChannels = {
-      MAKEMYTRIP: 'makemytrip',
-      YATRA: 'yatra',
-      GOIBIBO: 'goibibo',
+      MAKEMYTRIP: 'makemytrip', // Go-MMT / MakeMyTrip
       BOOKING_COM: 'booking_com',
-      AGODA: 'agoda'
+      EASEMYTRIP: 'easemytrip',
+      CLEARTRIP: 'cleartrip'
     };
     
     this.channelConfigs = {
       [this.supportedChannels.MAKEMYTRIP]: {
-        name: 'MakeMyTrip',
+        name: 'Go-MMT',
         apiBaseUrl: process.env.MAKEMYTRIP_API_URL || 'https://api.makemytrip.com',
         apiKey: process.env.MAKEMYTRIP_API_KEY,
         secretKey: process.env.MAKEMYTRIP_SECRET_KEY,
         hotelId: process.env.MAKEMYTRIP_HOTEL_ID,
         enabled: process.env.MAKEMYTRIP_ENABLED === 'true'
-      },
-      [this.supportedChannels.YATRA]: {
-        name: 'Yatra',
-        apiBaseUrl: process.env.YATRA_API_URL || 'https://api.yatra.com',
-        apiKey: process.env.YATRA_API_KEY,
-        secretKey: process.env.YATRA_SECRET_KEY,
-        hotelId: process.env.YATRA_HOTEL_ID,
-        enabled: process.env.YATRA_ENABLED === 'true'
-      },
-      [this.supportedChannels.GOIBIBO]: {
-        name: 'Goibibo',
-        apiBaseUrl: process.env.GOIBIBO_API_URL || 'https://api.goibibo.com',
-        apiKey: process.env.GOIBIBO_API_KEY,
-        secretKey: process.env.GOIBIBO_SECRET_KEY,
-        hotelId: process.env.GOIBIBO_HOTEL_ID,
-        enabled: process.env.GOIBIBO_ENABLED === 'true'
       },
       [this.supportedChannels.BOOKING_COM]: {
         name: 'Booking.com',
@@ -62,13 +45,21 @@ class ChannelManager {
         hotelId: process.env.BOOKING_HOTEL_ID,
         enabled: process.env.BOOKING_ENABLED === 'true'
       },
-      [this.supportedChannels.AGODA]: {
-        name: 'Agoda',
-        apiBaseUrl: process.env.AGODA_API_URL || 'https://api.agoda.com',
-        apiKey: process.env.AGODA_API_KEY,
-        secretKey: process.env.AGODA_SECRET_KEY,
-        hotelId: process.env.AGODA_HOTEL_ID,
-        enabled: process.env.AGODA_ENABLED === 'true'
+      [this.supportedChannels.EASEMYTRIP]: {
+        name: 'EaseMyTrip.com',
+        apiBaseUrl: process.env.EASEMYTRIP_API_URL || 'https://api.easemytrip.com',
+        apiKey: process.env.EASEMYTRIP_API_KEY,
+        secretKey: process.env.EASEMYTRIP_SECRET_KEY,
+        hotelId: process.env.EASEMYTRIP_HOTEL_ID,
+        enabled: process.env.EASEMYTRIP_ENABLED === 'true'
+      },
+      [this.supportedChannels.CLEARTRIP]: {
+        name: 'Cleartrip.com',
+        apiBaseUrl: process.env.CLEARTRIP_API_URL || 'https://api.cleartrip.com',
+        apiKey: process.env.CLEARTRIP_API_KEY,
+        secretKey: process.env.CLEARTRIP_SECRET_KEY,
+        hotelId: process.env.CLEARTRIP_HOTEL_ID,
+        enabled: process.env.CLEARTRIP_ENABLED === 'true'
       }
     };
   }
@@ -165,20 +156,16 @@ class ChannelManager {
           result = await this.pushMakeMyTripAvailability(config, startDate, endDate, rooms);
           break;
         
-        case this.supportedChannels.YATRA:
-          result = await this.pushYatraAvailability(config, startDate, endDate, rooms);
-          break;
-        
-        case this.supportedChannels.GOIBIBO:
-          result = await this.pushGoibiboAvailability(config, startDate, endDate, rooms);
-          break;
-        
         case this.supportedChannels.BOOKING_COM:
           result = await this.pushBookingAvailability(config, startDate, endDate, rooms);
           break;
         
-        case this.supportedChannels.AGODA:
-          result = await this.pushAgodaAvailability(config, startDate, endDate, rooms);
+        case this.supportedChannels.EASEMYTRIP:
+          result = await this.pushEaseMyTripAvailability(config, startDate, endDate, rooms);
+          break;
+        
+        case this.supportedChannels.CLEARTRIP:
+          result = await this.pushCleartripAvailability(config, startDate, endDate, rooms);
           break;
         
         default:
@@ -230,20 +217,16 @@ class ChannelManager {
           result = await this.fetchMakeMyTripBookings(config, startDate, endDate);
           break;
         
-        case this.supportedChannels.YATRA:
-          result = await this.fetchYatraBookings(config, startDate, endDate);
-          break;
-        
-        case this.supportedChannels.GOIBIBO:
-          result = await this.fetchGoibiboBookings(config, startDate, endDate);
-          break;
-        
         case this.supportedChannels.BOOKING_COM:
           result = await this.fetchBookingComBookings(config, startDate, endDate);
           break;
         
-        case this.supportedChannels.AGODA:
-          result = await this.fetchAgodaBookings(config, startDate, endDate);
+        case this.supportedChannels.EASEMYTRIP:
+          result = await this.fetchEaseMyTripBookings(config, startDate, endDate);
+          break;
+        
+        case this.supportedChannels.CLEARTRIP:
+          result = await this.fetchCleartripBookings(config, startDate, endDate);
           break;
         
         default:
@@ -308,20 +291,16 @@ class ChannelManager {
           result = await this.pushMakeMyTripBooking(config, bookingData);
           break;
         
-        case this.supportedChannels.YATRA:
-          result = await this.pushYatraBooking(config, bookingData);
-          break;
-        
-        case this.supportedChannels.GOIBIBO:
-          result = await this.pushGoibiboBooking(config, bookingData);
-          break;
-        
         case this.supportedChannels.BOOKING_COM:
           result = await this.pushBookingComBooking(config, bookingData);
           break;
         
-        case this.supportedChannels.AGODA:
-          result = await this.pushAgodaBooking(config, bookingData);
+        case this.supportedChannels.EASEMYTRIP:
+          result = await this.pushEaseMyTripBooking(config, bookingData);
+          break;
+        
+        case this.supportedChannels.CLEARTRIP:
+          result = await this.pushCleartripBooking(config, bookingData);
           break;
         
         default:
@@ -670,86 +649,86 @@ class ChannelManager {
     return this.pushMakeMyTripAvailability(config, startDate, endDate, rooms);
   }
 
-  // ===== Yatra Integration Methods =====
+  // ===== EaseMyTrip Integration Methods =====
   
-  async pushYatraAvailability(config, startDate, endDate, rooms) {
+  async pushEaseMyTripAvailability(config, startDate, endDate, rooms) {
     const payloadRooms = this.buildAvailabilityPayload(rooms);
-    console.log(`🔄 [Yatra] Pushing availability for ${payloadRooms.length} mapped room types`);
+    console.log(`🔄 [EaseMyTrip] Pushing availability for ${payloadRooms.length} mapped room types`);
 
     return {
       success: true,
-      channel: 'Yatra',
+      channel: 'EaseMyTrip',
       syncedRooms: payloadRooms.length,
       message: 'Availability pushed successfully (placeholder)',
       payload: payloadRooms,
     };
   }
 
-  async pushYatraBooking(config, bookingData) {
-    console.log(`📤 [Yatra] Pushing booking for ${bookingData.guestName}`);
+  async pushEaseMyTripBooking(config, bookingData) {
+    console.log(`📤 [EaseMyTrip] Pushing booking for ${bookingData.guestName}`);
     
     return {
       success: true,
-      channel: 'Yatra',
-      externalBookingId: `YATRA_${Date.now()}`,
+      channel: 'EaseMyTrip',
+      externalBookingId: `EASEMYTRIP_${Date.now()}`,
       message: 'Booking pushed successfully (placeholder)'
     };
   }
 
-  async fetchYatraBookings(config, startDate, endDate) {
-    console.log(`📥 [Yatra] Fetching bookings from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+  async fetchEaseMyTripBookings(config, startDate, endDate) {
+    console.log(`📥 [EaseMyTrip] Fetching bookings from ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
     return {
       success: true,
-      channel: 'Yatra',
+      channel: 'EaseMyTrip',
       bookings: [],
       message: 'No external bookings found (placeholder)'
     };
   }
 
-  async syncYatraAvailability(config, startDate, endDate, rooms) {
-    return this.pushYatraAvailability(config, startDate, endDate, rooms);
+  async syncEaseMyTripAvailability(config, startDate, endDate, rooms) {
+    return this.pushEaseMyTripAvailability(config, startDate, endDate, rooms);
   }
 
-  // ===== Goibibo Integration Methods =====
+  // ===== Cleartrip Integration Methods =====
   
-  async pushGoibiboAvailability(config, startDate, endDate, rooms) {
+  async pushCleartripAvailability(config, startDate, endDate, rooms) {
     const payloadRooms = this.buildAvailabilityPayload(rooms);
-    console.log(`🔄 [Goibibo] Pushing availability for ${payloadRooms.length} mapped room types`);
+    console.log(`🔄 [Cleartrip] Pushing availability for ${payloadRooms.length} mapped room types`);
 
     return {
       success: true,
-      channel: 'Goibibo',
+      channel: 'Cleartrip',
       syncedRooms: payloadRooms.length,
       message: 'Availability pushed successfully (placeholder)',
       payload: payloadRooms,
     };
   }
 
-  async pushGoibiboBooking(config, bookingData) {
-    console.log(`📤 [Goibibo] Pushing booking for ${bookingData.guestName}`);
+  async pushCleartripBooking(config, bookingData) {
+    console.log(`📤 [Cleartrip] Pushing booking for ${bookingData.guestName}`);
     
     return {
       success: true,
-      channel: 'Goibibo',
-      externalBookingId: `GOIBIBO_${Date.now()}`,
+      channel: 'Cleartrip',
+      externalBookingId: `CLEARTRIP_${Date.now()}`,
       message: 'Booking pushed successfully (placeholder)'
     };
   }
 
-  async fetchGoibiboBookings(config, startDate, endDate) {
-    console.log(`📥 [Goibibo] Fetching bookings from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+  async fetchCleartripBookings(config, startDate, endDate) {
+    console.log(`📥 [Cleartrip] Fetching bookings from ${startDate.toISOString()} to ${endDate.toISOString()}`);
     
     return {
       success: true,
-      channel: 'Goibibo',
+      channel: 'Cleartrip',
       bookings: [],
       message: 'No external bookings found (placeholder)'
     };
   }
 
-  async syncGoibiboAvailability(config, startDate, endDate, rooms) {
-    return this.pushGoibiboAvailability(config, startDate, endDate, rooms);
+  async syncCleartripAvailability(config, startDate, endDate, rooms) {
+    return this.pushCleartripAvailability(config, startDate, endDate, rooms);
   }
 
   // ===== Booking.com Integration Methods =====
@@ -793,46 +772,6 @@ class ChannelManager {
     return this.pushBookingAvailability(config, startDate, endDate, rooms);
   }
 
-  // ===== Agoda Integration Methods =====
-  
-  async pushAgodaAvailability(config, startDate, endDate, rooms) {
-    const payloadRooms = this.buildAvailabilityPayload(rooms);
-    console.log(`🔄 [Agoda] Pushing availability for ${payloadRooms.length} mapped room types`);
-
-    return {
-      success: true,
-      channel: 'Agoda',
-      syncedRooms: payloadRooms.length,
-      message: 'Availability pushed successfully (placeholder)',
-      payload: payloadRooms,
-    };
-  }
-
-  async pushAgodaBooking(config, bookingData) {
-    console.log(`📤 [Agoda] Pushing booking for ${bookingData.guestName}`);
-    
-    return {
-      success: true,
-      channel: 'Agoda',
-      externalBookingId: `AGODA_${Date.now()}`,
-      message: 'Booking pushed successfully (placeholder)'
-    };
-  }
-
-  async fetchAgodaBookings(config, startDate, endDate) {
-    console.log(`📥 [Agoda] Fetching bookings from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-    
-    return {
-      success: true,
-      channel: 'Agoda',
-      bookings: [],
-      message: 'No external bookings found (placeholder)'
-    };
-  }
-
-  async syncAgodaAvailability(config, startDate, endDate, rooms) {
-    return this.pushAgodaAvailability(config, startDate, endDate, rooms);
-  }
 
   /**
    * Get channel status and health check
