@@ -801,7 +801,7 @@ async function seedMasterComplete(options = {}) {
     
     // Step 2: Get properties
     console.log('📋 Fetching properties...');
-    const properties = await prisma.property.findMany({ where: { isActive: true } });
+    const properties = await prisma.property.findMany({ where: { status: 'ACTIVE' } });
     if (properties.length === 0) {
       throw new Error('No properties found. Please seed properties first.');
     }

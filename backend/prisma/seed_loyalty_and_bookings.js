@@ -675,8 +675,8 @@ async function seedLoyaltyAndBookings(options = {}) {
     
     // Step 2: Get properties and room types
     console.log('📋 Fetching properties and room types...');
-    const properties = await prisma.property.findMany({ where: { isActive: true } });
-    const roomTypes = await prisma.roomType.findMany({ where: { isActive: true } });
+    const properties = await prisma.property.findMany({ where: { status: 'ACTIVE' } });
+    const roomTypes = await prisma.roomType.findMany({ where: { status: 'ACTIVE' } });
     
     if (properties.length === 0 || roomTypes.length === 0) {
       throw new Error('No properties or room types found. Please seed properties first.');
