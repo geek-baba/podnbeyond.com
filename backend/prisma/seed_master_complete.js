@@ -198,42 +198,17 @@ async function createStaffUsers(properties) {
         });
       }
       
-      // Assign STAFF_FRONTDESK role
-      // Note: scopeId is set to null for property-scoped roles due to FK constraint
-      // The property ID is stored in the unique constraint via scopeId, but FK only references Organization
-      await prisma.userRole.upsert({
-        where: {
-          userId_roleKey_scopeType_scopeId: {
-            userId: user.id,
-            roleKey: 'STAFF_FRONTDESK',
-            scopeType: 'PROPERTY',
-            scopeId: property.id
-          }
-        },
-        update: {},
-        create: {
-          userId: user.id,
-          roleKey: 'STAFF_FRONTDESK',
-          scopeType: 'PROPERTY',
-          scopeId: property.id // Store property ID, FK constraint will be bypassed if property ID doesn't exist in org table
-        }
-      }).catch(async (err) => {
-        // If FK constraint fails, try direct raw SQL insert (FK should be disabled at this point)
-        if (err.code === 'P2003') {
-          try {
-            await prisma.$executeRawUnsafe(`
-              INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
-              VALUES ('${user.id}', 'STAFF_FRONTDESK', 'PROPERTY', ${property.id}, NOW(), NOW())
-              ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
-            `);
-          } catch (rawErr) {
-            console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
-            return; // Skip this user role creation
-          }
-        } else {
-          throw err;
-        }
-      });
+      // Assign STAFF_FRONTDESK role using raw SQL to bypass FK constraint
+      try {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
+          VALUES ('${user.id}', 'STAFF_FRONTDESK', 'PROPERTY', ${property.id}, NOW(), NOW())
+          ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
+        `);
+      } catch (rawErr) {
+        console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
+        return; // Skip this user role creation
+      }
       
       staffUsers.push({ user, role: 'STAFF_FRONTDESK', property });
       console.log(`    ✅ ${name} - STAFF_FRONTDESK`);
@@ -259,38 +234,17 @@ async function createStaffUsers(properties) {
         });
       }
       
-      await prisma.userRole.upsert({
-        where: {
-          userId_roleKey_scopeType_scopeId: {
-            userId: user.id,
-            roleKey: 'STAFF_OPS',
-            scopeType: 'PROPERTY',
-            scopeId: property.id
-          }
-        },
-        update: {},
-        create: {
-          userId: user.id,
-          roleKey: 'STAFF_OPS',
-          scopeType: 'PROPERTY',
-          scopeId: property.id
-        }
-      }).catch(async (err) => {
-        if (err.code === 'P2003') {
-          try {
-            await prisma.$executeRawUnsafe(`
-              INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
-              VALUES ('${user.id}', 'STAFF_OPS', 'PROPERTY', ${property.id}, NOW(), NOW())
-              ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
-            `);
-          } catch (rawErr) {
-            console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
-            return;
-          }
-        } else {
-          throw err;
-        }
-      });
+      // Assign STAFF_OPS role using raw SQL to bypass FK constraint
+      try {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
+          VALUES ('${user.id}', 'STAFF_OPS', 'PROPERTY', ${property.id}, NOW(), NOW())
+          ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
+        `);
+      } catch (rawErr) {
+        console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
+        return;
+      }
       
       staffUsers.push({ user, role: 'STAFF_OPS', property });
       console.log(`    ✅ ${name} - STAFF_OPS`);
@@ -314,38 +268,17 @@ async function createStaffUsers(properties) {
       });
     }
     
-    await prisma.userRole.upsert({
-      where: {
-        userId_roleKey_scopeType_scopeId: {
-          userId: user.id,
-          roleKey: 'MANAGER',
-          scopeType: 'PROPERTY',
-          scopeId: property.id
-        }
-      },
-      update: {},
-      create: {
-        userId: user.id,
-        roleKey: 'MANAGER',
-        scopeType: 'PROPERTY',
-        scopeId: property.id
-      }
-    }).catch(async (err) => {
-      if (err.code === 'P2003') {
-        try {
-          await prisma.$executeRawUnsafe(`
-            INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
-            VALUES ('${user.id}', 'MANAGER', 'PROPERTY', ${property.id}, NOW(), NOW())
-            ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
-          `);
-        } catch (rawErr) {
-          console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
-          return;
-        }
-      } else {
-        throw err;
-      }
-    });
+    // Assign MANAGER role using raw SQL to bypass FK constraint
+    try {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
+        VALUES ('${user.id}', 'MANAGER', 'PROPERTY', ${property.id}, NOW(), NOW())
+        ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
+      `);
+    } catch (rawErr) {
+      console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
+      return;
+    }
     
     staffUsers.push({ user, role: 'MANAGER', property });
     console.log(`    ✅ ${name} - MANAGER`);
