@@ -304,9 +304,6 @@ async function calculatePoints(params) {
   const otaSources = [
     'OTA_BOOKING_COM',
     'OTA_MMT',
-    'OTA_GOIBIBO',
-    'OTA_YATRA',
-    'OTA_AGODA',
     'OTA_EASEMYTRIP',
     'OTA_CLEARTRIP',
   ];
