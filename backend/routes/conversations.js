@@ -268,12 +268,9 @@ router.get('/', async (req, res) => {
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
-          // Only include new relations if they exist
-          ...(where.assignedTo !== undefined && {
-            assignedUser: {
-              select: { id: true, name: true, email: true },
-            },
-          }),
+          assignedUser: {
+            select: { id: true, name: true, email: true },
+          },
         },
         orderBy: { lastMessageAt: 'desc' },
         take: parseInt(limit),
@@ -297,6 +294,9 @@ router.get('/', async (req, res) => {
           emails: {
             orderBy: { createdAt: 'desc' },
             take: 1,
+          },
+          assignedUser: {
+            select: { id: true, name: true, email: true },
           },
         },
         orderBy: { lastMessageAt: 'desc' },
