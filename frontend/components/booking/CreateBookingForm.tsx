@@ -304,7 +304,9 @@ export default function CreateBookingForm({ onSuccess, onCancel }: CreateBooking
           window.location.href = `/admin/bookings/${response.data.id}`;
         }
       } else {
-        setError(response.error || 'Failed to create booking');
+        // If response doesn't have success, try to extract error message
+        const errorMessage = (response as any).error || (response as any).message || 'Failed to create booking';
+        setError(errorMessage);
       }
     } catch (err: any) {
       console.error('Error creating booking:', err);
