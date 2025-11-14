@@ -300,22 +300,35 @@ export default function CommunicationHub() {
 
   const loadStaffUsers = async () => {
     try {
+      console.log('Loading staff users...');
       const response = await fetch('/api/users', {
         credentials: 'include',
         headers: getAuthHeaders(),
       });
+      
+      if (!response.ok) {
+        console.error('Failed to fetch staff users:', response.status, response.statusText);
+        return;
+      }
+      
       const data = await response.json();
+      console.log('Staff users API response:', data);
+      
       if (data.success && data.users) {
         // Filter to only STAFF_FRONTDESK, STAFF_OPS, and MANAGER roles
         const staff = data.users.filter((u: any) => 
           ['STAFF_FRONTDESK', 'STAFF_OPS', 'MANAGER'].includes(u.roleKey)
         );
+        console.log('Filtered staff users:', staff);
         setStaffUsers(staff.map((u: any) => ({
           id: u.id,
           name: u.name || u.email,
           email: u.email,
           role: u.roleKey || 'STAFF'
         })));
+        console.log('Set staff users state:', staff.length, 'users');
+      } else {
+        console.warn('No staff users found or API returned error:', data);
       }
     } catch (error) {
       console.error('Failed to load staff users:', error);
