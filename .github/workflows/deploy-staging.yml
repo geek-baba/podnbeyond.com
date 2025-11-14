@@ -197,12 +197,21 @@ jobs:
                     done
                     echo "✓ Recovery attempt complete. Will retry migration with idempotent SQL..."
                   else
-                    # Fallback: try to resolve known migrations
+                    # Fallback: try to resolve known migrations that might have failed
                     echo "Could not identify failed migrations, trying known migrations..."
                     npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1" 2>&1 || true
                     npx prisma migrate resolve --rolled-back "20251113070000_communication_hub_enhancements" 2>&1 || true
+                    npx prisma migrate resolve --rolled-back "20250115000000_loyalty_program_phase1" 2>&1 || true
                     echo "✓ Recovery attempt complete. Will retry migration..."
                   fi
+                fi
+                
+                # Also check for P3009 error specifically (failed migrations blocking new ones)
+                if echo "$MIGRATION_STATUS" | grep -qi "P3009\|failed migrations in the target database"; then
+                  echo "⚠️  Detected P3009 error - failed migrations blocking new ones"
+                  echo "Attempting to resolve known loyalty program migration..."
+                  npx prisma migrate resolve --rolled-back "20250115000000_loyalty_program_phase1" 2>&1 || true
+                  echo "✓ Attempted to resolve failed migration"
                 fi
                 
                 echo "Running Prisma migrations..."
