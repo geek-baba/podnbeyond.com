@@ -1273,13 +1273,21 @@ export default function CommunicationHub() {
                           <option value="HIGH">High</option>
                           <option value="URGENT">Urgent</option>
                         </select>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => assignConversation(selectedConversation.id, selectedConversation.assignedTo ? null : (session?.user?.id || null))}
+                        <select
+                          value={selectedConversation.assignedTo || ''}
+                          onChange={(e) => assignConversation(selectedConversation.id, e.target.value || null)}
+                          className="px-3 py-1.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                         >
-                          {selectedConversation.assignedTo ? 'Unassign' : 'Assign to Me'}
-                        </Button>
+                          <option value="">Unassigned</option>
+                          {session?.user?.id && (
+                            <option value={session.user.id}>Assign to Me ({session.user.name || session.user.email})</option>
+                          )}
+                          {staffUsers.map((staff) => (
+                            <option key={staff.id} value={staff.id}>
+                              {staff.name} ({staff.role.replace(/_/g, ' ')})
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </Card>
 
