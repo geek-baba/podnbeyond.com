@@ -439,7 +439,7 @@ async function updateLoyaltyMetrics(loyaltyAccount, bookings) {
 // ============================================================================
 
 async function seedLoyaltyAndBookings(options = {}) {
-  const { deleteExistingBookings = false } = options;
+  const { deleteExistingBookings = false, skipCleanup = false } = options;
   
   console.log('🚀 Starting Loyalty Program & Bookings Seed...\n');
   if (deleteExistingBookings) {
@@ -447,8 +447,10 @@ async function seedLoyaltyAndBookings(options = {}) {
   }
   
   try {
-    // Step 1: Cleanup
-    await cleanupLoyaltyData(deleteExistingBookings);
+    // Step 1: Cleanup (skip if called from master seed)
+    if (!skipCleanup) {
+      await cleanupLoyaltyData(deleteExistingBookings);
+    }
     
     // Step 2: Get properties and room types
     console.log('📋 Fetching properties and room types...');
@@ -462,7 +464,7 @@ async function seedLoyaltyAndBookings(options = {}) {
     console.log(`  ✅ Found ${properties.length} properties and ${roomTypes.length} room types\n`);
     
     // Step 3: Create users with loyalty accounts
-    const totalUsers = 120; // Adjust as needed
+    const totalUsers = options.totalUsers || 120; // Adjust as needed
     const users = await createUsersWithLoyaltyAccounts(totalUsers);
     
     // Step 4: Generate bookings for each user
@@ -563,12 +565,14 @@ async function seedLoyaltyAndBookings(options = {}) {
       _sum: { lifetimeSpend: true }
     });
     
-    console.log(`\n  Total Points: ${totalPoints._sum.points?.toLocaleString() || 0}`);
-    console.log(`  Total Lifetime Spend: ₹${totalSpend._sum.lifetimeSpend?.toLocaleString() || 0}`);
-    console.log(`  Total Bookings: ${totalBookings}`);
+    if (!skipCleanup) {
+      console.log(`\n  Total Points: ${totalPoints._sum.points?.toLocaleString() || 0}`);
+      console.log(`  Total Lifetime Spend: ₹${totalSpend._sum.lifetimeSpend?.toLocaleString() || 0}`);
+      console.log(`  Total Bookings: ${totalBookings}`);
+      console.log('\n🎉 Loyalty Program & Bookings seed completed successfully!\n');
+    }
     
-    console.log('\n🎉 Loyalty Program & Bookings seed completed successfully!\n');
-    
+    return { totalBookings };
   } catch (error) {
     console.error('❌ Error seeding loyalty and bookings:', error);
     throw error;
