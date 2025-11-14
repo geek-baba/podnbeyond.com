@@ -120,12 +120,18 @@ jobs:
               echo ""
               echo "⚠️  Migration failed, attempting recovery..."
               
-              # Check if it's a P3009 error (failed migrations blocking new ones)
-              if echo "$DEPLOY_OUTPUT" | grep -qi "P3009\|failed migrations in the target database"; then
-                echo "Detected P3009 error - failed migrations blocking new ones"
+              # Check if it's a P3009 or P3018 error (failed migrations blocking new ones)
+              if echo "$DEPLOY_OUTPUT" | grep -qi "P3009\|P3018\|failed migrations in the target database\|A migration failed to apply"; then
+                if echo "$DEPLOY_OUTPUT" | grep -qi "P3009\|failed migrations in the target database"; then
+                  echo "Detected P3009 error - failed migrations blocking new ones"
+                elif echo "$DEPLOY_OUTPUT" | grep -qi "P3018\|A migration failed to apply"; then
+                  echo "Detected P3018 error - migration failed to apply due to database error"
+                fi
                 
                 # Extract failed migration name from error message
-                FAILED_MIGRATION=$(echo "$DEPLOY_OUTPUT" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1 || echo "")
+                # P3009 format: "The `20250115000003_remove_unused_ota_sources` migration started at..."
+                # P3018 format: "Migration name: 20250115000003_remove_unused_ota_sources"
+                FAILED_MIGRATION=$(echo "$DEPLOY_OUTPUT" | grep -i "Migration name:" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1 || echo "$DEPLOY_OUTPUT" | grep -oE "[0-9]{14}_[a-zA-Z0-9_]+" | head -1 || echo "")
                 
                 if [ -n "$FAILED_MIGRATION" ]; then
                   echo "Attempting to resolve failed migration: $FAILED_MIGRATION"
