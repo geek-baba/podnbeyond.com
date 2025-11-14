@@ -485,6 +485,9 @@ router.get('/:id', async (req, res) => {
                   events: true,
                 },
               },
+              assignedUser: {
+                select: { id: true, name: true, email: true },
+              },
             },
           });
           
@@ -496,7 +499,7 @@ router.get('/:id', async (req, res) => {
             thread.status = thread.status || 'NEW';
             thread.priority = thread.priority || 'NORMAL';
             thread.assignedTo = thread.assignedTo || null;
-            thread.assignedUser = null;
+            // Keep assignedUser from query, don't set to null
             thread.unreadCount = thread.unreadCount || 0;
           }
         } catch (fallbackError) {
