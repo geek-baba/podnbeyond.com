@@ -313,21 +313,24 @@ async function createUsersWithLoyaltyAccounts(totalUsers) {
         });
       }
       
-      // Create loyalty account
-      const memberNumberStr = String(memberNumber).padStart(6, '0');
-      const loyaltyAccount = await prisma.loyaltyAccount.create({
-        data: {
-          memberNumber: memberNumberStr,
-          userId: user.id,
-          tier: 'MEMBER', // Will be updated after bookings are created
-          points: 0,
-          lifetimeStays: 0,
-          lifetimeNights: 0,
-          lifetimeSpend: 0,
-          qualificationYearStart: new Date(new Date().getFullYear(), 0, 1),
-          qualificationYearEnd: new Date(new Date().getFullYear(), 11, 31),
-        }
-      });
+      // Create or get loyalty account (handle case where it already exists)
+      let loyaltyAccount = await prisma.loyaltyAccount.findUnique({ where: { userId: user.id } });
+      if (!loyaltyAccount) {
+        const memberNumberStr = String(memberNumber).padStart(6, '0');
+        loyaltyAccount = await prisma.loyaltyAccount.create({
+          data: {
+            memberNumber: memberNumberStr,
+            userId: user.id,
+            tier: 'MEMBER', // Will be updated after bookings are created
+            points: 0,
+            lifetimeStays: 0,
+            lifetimeNights: 0,
+            lifetimeSpend: 0,
+            qualificationYearStart: new Date(new Date().getFullYear(), 0, 1),
+            qualificationYearEnd: new Date(new Date().getFullYear(), 11, 31),
+          }
+        });
+      }
       
       users.push({
         user,
