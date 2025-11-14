@@ -395,6 +395,7 @@ export default function CommunicationHub() {
       }
 
       console.log('Conversation loaded successfully:', data.conversation?.id);
+      console.log('Assigned user data:', data.conversation?.assignedUser);
       
       // Ensure all arrays are initialized to prevent undefined errors
       const conversation = {
@@ -402,8 +403,10 @@ export default function CommunicationHub() {
         participants: Array.isArray(data.conversation.participants) ? data.conversation.participants : [],
         messages: Array.isArray(data.conversation.messages) ? data.conversation.messages : [],
         notes: Array.isArray(data.conversation.notes) ? data.conversation.notes : [],
+        assignedUser: data.conversation?.assignedUser || null, // Explicitly preserve assignedUser
       };
       
+      console.log('Setting conversation with assignedUser:', conversation.assignedUser);
       setSelectedConversation(conversation);
       // Mark as auto-selected if this was the first auto-selection
       if (!hasAutoSelected) {
