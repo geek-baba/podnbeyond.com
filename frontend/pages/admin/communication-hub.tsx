@@ -1029,6 +1029,16 @@ export default function CommunicationHub() {
                       <option value="">All</option>
                       <option value="me">Assigned to Me</option>
                       <option value="unassigned">Unassigned</option>
+                      {staffUsers.length > 0 && (
+                        <>
+                          <option disabled>──────────</option>
+                          {staffUsers.map((staff) => (
+                            <option key={staff.id} value={staff.id}>
+                              {staff.name} ({staff.role.replace(/_/g, ' ')})
+                            </option>
+                          ))}
+                        </>
+                      )}
                     </select>
                   </div>
                   <div>
