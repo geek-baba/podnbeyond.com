@@ -163,16 +163,9 @@ export default function BookingsPage() {
             </div>
 
             {/* Right: Title */}
-            <div className="text-right flex items-center gap-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-1">Bookings</h1>
-                <p className="text-neutral-300 text-sm">Manage all bookings</p>
-              </div>
-              <a href="/admin/bookings/new">
-                <button className="px-6 py-2 bg-white text-neutral-900 rounded-button font-semibold hover:bg-neutral-100 transition-all">
-                  ➕ Create Booking
-                </button>
-              </a>
+            <div className="text-right">
+              <h1 className="text-3xl font-bold mb-1">Bookings</h1>
+              <p className="text-neutral-300 text-sm">Manage all bookings</p>
             </div>
           </div>
 
