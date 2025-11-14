@@ -306,7 +306,7 @@ async function createUsersWithLoyaltyAccounts(totalUsers) {
           email,
           name,
           phone,
-          emailVerified: true,
+          emailVerified: new Date(),
         }
       });
       
