@@ -705,18 +705,20 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
       }
     } else {
       // Phone calls
+      const callDuration = randomInt(60, 600); // 1-10 minutes
       await prisma.callLog.create({
         data: {
           threadId: thread.id,
           contactId: contact.id,
           direction: 'INBOUND',
           status: 'COMPLETED',
-          phone: normalizedPhone || '0000000000',
-          duration: randomInt(60, 600), // 1-10 minutes
+          fromNumber: normalizedPhone || '0000000000',
+          toNumber: property.phone || '+911234567890',
+          duration: callDuration,
           provider: 'EXOTEL',
           providerCallId: `call-inbound-${thread.id}-${Date.now()}`,
           startedAt: threadCreatedAt,
-          endedAt: new Date(threadCreatedAt.getTime() + randomInt(60, 600) * 1000),
+          endedAt: new Date(threadCreatedAt.getTime() + callDuration * 1000),
           metadata: { bookingId: booking.id, propertyId: property.id },
         }
       });
