@@ -53,9 +53,11 @@ enum StayStatus {
 }
 
 enum LoyaltyTier {
+  MEMBER
   SILVER
   GOLD
   PLATINUM
+  DIAMOND
 }
 
 enum RoomStatus {
@@ -153,6 +155,7 @@ model User {
   sentInvites       Invite[]           @relation("InvitedBy")
   auditLogs         AuditLog[]
   pointsLedger      PointsLedger[]
+  pointsLedgerCreatedBy PointsLedger[] @relation("PointsLedgerCreatedBy")
   emailThreads      Thread[]           @relation("ThreadOwner") // Email conversations owned by user
   assignedThreads   Thread[]           @relation("AssignedThreads") // Threads assigned to user
   conversationNotes ConversationNote[] // Notes authored by user
@@ -314,7 +317,9 @@ model AuditLog {
 model PointsLedger {
   id               Int    @id @default(autoincrement())
   loyaltyAccountId Int
+  loyaltyAccount   LoyaltyAccount? @relation(fields: [loyaltyAccountId], references: [id])
   userId           String
+  user             User   @relation(fields: [userId], references: [id])
 
   points    Int // Positive for earn, negative for burn
   reason    String // e.g., "Booking #123", "Redeemed for discount", "Manual adjustment"
@@ -324,13 +329,25 @@ model PointsLedger {
   balanceAfter  Int
 
   createdBy     String? // userId of admin who made manual adjustment
-  createdByUser User?   @relation(fields: [createdBy], references: [id])
+  createdByUser User?   @relation("PointsLedgerCreatedBy", fields: [createdBy], references: [id])
+
+  // New fields for Phase 1
+  ruleId     Int?
+  rule       PointsRule? @relation(fields: [ruleId], references: [id])
+  campaignId Int?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  referralId Int?
+  referral   Referral? @relation(fields: [referralId], references: [id])
+  metadata   Json? // Additional context (multipliers, bonuses, etc.)
 
   createdAt DateTime @default(now())
 
   @@index([loyaltyAccountId])
   @@index([userId])
   @@index([bookingId])
+  @@index([ruleId])
+  @@index([campaignId])
+  @@index([referralId])
   @@index([createdAt])
   @@map("points_ledger")
 }
@@ -573,6 +590,10 @@ model Booking {
   inventoryLocks InventoryLock[]
   holdLogs       HoldLog[]
 
+  // Loyalty program relationships
+  perkRedemptions        PerkRedemption[]
+  redemptionTransactions RedemptionTransaction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -764,18 +785,413 @@ model LoyaltyAccount {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   points        Int         @default(0)
   lifetimeStays Int         @default(0) // Track total stays for tier qualification
-  tier          LoyaltyTier @default(SILVER) // Auto-calculated based on points/stays
+  tier          LoyaltyTier @default(MEMBER) // Auto-calculated based on points/stays
   lastUpdated   DateTime    @default(now())
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  // New fields for Phase 1
+  lifetimeNights        Int      @default(0) // Track total nights
+  lifetimeSpend         Float    @default(0) // Track total spend (₹)
+  qualificationYearStart DateTime? // Start of qualification year
+  qualificationYearEnd   DateTime? // End of qualification year
 
   // Relationship to Bookings
   bookings      Booking[]
   bookingGuests BookingGuest[] // Guests linked to loyalty account
 
+  // New relationships for Phase 1
+  perkRedemptions        PerkRedemption[]
+  redemptionTransactions RedemptionTransaction[]
+  tierHistory            TierHistory[]
+  referrals              Referral[] @relation("Referrer")
+  referredBy             Referral?  @relation("Referred")
+  tierTransfersGiven     TierTransfer[] @relation("FromAccount")
+  tierTransfersReceived  TierTransfer[] @relation("ToAccount")
+  pointsLedgerEntries    PointsLedger[]
+
   @@index([userId])
   @@index([memberNumber])
+  @@index([tier])
   @@map("loyalty_accounts")
+}
+
+// ============================================================================
+// LOYALTY PROGRAM MODELS (Phase 1 - World-Class Loyalty Platform)
+// ============================================================================
+
+// TierConfig - Define tier requirements and benefits
+model TierConfig {
+  id          Int         @id @default(autoincrement())
+  tier        LoyaltyTier @unique
+  name        String
+  description String?
+
+  // Qualification requirements
+  minPoints      Int? // Points required (alternative to stays)
+  minStays       Int? // Stays required (alternative to points)
+  minNights      Int? // Nights required
+  minSpend       Float? // Total spend required (₹)
+  qualificationPeriod Int @default(12) // Months to qualify
+
+  // Earning rates
+  basePointsPer100Rupees Int @default(5) // Base earning rate
+
+  // Benefits (JSON structure for flexibility)
+  benefits Json? // Array of benefit objects
+
+  // Status
+  isActive Boolean @default(true)
+
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tier_configs")
+}
+
+// PointsRule - Configurable point calculation rules
+model PointsRule {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+
+  // Rule type
+  ruleType String // BASE, BONUS, CAMPAIGN, SEASONAL
+
+  // Conditions (JSON)
+  conditions Json // e.g., { "bookingSource": "WEB_DIRECT", "stayLength": { "min": 5 }, "isWeekend": true }
+
+  // Actions (JSON)
+  actions Json // e.g., { "multiplier": 1.2, "bonusPoints": 200, "type": "PERCENTAGE" }
+
+  // Scope
+  propertyIds Int[] @default([]) // Empty = all properties
+  tierIds     LoyaltyTier[] @default([]) // Empty = all tiers
+
+  // Priority (higher = evaluated first)
+  priority Int @default(0)
+
+  // Date range
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pointsLedgerEntries PointsLedger[]
+
+  @@index([ruleType, isActive])
+  @@index([startDate, endDate])
+  @@map("points_rules")
+}
+
+// Perk - Configurable perks (free breakfast, upgrades, etc.)
+model Perk {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique // e.g., "FREE_BREAKFAST", "LATE_CHECKOUT"
+  name        String
+  description String?
+
+  // Perk type
+  perkType String // BENEFIT, DISCOUNT, UPGRADE, VOUCHER, POINTS_BONUS
+
+  // Eligibility conditions (JSON)
+  conditions Json // e.g., { "minTier": "GOLD", "bookingSource": "WEB_DIRECT", "stayLength": { "min": 2 } }
+
+  // Perk value (JSON)
+  value Json // e.g., { "type": "PERCENTAGE", "amount": 10 } or { "type": "FIXED", "amount": 500 }
+
+  // Scope
+  propertyIds Int[] @default([]) // Empty = all properties
+  tierIds     LoyaltyTier[] @default([]) // Empty = all tiers
+
+  // Capacity limits
+  maxUsagePerMember Int? // Per member limit
+  maxUsagePerStay   Int? // Per stay limit
+  totalCapacity     Int? // Global capacity limit
+  currentUsage      Int  @default(0)
+
+  // Date range
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  perkRedemptions PerkRedemption[]
+
+  @@index([code, isActive])
+  @@index([startDate, endDate])
+  @@map("perks")
+}
+
+// PerkRedemption - Track perk usage
+model PerkRedemption {
+  id        Int      @id @default(autoincrement())
+  perkId    Int
+  perk      Perk     @relation(fields: [perkId], references: [id])
+
+  loyaltyAccountId Int
+  loyaltyAccount   LoyaltyAccount @relation(fields: [loyaltyAccountId], references: [id])
+
+  bookingId Int?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+
+  // Redemption details
+  redeemedAt DateTime @default(now())
+  status     String   @default("ACTIVE") // ACTIVE, USED, EXPIRED, CANCELLED
+
+  // Value applied
+  valueApplied Json? // Actual value applied at redemption time
+
+  // Metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([loyaltyAccountId])
+  @@index([bookingId])
+  @@index([perkId, status])
+  @@map("perk_redemptions")
+}
+
+// Campaign - Seasonal campaigns and promotions
+model Campaign {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+
+  // Campaign type
+  campaignType String // POINTS_MULTIPLIER, BONUS_POINTS, PERK_GIVEAWAY
+
+  // Campaign rules (JSON)
+  rules Json // e.g., { "multiplier": 2.0, "bonusPoints": 500, "conditions": {...} }
+
+  // Target audience
+  tierIds     LoyaltyTier[] @default([]) // Empty = all tiers
+  propertyIds Int[] @default([]) // Empty = all properties
+
+  // Date range
+  startDate DateTime
+  endDate   DateTime
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pointsLedgerEntries PointsLedger[]
+
+  @@index([campaignType, isActive])
+  @@index([startDate, endDate])
+  @@map("campaigns")
+}
+
+// RedemptionItem - Items that can be redeemed with points (with dynamic pricing support)
+model RedemptionItem {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique // e.g., "FREE_NIGHT_CAT1", "BREAKFAST_VOUCHER"
+  name        String
+  description String?
+
+  // Item type
+  itemType String // FREE_NIGHT, UPGRADE, VOUCHER, DISCOUNT, CASH
+
+  // Points cost (base cost, can be overridden by dynamic pricing)
+  basePointsRequired Int
+
+  // Dynamic pricing configuration (JSON)
+  // Supports room-type based, property-based, seasonal pricing
+  // Example: { "dynamic": true, "rules": [{ "roomTypeId": 1, "points": 5000 }, { "propertyId": 2, "multiplier": 1.2 }] }
+  dynamicPricing Json?
+
+  // Value (JSON)
+  value Json // e.g., { "type": "FREE_NIGHT", "category": 1 } or { "type": "DISCOUNT", "amount": 500 }
+
+  // Availability
+  propertyIds Int[] @default([]) // Empty = all properties
+  tierIds     LoyaltyTier[] @default([]) // Empty = all tiers
+  roomTypeIds Int[] @default([]) // For room-specific redemptions (upgrades, free nights)
+
+  // Inventory
+  totalQuantity    Int? // null = unlimited
+  availableQuantity Int? // null = unlimited
+  soldQuantity     Int  @default(0)
+
+  // Date range
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redemptions RedemptionTransaction[]
+
+  @@index([code, isActive])
+  @@index([itemType])
+  @@map("redemption_items")
+}
+
+// RedemptionTransaction - Track point redemptions
+model RedemptionTransaction {
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  item      RedemptionItem @relation(fields: [itemId], references: [id])
+
+  loyaltyAccountId Int
+  loyaltyAccount   LoyaltyAccount @relation(fields: [loyaltyAccountId], references: [id])
+
+  bookingId Int?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+
+  // Redemption details
+  pointsRedeemed Int
+  valueReceived  Json? // Value received from redemption
+
+  // Dynamic pricing applied
+  dynamicPricingApplied Json? // Actual pricing used (room type, property, etc.)
+
+  // Status
+  status String @default("PENDING") // PENDING, CONFIRMED, USED, EXPIRED, CANCELLED
+
+  // Dates
+  redeemedAt  DateTime @default(now())
+  expiresAt   DateTime?
+  usedAt      DateTime?
+
+  // Metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([loyaltyAccountId])
+  @@index([bookingId])
+  @@index([itemId, status])
+  @@map("redemption_transactions")
+}
+
+// TierHistory - Track tier changes over time
+model TierHistory {
+  id        Int      @id @default(autoincrement())
+  loyaltyAccountId Int
+  loyaltyAccount   LoyaltyAccount @relation(fields: [loyaltyAccountId], references: [id])
+
+  // Tier change
+  fromTier LoyaltyTier?
+  toTier   LoyaltyTier
+
+  // Qualification metrics at time of change
+  pointsAtChange      Int
+  staysAtChange       Int
+  nightsAtChange      Int
+  spendAtChange       Float
+
+  // Reason
+  reason String // AUTO_UPGRADE, MANUAL_ADJUSTMENT, RE_QUALIFICATION, DOWNGRADE
+
+  // Dates
+  changedAt DateTime @default(now())
+  validFrom DateTime @default(now())
+  validUntil DateTime? // null = current tier
+
+  createdAt DateTime @default(now())
+
+  @@index([loyaltyAccountId])
+  @@index([changedAt])
+  @@map("tier_history")
+}
+
+// Referral - Referral program tracking
+model Referral {
+  id        Int      @id @default(autoincrement())
+  referrerId Int // Loyalty account of person who referred
+  referrer   LoyaltyAccount @relation("Referrer", fields: [referrerId], references: [id])
+
+  referredId Int? @unique // Loyalty account of person who was referred (unique - one referral per account)
+  referred   LoyaltyAccount? @relation("Referred", fields: [referredId], references: [id])
+
+  // Referral details
+  referralCode String @unique // Unique referral code
+  referredEmail String? // Email of person being referred (before account creation)
+  referredName  String?
+
+  // Status
+  status String @default("PENDING") // PENDING, SIGNED_UP, COMPLETED, EXPIRED
+
+  // Rewards
+  referrerRewardPoints Int? // Points awarded to referrer
+  referredRewardPoints Int? // Points awarded to referred person
+
+  // Dates
+  referredAt   DateTime @default(now())
+  signedUpAt   DateTime?
+  completedAt  DateTime? // When first booking completed
+  expiresAt    DateTime? // Referral code expiration
+
+  // Metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pointsLedgerEntries PointsLedger[]
+
+  @@index([referrerId])
+  @@index([referredId])
+  @@index([referralCode])
+  @@index([status])
+  @@map("referrals")
+}
+
+// TierTransfer - Tier gifting/transfers with deduction/charge
+model TierTransfer {
+  id        Int      @id @default(autoincrement())
+  fromAccountId Int
+  fromAccount   LoyaltyAccount @relation("FromAccount", fields: [fromAccountId], references: [id])
+
+  toAccountId Int
+  toAccount   LoyaltyAccount @relation("ToAccount", fields: [toAccountId], references: [id])
+
+  // Transfer details
+  fromTier LoyaltyTier
+  toTier   LoyaltyTier
+
+  // Charges/deductions
+  pointsDeduction Int? // Points deducted from sender
+  transferFee     Float? // Cash fee charged (₹)
+  pointsCost      Int? // Points cost for transfer
+
+  // Status
+  status String @default("PENDING") // PENDING, COMPLETED, CANCELLED, REJECTED
+
+  // Dates
+  requestedAt DateTime @default(now())
+  completedAt DateTime?
+  expiresAt   DateTime?
+
+  // Metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([status])
+  @@map("tier_transfers")
 }
 
 // New OTASyncLog model

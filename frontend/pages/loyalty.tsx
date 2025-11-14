@@ -3,15 +3,87 @@ import Head from 'next/head';
 import axios from 'axios';
 
 // Types for loyalty data
+interface TierProgress {
+  currentTier: string;
+  nextTier: string | null;
+  progress: number;
+  pointsNeeded: number;
+  staysNeeded: number;
+  nightsNeeded: number;
+  spendNeeded: number;
+  isMaxTier: boolean;
+}
+
 interface LoyaltyAccount {
   id: number;
   userId: string;
   points: number;
-  tier: 'SILVER' | 'GOLD' | 'PLATINUM';
+  tier: 'MEMBER' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
   lastUpdated: string;
   createdAt: string;
   bookings: Booking[];
   redemptionHistory: RedemptionHistory[];
+  activePerks?: ActivePerk[];
+  activeCampaigns?: ActiveCampaign[];
+  recentRedemptions?: RedemptionTransaction[];
+  tierProgress?: TierProgress;
+  tierConfig?: {
+    name: string;
+    description: string;
+    basePointsPer100Rupees: number;
+    benefits: any;
+  };
+}
+
+interface RedemptionTransaction {
+  id: number;
+  pointsRedeemed: number;
+  status: string;
+  redeemedAt: string;
+  expiresAt?: string;
+  usedAt?: string;
+  item?: {
+    id: number;
+    code: string;
+    name: string;
+    description?: string;
+    itemType: string;
+  };
+  booking?: {
+    id: number;
+    confirmationNumber?: string;
+    checkIn?: string;
+    checkOut?: string;
+  };
+}
+
+interface ActiveCampaign {
+  id: number;
+  name: string;
+  description?: string;
+  campaignType: string;
+  rules: any;
+  startDate: string;
+  endDate: string;
+}
+
+interface ActivePerk {
+  id: number;
+  redeemedAt: string;
+  status: string;
+  perk?: {
+    id: number;
+    code: string;
+    name: string;
+    description?: string;
+    perkType: string;
+  };
+  booking?: {
+    id: number;
+    confirmationNumber?: string;
+    checkIn?: string;
+    checkOut?: string;
+  };
 }
 
 interface Booking {
@@ -60,10 +132,36 @@ const LoyaltyPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      // First, try to get loyalty account ID from user
+      // For now, we'll use a simplified approach - in production, you'd get this from session
       const response = await axios.get(`/api/loyalty/${userId}`);
       
       if (response.data.success) {
-        setLoyaltyData(response.data.account);
+        const account = response.data.account;
+        // If we have an account ID, fetch the full member profile with perks
+        if (account.id) {
+          try {
+            const profileResponse = await axios.get(`/api/loyalty/member/${account.id}`);
+            if (profileResponse.data.success) {
+              // Merge profile data with account data
+              setLoyaltyData({
+                ...account,
+                activePerks: profileResponse.data.data?.activePerks || [],
+                activeCampaigns: profileResponse.data.data?.activeCampaigns || [],
+                recentRedemptions: profileResponse.data.data?.recentRedemptions || [],
+                tierProgress: profileResponse.data.data?.tierProgress || null,
+                tierConfig: profileResponse.data.data?.tierConfig || null,
+              });
+            } else {
+              setLoyaltyData(account);
+            }
+          } catch (profileError) {
+            // Fallback to account data if profile fetch fails
+            setLoyaltyData(account);
+          }
+        } else {
+          setLoyaltyData(account);
+        }
       } else {
         setError('Failed to fetch loyalty data');
       }
@@ -83,6 +181,10 @@ const LoyaltyPage: React.FC = () => {
         return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white';
       case 'SILVER':
         return 'bg-gradient-to-r from-gray-300 to-gray-500 text-white';
+      case 'MEMBER':
+        return 'bg-gradient-to-r from-gray-200 to-gray-400 text-white';
+      case 'DIAMOND':
+        return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white';
       default:
         return 'bg-gray-200 text-gray-800';
     }
@@ -96,6 +198,10 @@ const LoyaltyPage: React.FC = () => {
         return '🥇';
       case 'SILVER':
         return '🥈';
+      case 'MEMBER':
+        return '⭐';
+      case 'DIAMOND':
+        return '💎';
       default:
         return '⭐';
     }
@@ -229,64 +335,282 @@ const LoyaltyPage: React.FC = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Current Tier and Points */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Current Tier Card */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Current Tier</h2>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTierColor(loyaltyData.tier)}`}>
-                  {getTierIcon(loyaltyData.tier)} {loyaltyData.tier}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {getTierBenefits(loyaltyData.tier).map((benefit, index) => (
-                  <div key={index} className="flex items-center text-sm text-gray-600">
-                    <span className="text-green-500 mr-2">✓</span>
-                    {benefit}
+          {/* Hero Section - Tier and Points */}
+          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-xl p-8 mb-8 text-white">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="text-4xl">
+                    {getTierIcon(loyaltyData.tier)}
                   </div>
-                ))}
+                  <div>
+                    <h1 className="text-3xl font-bold mb-1">{loyaltyData.tier}</h1>
+                    <p className="text-blue-100 text-sm">Member #{loyaltyData.userId}</p>
+                  </div>
+                </div>
+                {loyaltyData.tierConfig && (
+                  <p className="text-blue-100 mb-4">{loyaltyData.tierConfig.description}</p>
+                )}
+                
+                {/* Tier Progress Bar */}
+                {loyaltyData.tierProgress && !loyaltyData.tierProgress.isMaxTier && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Progress to {loyaltyData.tierProgress.nextTier}</span>
+                      <span className="text-sm font-bold">{loyaltyData.tierProgress.progress}%</span>
+                    </div>
+                    <div className="w-full bg-blue-500/30 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-white h-full rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${loyaltyData.tierProgress.progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
+                      {loyaltyData.tierProgress.pointsNeeded > 0 && (
+                        <div>
+                          <span className="text-blue-200">Points:</span>
+                          <span className="ml-2 font-semibold">{loyaltyData.tierProgress.pointsNeeded.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {loyaltyData.tierProgress.staysNeeded > 0 && (
+                        <div>
+                          <span className="text-blue-200">Stays:</span>
+                          <span className="ml-2 font-semibold">{loyaltyData.tierProgress.staysNeeded}</span>
+                        </div>
+                      )}
+                      {loyaltyData.tierProgress.nightsNeeded > 0 && (
+                        <div>
+                          <span className="text-blue-200">Nights:</span>
+                          <span className="ml-2 font-semibold">{loyaltyData.tierProgress.nightsNeeded}</span>
+                        </div>
+                      )}
+                      {loyaltyData.tierProgress.spendNeeded > 0 && (
+                        <div>
+                          <span className="text-blue-200">Spend:</span>
+                          <span className="ml-2 font-semibold">{formatCurrency(loyaltyData.tierProgress.spendNeeded)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {loyaltyData.tierProgress?.isMaxTier && (
+                  <div className="mt-4 px-4 py-2 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
+                    <p className="text-sm font-medium">🏆 You've reached the highest tier!</p>
+                  </div>
+                )}
               </div>
-            </div>
-
-            {/* Points Balance Card */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Points Balance</h2>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-blue-600 mb-2">
-                  {loyaltyData.points.toLocaleString()}
-                </div>
-                <p className="text-gray-600">Total Points</p>
-                <div className="mt-4 text-sm text-gray-500">
-                  Last updated: {formatDate(loyaltyData.lastUpdated)}
-                </div>
-              </div>
-            </div>
-
-            {/* Account Info Card */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Info</h2>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <span className="text-gray-500">User ID:</span>
-                  <span className="ml-2 font-mono text-gray-900">{loyaltyData.userId}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Member since:</span>
-                  <span className="ml-2 text-gray-900">{formatDate(loyaltyData.createdAt)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Total bookings:</span>
-                  <span className="ml-2 text-gray-900">{loyaltyData.bookings.length}</span>
+              
+              <div className="text-center md:text-right">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                  <p className="text-blue-100 text-sm mb-2">Available Points</p>
+                  <div className="text-5xl font-bold mb-2">{loyaltyData.points.toLocaleString()}</div>
+                  <a
+                    href="/loyalty/redeem"
+                    className="inline-block mt-4 bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                  >
+                    Redeem Points →
+                  </a>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Total Bookings</p>
+                  <p className="text-2xl font-bold text-gray-900">{loyaltyData.bookings.length}</p>
+                </div>
+                <div className="text-3xl">📅</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Lifetime Nights</p>
+                  <p className="text-2xl font-bold text-gray-900">{(loyaltyData as any).lifetimeNights || 0}</p>
+                </div>
+                <div className="text-3xl">🌙</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Lifetime Spend</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCurrency((loyaltyData as any).lifetimeSpend || 0)}
+                  </p>
+                </div>
+                <div className="text-3xl">💰</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Member Since</p>
+                  <p className="text-sm font-semibold text-gray-900">{formatDate(loyaltyData.createdAt)}</p>
+                </div>
+                <div className="text-3xl">⭐</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Campaigns */}
+          {loyaltyData.activeCampaigns && loyaltyData.activeCampaigns.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md mb-8 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+                <h2 className="text-xl font-semibold text-gray-900">Active Campaigns</h2>
+                <p className="text-gray-600 mt-1">Current promotions and special offers</p>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {loyaltyData.activeCampaigns.map((campaign: ActiveCampaign, index: number) => (
+                    <div
+                      key={campaign.id}
+                      className="border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-purple-50 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 whitespace-nowrap">
+                          {campaign.campaignType.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      {campaign.description && (
+                        <p className="text-sm text-gray-600 mb-2">{campaign.description}</p>
+                      )}
+                      {campaign.rules?.multiplier && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">⚡</span>
+                          <p className="text-sm font-medium text-green-700">
+                            {campaign.rules.multiplier}x Points Multiplier
+                          </p>
+                        </div>
+                      )}
+                      {campaign.rules?.bonusPoints && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg">🎁</span>
+                          <p className="text-sm font-medium text-green-700">
+                            +{campaign.rules.bonusPoints} Bonus Points
+                          </p>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-200">
+                        Valid until {formatDate(campaign.endDate)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active Perks */}
+          {loyaltyData.activePerks && loyaltyData.activePerks.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md mb-8 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+                <h2 className="text-xl font-semibold text-gray-900">Active Perks</h2>
+                <p className="text-gray-600 mt-1">Your current perks and benefits</p>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {loyaltyData.activePerks.map((perk: any, index: number) => (
+                    <div
+                      key={perk.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 bg-white"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">✨</span>
+                          <h3 className="font-semibold text-gray-900">{perk.perk?.name || 'Perk'}</h3>
+                        </div>
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 whitespace-nowrap">
+                          Active
+                        </span>
+                      </div>
+                      {perk.perk?.description && (
+                        <p className="text-sm text-gray-600 mb-3">{perk.perk.description}</p>
+                      )}
+                      {perk.booking && (
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-500">
+                            <span className="font-medium">Booking:</span> #{perk.booking.confirmationNumber || perk.booking.id}
+                          </p>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+                        Redeemed: {formatDate(perk.redeemedAt)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Recent Redemptions */}
+          {loyaltyData.recentRedemptions && loyaltyData.recentRedemptions.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md mb-8">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Recent Redemptions</h2>
+                <p className="text-gray-600 mt-1">Your recent point redemptions</p>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {loyaltyData.recentRedemptions.map((redemption: RedemptionTransaction) => (
+                    <div key={redemption.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{redemption.item?.name || 'Redemption'}</h3>
+                          {redemption.item?.description && (
+                            <p className="text-sm text-gray-600 mt-1">{redemption.item.description}</p>
+                          )}
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          redemption.status === 'USED' ? 'bg-green-100 text-green-800' :
+                          redemption.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                          redemption.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {redemption.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 text-sm">
+                        <div>
+                          <span className="text-gray-600">Points Redeemed: </span>
+                          <span className="font-semibold text-red-600">-{redemption.pointsRedeemed.toLocaleString()}</span>
+                        </div>
+                        <div className="text-gray-500">
+                          {formatDate(redemption.redeemedAt)}
+                        </div>
+                      </div>
+                      {redemption.expiresAt && (
+                        <div className="text-xs text-gray-500 mt-2">
+                          Expires: {formatDate(redemption.expiresAt)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-center">
+                  <a
+                    href="/loyalty/redeem"
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    View Full Redemption Catalog →
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Redemption History */}
           <div className="bg-white rounded-lg shadow-md">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Redemption History</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Points History</h2>
               <p className="text-gray-600 mt-1">Your recent points earnings and redemptions</p>
             </div>
             

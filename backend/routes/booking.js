@@ -4,6 +4,7 @@ const bookingService = require('../services/bookingService');
 const guestService = require('../services/guestService');
 const stayService = require('../services/stayService');
 const cancellationPolicyService = require('../services/cancellationPolicyService');
+const loyaltyService = require('../services/loyaltyService');
 const { authenticate } = require('../middleware/auth');
 const { requirePermission } = require('../lib/rbac');
 
@@ -329,6 +330,52 @@ router.post('/bookings', requirePermission('bookings:write:scoped'), async (req,
         commissionAmount = (calculatedTotalPrice * sourceCommissionPct) / 100;
       }
 
+      // Create or get loyalty account if email provided (for non-OTA bookings)
+      let finalLoyaltyAccountId = loyaltyAccountId ? parseInt(loyaltyAccountId, 10) : null;
+      const otaSources = ['OTA_BOOKING_COM', 'OTA_MMT', 'OTA_GOIBIBO', 'OTA_YATRA', 'OTA_AGODA'];
+      const isOTABooking = otaSources.includes(source);
+
+      if (!isOTABooking && email && !finalLoyaltyAccountId) {
+        // Find or create user
+        let user = await tx.user.findUnique({
+          where: { email },
+        });
+
+        if (!user) {
+          user = await tx.user.create({
+            data: {
+              email,
+              name: guestName,
+              phone: phone || null,
+            },
+          });
+        }
+
+        // Create or get loyalty account
+        let loyaltyAccount = await tx.loyaltyAccount.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (!loyaltyAccount) {
+          const memberCount = await tx.loyaltyAccount.count();
+          const memberNumber = String(memberCount + 1).padStart(6, '0');
+
+          loyaltyAccount = await tx.loyaltyAccount.create({
+            data: {
+              userId: user.id,
+              memberNumber,
+              tier: 'MEMBER',
+              points: 0,
+              lifetimeStays: 0,
+              lifetimeNights: 0,
+              lifetimeSpend: 0,
+            },
+          });
+        }
+
+        finalLoyaltyAccountId = loyaltyAccount.id;
+      }
+
       // Create booking
       const newBooking = await tx.booking.create({
         data: {
@@ -353,7 +400,7 @@ router.post('/bookings', requirePermission('bookings:write:scoped'), async (req,
           notesInternal: notesInternal || null,
           notesGuest: notesGuest || null,
           specialRequests: specialRequests || null,
-          loyaltyAccountId: loyaltyAccountId ? parseInt(loyaltyAccountId, 10) : null
+          loyaltyAccountId: finalLoyaltyAccountId
         }
       });
 
@@ -995,6 +1042,25 @@ router.post('/bookings/:id/check-out', requirePermission('checkout:write:scoped'
       return transitioned;
     });
 
+    // Update loyalty lifetime metrics after checkout
+    if (booking.loyaltyAccountId) {
+      try {
+        const checkInDate = new Date(booking.checkIn);
+        const checkOutDate = new Date(booking.checkOut);
+        const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+        const finalSpend = finalCharges !== null ? parseFloat(finalCharges) : booking.totalPrice;
+
+        await loyaltyService.updateLifetimeMetrics(
+          booking.loyaltyAccountId,
+          nights,
+          finalSpend
+        );
+      } catch (error) {
+        // Log error but don't fail checkout
+        console.error(`Error updating loyalty metrics for booking ${bookingId}:`, error);
+      }
+    }
+
     // Get updated booking with details
     const bookingDetails = await bookingService.getBookingWithDetails(bookingId);
 
@@ -1187,6 +1253,34 @@ router.post('/bookings/:id/reject', requirePermission('bookings:*:scoped'), asyn
       return transitioned;
     });
 
+    // Reverse loyalty points if booking was cancelled and points were awarded
+    if (booking.loyaltyAccountId && booking.status === 'CONFIRMED') {
+      try {
+        // Find points awarded for this booking
+        const pointsAwarded = await prisma.pointsLedger.findFirst({
+          where: {
+            bookingId: bookingId,
+            loyaltyAccountId: booking.loyaltyAccountId,
+            points: { gt: 0 },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (pointsAwarded) {
+          // Reverse the points
+          await loyaltyService.redeemPoints({
+            loyaltyAccountId: booking.loyaltyAccountId,
+            points: pointsAwarded.points,
+            reason: `Points reversal for cancelled booking #${booking.confirmationNumber || bookingId}`,
+            bookingId: bookingId,
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail cancellation
+        console.error(`Error reversing loyalty points for cancelled booking ${bookingId}:`, error);
+      }
+    }
+
     // Get updated booking with details
     const bookingDetails = await bookingService.getBookingWithDetails(bookingId);
 
@@ -1295,6 +1389,34 @@ router.post('/bookings/:id/cancel', requirePermission('bookings:write:scoped'), 
 
       return transitioned;
     });
+
+    // Reverse loyalty points if booking was cancelled and points were awarded
+    if (booking.loyaltyAccountId && booking.status === 'CONFIRMED') {
+      try {
+        // Find points awarded for this booking
+        const pointsAwarded = await prisma.pointsLedger.findFirst({
+          where: {
+            bookingId: bookingId,
+            loyaltyAccountId: booking.loyaltyAccountId,
+            points: { gt: 0 },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (pointsAwarded) {
+          // Reverse the points
+          await loyaltyService.redeemPoints({
+            loyaltyAccountId: booking.loyaltyAccountId,
+            points: pointsAwarded.points,
+            reason: `Points reversal for cancelled booking #${booking.confirmationNumber || bookingId}`,
+            bookingId: bookingId,
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail cancellation
+        console.error(`Error reversing loyalty points for cancelled booking ${bookingId}:`, error);
+      }
+    }
 
     // Get updated booking with details
     const bookingDetails = await bookingService.getBookingWithDetails(bookingId);

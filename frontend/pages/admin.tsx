@@ -1434,6 +1434,32 @@ useEffect(() => {
                     {loyalty.length} total members
                   </div>
                 </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => router.push('/admin/loyalty/points-rules')}
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Points Rules
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/loyalty/perks')}
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Perks
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/loyalty/campaigns')}
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Campaigns
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/loyalty/redemption-items')}
+                    className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Redemption Catalog
+                  </button>
+                </div>
               </div>
 
               {/* Search Bar */}

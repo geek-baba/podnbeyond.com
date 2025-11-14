@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const ChannelManager = require('../modules/channelManager');
+const loyaltyService = require('./loyaltyService');
 const { PrismaClient } = require('@prisma/client');
 
 // Initialize Prisma client lazily to avoid startup issues
@@ -23,6 +24,7 @@ class CronService {
     this.lastRun = null;
     this.nextRun = null;
     this.job = null;
+    this.requalificationJob = null;
   }
 
   /**
@@ -346,6 +348,67 @@ class CronService {
     const now = new Date();
     // Next run is 15 minutes from now
     this.nextRun = new Date(now.getTime() + 15 * 60 * 1000);
+  }
+
+  /**
+   * Start tier re-qualification cron job
+   * Runs daily at 2 AM to check and process tier re-qualifications
+   */
+  startTierRequalificationJob() {
+    if (this.requalificationJob) {
+      console.log('⚠️  Tier re-qualification cron job is already running');
+      return;
+    }
+
+    console.log('🚀 Starting tier re-qualification cron job (daily at 2 AM)');
+    
+    // Schedule job to run daily at 2 AM
+    this.requalificationJob = cron.schedule('0 2 * * *', async () => {
+      await this.processTierRequalification();
+    }, {
+      scheduled: true,
+      timezone: 'Asia/Kolkata'
+    });
+
+    console.log('✅ Tier re-qualification cron job started successfully');
+  }
+
+  /**
+   * Stop tier re-qualification cron job
+   */
+  stopTierRequalificationJob() {
+    if (this.requalificationJob) {
+      this.requalificationJob.stop();
+      this.requalificationJob = null;
+      console.log('🛑 Tier re-qualification cron job stopped');
+    }
+  }
+
+  /**
+   * Process tier re-qualification
+   */
+  async processTierRequalification() {
+    console.log('\n🔄 Starting tier re-qualification process...');
+    const startTime = new Date();
+
+    try {
+      const results = await loyaltyService.processTierRequalification();
+      const duration = new Date() - startTime;
+
+      console.log(`✅ Tier re-qualification completed in ${duration}ms`);
+      console.log(`   - Checked: ${results.checked} accounts`);
+      console.log(`   - Upgraded: ${results.upgraded}`);
+      console.log(`   - Downgraded: ${results.downgraded}`);
+      console.log(`   - Unchanged: ${results.unchanged}`);
+      if (results.errors.length > 0) {
+        console.log(`   - Errors: ${results.errors.length}`);
+        results.errors.forEach(err => {
+          console.error(`     Account ${err.accountId}: ${err.error}`);
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error processing tier re-qualification:', error);
+    }
   }
 }
 

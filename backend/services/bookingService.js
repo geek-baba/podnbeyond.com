@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { randomBytes } = require('crypto');
+const loyaltyService = require('./loyaltyService');
 
 const prisma = new PrismaClient();
 
@@ -226,6 +227,63 @@ async function transitionState(bookingId, toState, context = {}) {
 
     return updated;
   });
+
+  // Award loyalty points when booking is confirmed (if not already awarded)
+  if (toState === 'CONFIRMED' && booking.status !== 'CONFIRMED') {
+    try {
+      const bookingWithLoyalty = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          loyaltyAccount: true,
+          property: true,
+          roomType: true,
+          ratePlan: true,
+        },
+      });
+
+      if (bookingWithLoyalty?.loyaltyAccountId) {
+        // Check if points were already awarded for this booking
+        const existingPoints = await prisma.pointsLedger.findFirst({
+          where: {
+            bookingId: bookingId,
+            points: { gt: 0 },
+          },
+        });
+
+        if (!existingPoints) {
+          // Award points for booking confirmation
+          await loyaltyService.awardPointsForBooking({
+            bookingId,
+            loyaltyAccountId: bookingWithLoyalty.loyaltyAccountId,
+          });
+        }
+
+        // Auto-apply eligible perks to the booking
+        try {
+          const checkIn = new Date(bookingWithLoyalty.checkIn);
+          const checkOut = new Date(bookingWithLoyalty.checkOut);
+          const stayLength = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+          await loyaltyService.applyPerksToBooking({
+            loyaltyAccountId: bookingWithLoyalty.loyaltyAccountId,
+            bookingId,
+            bookingContext: {
+              bookingSource: bookingWithLoyalty.source,
+              stayLength,
+              propertyId: bookingWithLoyalty.propertyId,
+              checkIn: checkIn,
+            },
+          });
+        } catch (perkError) {
+          // Log error but don't fail the transition
+          console.error(`Error auto-applying perks for booking ${bookingId}:`, perkError);
+        }
+      }
+    } catch (error) {
+      // Log error but don't fail the transition
+      console.error(`Error awarding loyalty points for booking ${bookingId}:`, error);
+    }
+  }
 
   return updatedBooking;
 }

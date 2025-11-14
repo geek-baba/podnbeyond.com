@@ -5,6 +5,8 @@
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const bookingService = require('../services/bookingService');
+const loyaltyService = require('../services/loyaltyService');
 const { authenticate } = require('../middleware/auth');
 const { requirePermission } = require('../lib/rbac');
 
@@ -88,6 +90,23 @@ router.post('/payments', requirePermission('bookings:write:scoped'), async (req,
 
       return newPayment;
     });
+
+    // If payment is completed and booking is not yet confirmed, confirm it (outside transaction)
+    // This will trigger loyalty points awarding
+    if (paymentStatus === 'COMPLETED' && booking.status !== 'CONFIRMED') {
+      try {
+        await bookingService.transitionState(parseInt(bookingId, 10), 'CONFIRMED', {
+          user: req.user,
+          meta: {
+            paymentId: payment.id,
+            paymentMethod: method,
+          },
+        });
+      } catch (error) {
+        console.error(`Error confirming booking ${bookingId} after payment:`, error);
+        // Don't fail the payment creation if confirmation fails
+      }
+    }
 
     // Get updated booking with details
     const updatedBooking = await bookingService.getBookingWithDetails(parseInt(bookingId, 10));

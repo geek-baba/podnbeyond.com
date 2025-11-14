@@ -9,6 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "echo 'No linter configured yet'",
     "seed": "node prisma/seed.js",
+    "seed:tier-configs": "node prisma/seed_tier_configs.js",
+    "seed:points-rules": "node prisma/seed_points_rules.js",
     "seed:conversations": "node seed_conversations.js",
     "backfill:room-types": "node scripts/backfillRoomTypes.js",
     "cleanup:seed-data": "node scripts/cleanup-seed-data.js",
