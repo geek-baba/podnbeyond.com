@@ -360,7 +360,11 @@ router.get('/accounts', authenticate, requirePermission('loyalty:read'), async (
       userPhone: acc.user.phone,
       points: acc.points,
       lifetimeStays: acc.lifetimeStays,
+      lifetimeNights: acc.lifetimeNights || 0,
+      lifetimeSpend: acc.lifetimeSpend || 0,
       tier: acc.tier,
+      qualificationYearStart: acc.qualificationYearStart,
+      qualificationYearEnd: acc.qualificationYearEnd,
       lastUpdated: acc.lastUpdated,
       createdAt: acc.createdAt,
       updatedAt: acc.updatedAt
