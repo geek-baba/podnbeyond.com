@@ -276,10 +276,10 @@ export default function RedemptionItemsPage() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => router.push('/admin')}
+                onClick={() => router.push('/admin/loyalty')}
                 className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors text-sm"
               >
-                ← Back to Dashboard
+                ← Back to Loyalty Program
               </button>
               <button
                 onClick={handleCreate}
