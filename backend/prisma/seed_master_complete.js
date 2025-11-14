@@ -205,13 +205,12 @@ async function createStaffUsers(properties) {
           VALUES ('${user.id}', 'STAFF_FRONTDESK', 'PROPERTY', ${property.id}, NOW(), NOW())
           ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
         `);
+        staffUsers.push({ user, role: 'STAFF_FRONTDESK', property });
+        console.log(`    ✅ ${name} - STAFF_FRONTDESK`);
       } catch (rawErr) {
         console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
-        return; // Skip this user role creation
+        // Continue - don't return, just skip adding to staffUsers
       }
-      
-      staffUsers.push({ user, role: 'STAFF_FRONTDESK', property });
-      console.log(`    ✅ ${name} - STAFF_FRONTDESK`);
     }
     
     // Create STAFF_OPS (1-2 per property)
@@ -241,13 +240,12 @@ async function createStaffUsers(properties) {
           VALUES ('${user.id}', 'STAFF_OPS', 'PROPERTY', ${property.id}, NOW(), NOW())
           ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
         `);
+        staffUsers.push({ user, role: 'STAFF_OPS', property });
+        console.log(`    ✅ ${name} - STAFF_OPS`);
       } catch (rawErr) {
         console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
-        return;
+        // Continue - don't return, just skip adding to staffUsers
       }
-      
-      staffUsers.push({ user, role: 'STAFF_OPS', property });
-      console.log(`    ✅ ${name} - STAFF_OPS`);
     }
     
     // Create MANAGER (1 per property)
@@ -275,13 +273,12 @@ async function createStaffUsers(properties) {
         VALUES ('${user.id}', 'MANAGER', 'PROPERTY', ${property.id}, NOW(), NOW())
         ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
       `);
+      staffUsers.push({ user, role: 'MANAGER', property });
+      console.log(`    ✅ ${name} - MANAGER`);
     } catch (rawErr) {
       console.warn(`    ⚠️  Could not create property-scoped role for ${name}: ${rawErr.message}`);
-      return;
+      // Continue - don't return, just skip adding to staffUsers
     }
-    
-    staffUsers.push({ user, role: 'MANAGER', property });
-    console.log(`    ✅ ${name} - MANAGER`);
   }
   
   // Re-add FK constraint (as NOT VALID to avoid checking existing data)
