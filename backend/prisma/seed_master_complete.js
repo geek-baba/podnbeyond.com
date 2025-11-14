@@ -213,16 +213,20 @@ async function createStaffUsers(properties) {
         // If FK constraint fails, try with null scopeId and store property ID in metadata or handle differently
         // For now, let's try using raw SQL to bypass the FK check
         if (err.code === 'P2003') {
-          // Foreign key constraint violation - use transaction to bypass FK check
-          await prisma.$transaction(async (tx) => {
-            await tx.$executeRawUnsafe(`SET session_replication_role = 'replica'`);
-            await tx.$executeRawUnsafe(`
+          // Foreign key constraint violation - try direct raw SQL insert
+          // This may work if the FK constraint is not strictly enforced for property scopes
+          try {
+            await prisma.$executeRawUnsafe(`
               INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
               VALUES ('${user.id}', 'STAFF_FRONTDESK', 'PROPERTY', ${property.id}, NOW(), NOW())
               ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
             `);
-            await tx.$executeRawUnsafe(`SET session_replication_role = 'origin'`);
-          });
+          } catch (rawErr) {
+            // If raw SQL also fails, the FK constraint is enforced
+            // In this case, we'll skip property-scoped roles for now
+            console.warn(`    ⚠️  Could not create property-scoped role for ${name} - FK constraint enforced`);
+            return; // Skip this user role creation
+          }
         } else {
           throw err;
         }
@@ -270,15 +274,16 @@ async function createStaffUsers(properties) {
         }
       }).catch(async (err) => {
         if (err.code === 'P2003') {
-          await prisma.$transaction(async (tx) => {
-            await tx.$executeRawUnsafe(`SET session_replication_role = 'replica'`);
-            await tx.$executeRawUnsafe(`
+          try {
+            await prisma.$executeRawUnsafe(`
               INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
               VALUES ('${user.id}', 'STAFF_OPS', 'PROPERTY', ${property.id}, NOW(), NOW())
               ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
             `);
-            await tx.$executeRawUnsafe(`SET session_replication_role = 'origin'`);
-          });
+          } catch (rawErr) {
+            console.warn(`    ⚠️  Could not create property-scoped role for ${name} - FK constraint enforced`);
+            return;
+          }
         } else {
           throw err;
         }
@@ -324,15 +329,16 @@ async function createStaffUsers(properties) {
       }
     }).catch(async (err) => {
       if (err.code === 'P2003') {
-        await prisma.$transaction(async (tx) => {
-          await tx.$executeRawUnsafe(`SET session_replication_role = 'replica'`);
-          await tx.$executeRawUnsafe(`
+        try {
+          await prisma.$executeRawUnsafe(`
             INSERT INTO user_roles ("userId", "roleKey", "scopeType", "scopeId", "createdAt", "updatedAt")
             VALUES ('${user.id}', 'MANAGER', 'PROPERTY', ${property.id}, NOW(), NOW())
             ON CONFLICT ("userId", "roleKey", "scopeType", "scopeId") DO NOTHING
           `);
-          await tx.$executeRawUnsafe(`SET session_replication_role = 'origin'`);
-        });
+        } catch (rawErr) {
+          console.warn(`    ⚠️  Could not create property-scoped role for ${name} - FK constraint enforced`);
+          return;
+        }
       } else {
         throw err;
       }
