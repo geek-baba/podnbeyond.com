@@ -299,12 +299,14 @@ async function generateBookingsForUser(userData, properties, roomTypes) {
     else if (statusRoll < 0.17) status = 'NO_SHOW';
     
     // Booking source (prefer WEB_DIRECT for loyalty)
+    // Only use the 4 configured OTAs: Booking.com, Go-MMT, EaseMyTrip, Cleartrip
     const sourceRoll = Math.random();
-    const source = sourceRoll < 0.6 ? 'WEB_DIRECT' 
-      : sourceRoll < 0.75 ? 'OTA_MMT'
-      : sourceRoll < 0.85 ? 'OTA_BOOKING_COM'
-      : sourceRoll < 0.92 ? 'OTA_GOIBIBO'
-      : 'PHONE';
+    const source = sourceRoll < 0.5 ? 'WEB_DIRECT' 
+      : sourceRoll < 0.7 ? 'OTA_BOOKING_COM'
+      : sourceRoll < 0.85 ? 'OTA_MMT'
+      : sourceRoll < 0.98 ? 'PHONE'
+      : sourceRoll < 0.995 ? 'OTA_EASEMYTRIP'
+      : 'OTA_CLEARTRIP';
     
     // Create booking
     const booking = await prisma.booking.create({

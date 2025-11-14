@@ -307,6 +307,8 @@ async function calculatePoints(params) {
     'OTA_GOIBIBO',
     'OTA_YATRA',
     'OTA_AGODA',
+    'OTA_EASEMYTRIP',
+    'OTA_CLEARTRIP',
   ];
   if (otaSources.includes(bookingSource)) {
     return {

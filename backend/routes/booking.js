@@ -332,7 +332,7 @@ router.post('/bookings', requirePermission('bookings:write:scoped'), async (req,
 
       // Create or get loyalty account if email provided (for non-OTA bookings)
       let finalLoyaltyAccountId = loyaltyAccountId ? parseInt(loyaltyAccountId, 10) : null;
-      const otaSources = ['OTA_BOOKING_COM', 'OTA_MMT', 'OTA_GOIBIBO', 'OTA_YATRA', 'OTA_AGODA'];
+      const otaSources = ['OTA_BOOKING_COM', 'OTA_MMT', 'OTA_GOIBIBO', 'OTA_YATRA', 'OTA_AGODA', 'OTA_EASEMYTRIP', 'OTA_CLEARTRIP'];
       const isOTABooking = otaSources.includes(source);
 
       if (!isOTABooking && email && !finalLoyaltyAccountId) {
