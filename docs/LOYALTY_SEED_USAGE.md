@@ -20,12 +20,35 @@ Before running the seed script, ensure you have:
 
 ## Usage
 
-### Basic Usage
+### Basic Usage (Keeps Existing Bookings)
 
 ```bash
 cd backend
 npm run seed:loyalty-bookings
 ```
+
+This will:
+- Delete all loyalty accounts and related data
+- **Keep existing bookings** (just unlink them from loyalty accounts)
+- Create new users with loyalty accounts
+- Create new bookings for the seeded users
+
+### Delete All Bookings (Clean Slate)
+
+```bash
+cd backend
+npm run seed:loyalty-bookings -- --delete-bookings
+# or
+npm run seed:loyalty-bookings -- -d
+```
+
+This will:
+- Delete **ALL existing bookings** and related data (payments, stays, guests, etc.)
+- Delete all loyalty accounts
+- Create fresh users with loyalty accounts
+- Create new bookings aligned with loyalty accounts
+
+**⚠️ WARNING**: This will permanently delete all booking data!
 
 ### What It Does
 
@@ -34,7 +57,8 @@ npm run seed:loyalty-bookings
    - Deletes points ledger entries
    - Deletes tier history
    - Deletes perk redemptions and redemption transactions
-   - Unlinks bookings from loyalty accounts
+   - **Option 1 (default)**: Unlinks bookings from loyalty accounts (keeps bookings)
+   - **Option 2 (--delete-bookings)**: Deletes ALL bookings and related data (payments, stays, guests, audit logs, room assignments, etc.)
 
 2. **Creates users** (120 by default):
    - Generates users with Indian names

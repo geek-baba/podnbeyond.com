@@ -120,7 +120,7 @@ function randomDateInPast(daysAgo) {
 // CLEANUP
 // ============================================================================
 
-async function cleanupLoyaltyData() {
+async function cleanupLoyaltyData(deleteBookings = false) {
   console.log('🧹 Cleaning up existing loyalty data...');
   
   // Delete in order to respect foreign key constraints
@@ -131,15 +131,39 @@ async function cleanupLoyaltyData() {
   await prisma.referral.deleteMany({});
   await prisma.tierTransfer.deleteMany({});
   
-  // Delete bookings linked to loyalty accounts
-  await prisma.booking.updateMany({
-    where: { loyaltyAccountId: { not: null } },
-    data: { loyaltyAccountId: null }
-  });
+  if (deleteBookings) {
+    console.log('  🗑️  Deleting existing bookings and related data...');
+    
+    // Delete booking-related data first (in order of dependencies)
+    await prisma.roomAssignment.deleteMany({});
+    await prisma.bookingAuditLog.deleteMany({});
+    await prisma.bookingGuest.deleteMany({});
+    await prisma.stay.deleteMany({});
+    await prisma.payment.deleteMany({});
+    await prisma.inventoryLock.deleteMany({});
+    await prisma.holdLog.deleteMany({});
+    
+    // Update threads to remove booking references (SET NULL)
+    await prisma.thread.updateMany({
+      where: { bookingId: { not: null } },
+      data: { bookingId: null }
+    });
+    
+    // Delete all bookings
+    const deletedBookings = await prisma.booking.deleteMany({});
+    console.log(`  ✅ Deleted ${deletedBookings.count} bookings and related data`);
+  } else {
+    // Just unlink bookings from loyalty accounts
+    await prisma.booking.updateMany({
+      where: { loyaltyAccountId: { not: null } },
+      data: { loyaltyAccountId: null }
+    });
+    console.log('  ℹ️  Kept existing bookings (unlinked from loyalty accounts)');
+  }
   
   // Delete loyalty accounts (cascade will handle user relationships if needed)
   const deleted = await prisma.loyaltyAccount.deleteMany({});
-  console.log(`  ✅ Deleted ${deleted.count} loyalty accounts and related data\n`);
+  console.log(`  ✅ Deleted ${deleted.count} loyalty accounts\n`);
 }
 
 // ============================================================================
@@ -414,12 +438,17 @@ async function updateLoyaltyMetrics(loyaltyAccount, bookings) {
 // MAIN SEED FUNCTION
 // ============================================================================
 
-async function seedLoyaltyAndBookings() {
+async function seedLoyaltyAndBookings(options = {}) {
+  const { deleteExistingBookings = false } = options;
+  
   console.log('🚀 Starting Loyalty Program & Bookings Seed...\n');
+  if (deleteExistingBookings) {
+    console.log('⚠️  WARNING: Will delete ALL existing bookings and related data!\n');
+  }
   
   try {
     // Step 1: Cleanup
-    await cleanupLoyaltyData();
+    await cleanupLoyaltyData(deleteExistingBookings);
     
     // Step 2: Get properties and room types
     console.log('📋 Fetching properties and room types...');
@@ -551,7 +580,10 @@ async function seedLoyaltyAndBookings() {
 // ============================================================================
 
 if (require.main === module) {
-  seedLoyaltyAndBookings()
+  // Check for command line argument to delete bookings
+  const deleteBookings = process.argv.includes('--delete-bookings') || process.argv.includes('-d');
+  
+  seedLoyaltyAndBookings({ deleteExistingBookings: deleteBookings })
     .catch((error) => {
       console.error('❌ Seed failed:', error);
       process.exit(1);
