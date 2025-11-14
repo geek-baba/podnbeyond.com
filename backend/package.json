@@ -11,6 +11,7 @@
     "seed": "node prisma/seed.js",
     "seed:tier-configs": "node prisma/seed_tier_configs.js",
     "seed:points-rules": "node prisma/seed_points_rules.js",
+    "seed:loyalty-bookings": "node prisma/seed_loyalty_and_bookings.js",
     "seed:conversations": "node seed_conversations.js",
     "backfill:room-types": "node scripts/backfillRoomTypes.js",
     "cleanup:seed-data": "node scripts/cleanup-seed-data.js",
