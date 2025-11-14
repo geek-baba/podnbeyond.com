@@ -106,14 +106,17 @@ jobs:
             echo "✓ Proactive migration resolution complete"
             
             echo "Running Prisma migrations..."
+            set +e  # Temporarily disable exit on error to capture output
             DEPLOY_OUTPUT=$(npx prisma migrate deploy 2>&1)
             DEPLOY_EXIT_CODE=$?
+            set -e  # Re-enable exit on error
+            
+            # Always print the output
+            echo "$DEPLOY_OUTPUT"
             
             if [ $DEPLOY_EXIT_CODE -eq 0 ]; then
-              echo "$DEPLOY_OUTPUT"
               echo "✓ Migrations applied successfully"
             else
-              echo "$DEPLOY_OUTPUT"
               echo ""
               echo "⚠️  Migration failed, attempting recovery..."
               
@@ -129,7 +132,12 @@ jobs:
                   if npx prisma migrate resolve --rolled-back "$FAILED_MIGRATION" 2>&1; then
                     echo "✓ Migration $FAILED_MIGRATION marked as rolled back successfully"
                     echo "Retrying migration deployment..."
-                    if npx prisma migrate deploy; then
+                    set +e  # Temporarily disable exit on error
+                    RETRY_OUTPUT=$(npx prisma migrate deploy 2>&1)
+                    RETRY_EXIT_CODE=$?
+                    set -e  # Re-enable exit on error
+                    echo "$RETRY_OUTPUT"
+                    if [ $RETRY_EXIT_CODE -eq 0 ]; then
                       echo "✓ Migrations applied successfully after recovery"
                     else
                       echo "ERROR: Migration still failed after recovery attempt"
