@@ -351,6 +351,23 @@ async function createStaffUsers(properties) {
     console.log(`    ✅ ${name} - MANAGER`);
   }
   
+  // Re-add FK constraint (as NOT VALID to avoid checking existing data)
+  console.log('  ⚙️  Re-adding FK constraint...');
+  try {
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE user_roles ADD CONSTRAINT user_roles_scopeId_fkey 
+      FOREIGN KEY ("scopeId") REFERENCES organizations(id) ON UPDATE CASCADE ON DELETE SET NULL NOT VALID;
+    `);
+    console.log('    ✅ FK constraint re-added');
+  } catch (err) {
+    // Constraint might already exist, that's okay
+    if (err.message.includes('already exists')) {
+      console.log('    ℹ️  FK constraint already exists');
+    } else {
+      console.warn(`    ⚠️  Could not re-add FK constraint: ${err.message}`);
+    }
+  }
+  
   console.log(`\n  ✅ Created ${staffUsers.length} staff users across ${properties.length} properties\n`);
   return staffUsers;
 }
