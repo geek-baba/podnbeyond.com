@@ -708,8 +708,8 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
       const callDuration = randomInt(60, 600); // 1-10 minutes
       await prisma.callLog.create({
         data: {
-          threadId: thread.id,
-          contactId: contact.id,
+          thread: { connect: { id: thread.id } },
+          contact: { connect: { id: contact.id } },
           direction: 'INBOUND',
           status: 'COMPLETED',
           fromNumber: normalizedPhone || '0000000000',
@@ -719,7 +719,8 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
           providerCallId: `call-inbound-${thread.id}-${Date.now()}`,
           startedAt: threadCreatedAt,
           endedAt: new Date(threadCreatedAt.getTime() + callDuration * 1000),
-          metadata: { bookingId: booking.id, propertyId: property.id },
+          bookingId: booking.id,
+          metadata: { propertyId: property.id },
         }
       });
       callCount++;
