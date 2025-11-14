@@ -6,35 +6,14 @@
 -- STEP 1: Update LoyaltyTier Enum
 -- ============================================================================
 
--- Add new tier values (must be done in separate statements for PostgreSQL)
--- Note: PostgreSQL requires enum values to be committed before use
-DO $$
-BEGIN
-  -- Add MEMBER if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_enum 
-    WHERE enumlabel = 'MEMBER' 
-    AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'LoyaltyTier')
-  ) THEN
-    ALTER TYPE "LoyaltyTier" ADD VALUE 'MEMBER';
-  END IF;
-  
-  -- Add DIAMOND if it doesn't exist
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_enum 
-    WHERE enumlabel = 'DIAMOND' 
-    AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'LoyaltyTier')
-  ) THEN
-    ALTER TYPE "LoyaltyTier" ADD VALUE 'DIAMOND';
-  END IF;
-END $$;
-
--- Commit the enum changes by using a separate transaction context
--- We'll set the default after ensuring the enum values exist
--- First, update existing tables without using the new enum values
+-- Add new tier values
+-- Note: PostgreSQL requires enum values to be committed before use in the same transaction
+-- We'll add them first, then use them in a separate step after the transaction commits
+ALTER TYPE "LoyaltyTier" ADD VALUE IF NOT EXISTS 'MEMBER';
+ALTER TYPE "LoyaltyTier" ADD VALUE IF NOT EXISTS 'DIAMOND';
 
 -- ============================================================================
--- STEP 2: Update Existing Tables
+-- STEP 2: Update Existing Tables (without using new enum values yet)
 -- ============================================================================
 
 -- Update loyalty_accounts table
@@ -44,19 +23,9 @@ ALTER TABLE "loyalty_accounts"
   ADD COLUMN IF NOT EXISTS "qualificationYearStart" TIMESTAMP(3),
   ADD COLUMN IF NOT EXISTS "qualificationYearEnd" TIMESTAMP(3);
 
--- Update default tier to MEMBER for new accounts
--- Use a workaround: set default via a function that runs after enum is committed
-DO $$
-BEGIN
-  -- Check if MEMBER exists in enum before setting default
-  IF EXISTS (
-    SELECT 1 FROM pg_enum 
-    WHERE enumlabel = 'MEMBER' 
-    AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'LoyaltyTier')
-  ) THEN
-    ALTER TABLE "loyalty_accounts" ALTER COLUMN "tier" SET DEFAULT 'MEMBER'::"LoyaltyTier";
-  END IF;
-END $$;
+-- Note: We cannot set DEFAULT 'MEMBER' here because the enum value was just added
+-- The default will be set in a follow-up migration or via application code
+-- For now, existing default (likely 'SILVER') will remain
 
 -- Add index on tier
 CREATE INDEX IF NOT EXISTS "loyalty_accounts_tier_idx" ON "loyalty_accounts"("tier");
