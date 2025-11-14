@@ -606,6 +606,7 @@ async function calculateAndAwardPoints(booking, loyaltyAccount, tierAtBooking) {
         userId: loyaltyAccount.userId,
         points: points,
         type: 'EARNED',
+        reason: 'BOOKING',
         description: `Points earned from booking ${booking.confirmationNumber}`,
         bookingId: booking.id,
         metadata: {
