@@ -592,6 +592,14 @@ async function calculateAndAwardPoints(booking, loyaltyAccount, tierAtBooking) {
   
   // Award points (only for completed bookings)
   if (booking.status === 'CHECKED_OUT') {
+    // Get current balance before update
+    const account = await prisma.loyaltyAccount.findUnique({
+      where: { id: loyaltyAccount.id },
+      select: { points: true }
+    });
+    const balanceBefore = account?.points || 0;
+    const balanceAfter = balanceBefore + points;
+    
     await prisma.loyaltyAccount.update({
       where: { id: loyaltyAccount.id },
       data: {
@@ -609,6 +617,8 @@ async function calculateAndAwardPoints(booking, loyaltyAccount, tierAtBooking) {
         reason: 'BOOKING',
         description: `Points earned from booking ${booking.confirmationNumber}`,
         bookingId: booking.id,
+        balanceBefore,
+        balanceAfter,
         metadata: {
           basePoints: Math.floor((booking.totalPrice / 100) * basePointsRate),
           bonuses: {
