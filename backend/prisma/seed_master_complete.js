@@ -391,7 +391,9 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
   
   let threadCount = 0;
   let emailCount = 0;
-  let messageCount = 0;
+  let whatsappCount = 0;
+  let smsCount = 0;
+  let callCount = 0;
   
   // Get staff users by property
   const staffByProperty = {};
@@ -402,10 +404,12 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
     staffByProperty[staff.property.id].push(staff);
   }
   
-  // Create threads for bookings (60% of threads)
+  // Create threads for bookings (60% of bookings get threads)
   const bookingThreadsCount = Math.floor(bookings.length * 0.6);
-  for (let i = 0; i < bookingThreadsCount && i < bookings.length; i++) {
-    const booking = bookings[i];
+  const selectedBookings = bookings.slice(0, bookingThreadsCount);
+  
+  for (let i = 0; i < selectedBookings.length; i++) {
+    const booking = selectedBookings[i];
     const property = booking.property || properties.find(p => p.id === booking.propertyId) || properties[0];
     const staff = staffByProperty[property.id] || [];
     const frontdeskStaff = staff.filter(s => s.role === 'STAFF_FRONTDESK' || s.role === 'MANAGER');
@@ -429,12 +433,59 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
       }
     });
     
-    // Create thread
-    const threadCreatedAt = new Date(Date.now() - (i * 3600000)); // Stagger timestamps
+    // Thread created around booking date (before, during, or after)
+    const bookingDate = new Date(booking.checkIn);
+    const daysOffset = randomInt(-7, 14); // Thread can be 7 days before to 14 days after check-in
+    const threadCreatedAt = new Date(bookingDate);
+    threadCreatedAt.setDate(threadCreatedAt.getDate() + daysOffset);
+    
     const hasResponse = i % 2 === 0;
     const isResolved = i % 3 === 0;
-    const firstResponseAt = hasResponse ? new Date(threadCreatedAt.getTime() + (5 + i) * 60000) : null;
-    const resolvedAt = isResolved ? new Date(threadCreatedAt.getTime() + (30 + i * 10) * 60000) : null;
+    const firstResponseAt = hasResponse ? new Date(threadCreatedAt.getTime() + randomInt(5, 30) * 60000) : null;
+    const resolvedAt = isResolved ? new Date(threadCreatedAt.getTime() + randomInt(30, 240) * 60000) : null;
+    
+    // Determine channel (50% Email, 40% WhatsApp, 5% SMS, 5% Calls)
+    const channelRoll = Math.random();
+    let primaryChannel;
+    if (channelRoll < 0.5) {
+      primaryChannel = 'EMAIL';
+    } else if (channelRoll < 0.9) {
+      primaryChannel = 'WHATSAPP';
+    } else if (channelRoll < 0.95) {
+      primaryChannel = 'SMS';
+    } else {
+      primaryChannel = 'CALL';
+    }
+    
+    // Determine thread status
+    let status;
+    if (isResolved) {
+      status = 'RESOLVED';
+    } else if (i % 3 === 0) {
+      status = 'NEW';
+    } else if (i % 3 === 1) {
+      status = 'IN_PROGRESS';
+    } else {
+      status = 'WAITING_FOR_GUEST';
+    }
+    
+    // Determine priority
+    let priority = 'NORMAL';
+    if (i % 4 === 0) priority = 'URGENT';
+    else if (i % 4 === 1) priority = 'HIGH';
+    
+    // Assignment: 60% STAFF_FRONTDESK, 30% MANAGER, 10% unassigned
+    let finalAssignedStaff = null;
+    if (i % 10 !== 0) {
+      const assignRoll = Math.random();
+      if (assignRoll < 0.6) {
+        const frontdesk = staff.filter(s => s.role === 'STAFF_FRONTDESK');
+        finalAssignedStaff = frontdesk.length > 0 ? frontdesk[i % frontdesk.length] : null;
+      } else {
+        const managers = staff.filter(s => s.role === 'MANAGER');
+        finalAssignedStaff = managers.length > 0 ? managers[i % managers.length] : null;
+      }
+    }
     
     const thread = await prisma.thread.create({
       data: {
@@ -443,9 +494,9 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
         propertyId: property.id,
         bookingId: booking.id,
         userId: bookingUser?.id || null,
-        status: isResolved ? 'RESOLVED' : (i % 3 === 0 ? 'NEW' : i % 3 === 1 ? 'IN_PROGRESS' : 'WAITING_FOR_GUEST'),
-        priority: i % 4 === 0 ? 'URGENT' : i % 4 === 1 ? 'HIGH' : 'NORMAL',
-        assignedTo: assignedStaff?.user.id || null,
+        status,
+        priority,
+        assignedTo: finalAssignedStaff?.user.id || null,
         createdAt: threadCreatedAt,
         lastMessageAt: threadCreatedAt,
         firstResponseAt: firstResponseAt,
@@ -455,105 +506,166 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
     
     threadCount++;
     
-    // Create email conversation
-    const emailIndex = i % SAMPLE_MESSAGES.booking.email.length;
-    const emailData = SAMPLE_MESSAGES.booking.email[emailIndex];
-    
-    // Inbound email
-    const inboundEmail = await prisma.email.create({
-      data: {
-        threadId: thread.id,
-        messageId: `seed-inbound-${thread.id}-${Date.now()}-${i}`,
-        fromEmail: booking.email,
-        fromName: booking.guestName,
-        toEmails: [property.email || 'support@capsulepodhotel.com'],
-        subject: emailData.inbound.subject,
-        textBody: emailData.inbound.body,
-        htmlBody: `<p>${emailData.inbound.body}</p>`,
-        direction: 'INBOUND',
-        status: 'DELIVERED',
-        createdAt: threadCreatedAt,
-      }
-    });
-    emailCount++;
-    
-    // Outbound email reply
-    if (hasResponse) {
-      const outboundEmail = await prisma.email.create({
+    // Create messages based on primary channel
+    if (primaryChannel === 'EMAIL') {
+      const emailIndex = i % SAMPLE_MESSAGES.booking.email.length;
+      const emailData = SAMPLE_MESSAGES.booking.email[emailIndex];
+      
+      // Inbound email
+      await prisma.email.create({
         data: {
           threadId: thread.id,
-          messageId: `seed-outbound-${thread.id}-${Date.now()}-${i}`,
-          fromEmail: property.email || 'support@capsulepodhotel.com',
-          fromName: property.name,
-          toEmails: [booking.email],
-          subject: emailData.outbound.subject,
-          textBody: emailData.outbound.body,
-          htmlBody: `<p>${emailData.outbound.body}</p>`,
-          direction: 'OUTBOUND',
-          status: 'SENT',
-          createdAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
+          messageId: `seed-inbound-${thread.id}-${Date.now()}-${i}`,
+          fromEmail: booking.email,
+          fromName: booking.guestName,
+          toEmails: [property.email || 'support@capsulepodhotel.com'],
+          subject: emailData.inbound.subject,
+          textBody: emailData.inbound.body,
+          htmlBody: `<p>${emailData.inbound.body}</p>`,
+          direction: 'INBOUND',
+          status: 'DELIVERED',
+          createdAt: threadCreatedAt,
         }
       });
       emailCount++;
       
-      // Update thread lastMessageAt
-      await prisma.thread.update({
-        where: { id: thread.id },
-        data: { lastMessageAt: outboundEmail.createdAt }
-      });
-    }
-    
-    // Create WhatsApp messages
-    const whatsappIndex = i % SAMPLE_MESSAGES.booking.whatsapp.length;
-    const whatsappData = SAMPLE_MESSAGES.booking.whatsapp[whatsappIndex];
-    
-    // Inbound WhatsApp
-    const inboundWhatsApp = await prisma.messageLog.create({
-      data: {
-        threadId: thread.id,
-        contactId: contact.id,
-        channel: 'WHATSAPP',
-        direction: 'INBOUND',
-        status: 'DELIVERED',
-        phone: normalizedPhone || '0000000000',
-        message: whatsappData.inbound,
-        provider: 'GUPSHUP',
-        providerMessageId: `wa-inbound-${thread.id}-${Date.now()}`,
-        providerStatus: 'delivered',
-        sentAt: new Date(threadCreatedAt.getTime() + 5 * 60000),
-        deliveredAt: new Date(threadCreatedAt.getTime() + 5 * 60000),
-        metadata: { bookingId: booking.id, propertyId: property.id },
+      if (hasResponse) {
+        const outboundEmail = await prisma.email.create({
+          data: {
+            threadId: thread.id,
+            messageId: `seed-outbound-${thread.id}-${Date.now()}-${i}`,
+            fromEmail: property.email || 'support@capsulepodhotel.com',
+            fromName: property.name,
+            toEmails: [booking.email],
+            subject: emailData.outbound.subject,
+            textBody: emailData.outbound.body,
+            htmlBody: `<p>${emailData.outbound.body}</p>`,
+            direction: 'OUTBOUND',
+            status: 'SENT',
+            createdAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
+          }
+        });
+        emailCount++;
+        
+        await prisma.thread.update({
+          where: { id: thread.id },
+          data: { lastMessageAt: outboundEmail.createdAt }
+        });
       }
-    });
-    messageCount++;
-    
-    // Outbound WhatsApp reply
-    if (hasResponse) {
-      const outboundWhatsApp = await prisma.messageLog.create({
+    } else if (primaryChannel === 'WHATSAPP') {
+      const whatsappIndex = i % SAMPLE_MESSAGES.booking.whatsapp.length;
+      const whatsappData = SAMPLE_MESSAGES.booking.whatsapp[whatsappIndex];
+      
+      // Inbound WhatsApp
+      await prisma.messageLog.create({
         data: {
           threadId: thread.id,
           contactId: contact.id,
           channel: 'WHATSAPP',
-          direction: 'OUTBOUND',
+          direction: 'INBOUND',
           status: 'DELIVERED',
           phone: normalizedPhone || '0000000000',
-          message: whatsappData.outbound,
+          message: whatsappData.inbound,
           provider: 'GUPSHUP',
-          providerMessageId: `wa-outbound-${thread.id}-${Date.now()}`,
+          providerMessageId: `wa-inbound-${thread.id}-${Date.now()}`,
           providerStatus: 'delivered',
-          sentAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
-          deliveredAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
-          readAt: new Date((firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000)).getTime() + 5 * 60000),
+          sentAt: threadCreatedAt,
+          deliveredAt: threadCreatedAt,
           metadata: { bookingId: booking.id, propertyId: property.id },
         }
       });
-      messageCount++;
+      whatsappCount++;
       
-      // Update thread lastMessageAt
-      await prisma.thread.update({
-        where: { id: thread.id },
-        data: { lastMessageAt: outboundWhatsApp.sentAt }
+      if (hasResponse) {
+        const outboundWhatsApp = await prisma.messageLog.create({
+          data: {
+            threadId: thread.id,
+            contactId: contact.id,
+            channel: 'WHATSAPP',
+            direction: 'OUTBOUND',
+            status: 'DELIVERED',
+            phone: normalizedPhone || '0000000000',
+            message: whatsappData.outbound,
+            provider: 'GUPSHUP',
+            providerMessageId: `wa-outbound-${thread.id}-${Date.now()}`,
+            providerStatus: 'delivered',
+            sentAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
+            deliveredAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
+            readAt: new Date((firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000)).getTime() + 5 * 60000),
+            metadata: { bookingId: booking.id, propertyId: property.id },
+          }
+        });
+        whatsappCount++;
+        
+        await prisma.thread.update({
+          where: { id: thread.id },
+          data: { lastMessageAt: outboundWhatsApp.sentAt }
+        });
+      }
+    } else if (primaryChannel === 'SMS') {
+      // SMS messages
+      await prisma.messageLog.create({
+        data: {
+          threadId: thread.id,
+          contactId: contact.id,
+          channel: 'SMS',
+          direction: 'INBOUND',
+          status: 'DELIVERED',
+          phone: normalizedPhone || '0000000000',
+          message: 'Hi, I have a question about my booking.',
+          provider: 'GUPSHUP',
+          providerMessageId: `sms-inbound-${thread.id}-${Date.now()}`,
+          providerStatus: 'delivered',
+          sentAt: threadCreatedAt,
+          deliveredAt: threadCreatedAt,
+          metadata: { bookingId: booking.id, propertyId: property.id },
+        }
       });
+      smsCount++;
+      
+      if (hasResponse) {
+        const outboundSMS = await prisma.messageLog.create({
+          data: {
+            threadId: thread.id,
+            contactId: contact.id,
+            channel: 'SMS',
+            direction: 'OUTBOUND',
+            status: 'DELIVERED',
+            phone: normalizedPhone || '0000000000',
+            message: 'Thank you for contacting us. We will assist you shortly.',
+            provider: 'GUPSHUP',
+            providerMessageId: `sms-outbound-${thread.id}-${Date.now()}`,
+            providerStatus: 'delivered',
+            sentAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
+            deliveredAt: firstResponseAt || new Date(threadCreatedAt.getTime() + 10 * 60000),
+            metadata: { bookingId: booking.id, propertyId: property.id },
+          }
+        });
+        smsCount++;
+        
+        await prisma.thread.update({
+          where: { id: thread.id },
+          data: { lastMessageAt: outboundSMS.sentAt }
+        });
+      }
+    } else {
+      // Phone calls
+      await prisma.callLog.create({
+        data: {
+          threadId: thread.id,
+          contactId: contact.id,
+          direction: 'INBOUND',
+          status: 'COMPLETED',
+          phone: normalizedPhone || '0000000000',
+          duration: randomInt(60, 600), // 1-10 minutes
+          provider: 'EXOTEL',
+          providerCallId: `call-inbound-${thread.id}-${Date.now()}`,
+          startedAt: threadCreatedAt,
+          endedAt: new Date(threadCreatedAt.getTime() + randomInt(60, 600) * 1000),
+          metadata: { bookingId: booking.id, propertyId: property.id },
+        }
+      });
+      callCount++;
     }
   }
   
@@ -659,7 +771,9 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
   
   console.log(`  ✅ Created ${threadCount} threads`);
   console.log(`  ✅ Created ${emailCount} emails`);
-  console.log(`  ✅ Created ${messageCount} WhatsApp messages`);
+  console.log(`  ✅ Created ${whatsappCount} WhatsApp messages`);
+  console.log(`  ✅ Created ${smsCount} SMS messages`);
+  console.log(`  ✅ Created ${callCount} call logs`);
   console.log(`  ✅ Communication hub data created\n`);
 }
 
@@ -754,8 +868,16 @@ async function seedMasterComplete(options = {}) {
     const emailCount = await prisma.email.count();
     console.log(`  Emails: ${emailCount}`);
     
-    const messageCount = await prisma.messageLog.count();
-    console.log(`  WhatsApp/SMS Messages: ${messageCount}`);
+    const whatsappCount = await prisma.messageLog.count({
+      where: { channel: 'WHATSAPP' }
+    });
+    const smsCount = await prisma.messageLog.count({
+      where: { channel: 'SMS' }
+    });
+    const callCount = await prisma.callLog.count();
+    console.log(`  WhatsApp Messages: ${whatsappCount}`);
+    console.log(`  SMS Messages: ${smsCount}`);
+    console.log(`  Call Logs: ${callCount}`);
     
     // Tier distribution
     const tierStats = await prisma.loyaltyAccount.groupBy({

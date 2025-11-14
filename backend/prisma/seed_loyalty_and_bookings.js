@@ -116,6 +116,109 @@ function randomDateInPast(daysAgo) {
   return new Date(past.getTime() + Math.random() * (now.getTime() - past.getTime()));
 }
 
+function randomDateInRange(startDaysAgo, endDaysAgo) {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(start.getDate() - startDaysAgo);
+  const end = new Date(now);
+  end.setDate(end.getDate() - endDaysAgo);
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+function getBookingStatusForTimePeriod(daysAgo, tier) {
+  // Year 1-2 (730+ days ago): Mostly CHECKED_OUT
+  if (daysAgo > 730) {
+    const roll = Math.random();
+    if (roll < 0.95) return 'CHECKED_OUT';
+    if (roll < 0.98) return 'CANCELLED';
+    return 'NO_SHOW';
+  }
+  
+  // Year 3, 90+ days ago: Mostly CHECKED_OUT, some CANCELLED
+  if (daysAgo > 90) {
+    const roll = Math.random();
+    if (roll < 0.80) return 'CHECKED_OUT';
+    if (roll < 0.95) return 'CANCELLED';
+    if (roll < 0.98) return 'NO_SHOW';
+    return 'REJECTED';
+  }
+  
+  // Year 3, 30-90 days ago: Mix of statuses
+  if (daysAgo > 30) {
+    const roll = Math.random();
+    if (roll < 0.60) return 'CHECKED_OUT';
+    if (roll < 0.80) return 'CONFIRMED';
+    if (roll < 0.95) return 'CANCELLED';
+    if (roll < 0.97) return 'NO_SHOW';
+    if (roll < 0.99) return 'PENDING';
+    return 'REJECTED';
+  }
+  
+  // Year 3, 0-30 days ago (current): More variety
+  const roll = Math.random();
+  if (roll < 0.30) return 'CHECKED_OUT';
+  if (roll < 0.60) return 'CONFIRMED';
+  if (roll < 0.75) return 'CHECKED_IN';
+  if (roll < 0.90) return 'CANCELLED';
+  if (roll < 0.95) return 'PENDING';
+  if (roll < 0.98) return 'HOLD';
+  if (roll < 0.995) return 'NO_SHOW';
+  if (roll < 0.999) return 'REJECTED';
+  return 'FAILED';
+}
+
+function getBookingSourceForTier(tier) {
+  // Tier-specific source distribution
+  const roll = Math.random();
+  
+  if (tier === 'DIAMOND' || tier === 'PLATINUM') {
+    if (roll < 0.75) return 'WEB_DIRECT';
+    if (roll < 0.90) return 'PHONE';
+    // 10% OTA
+    const otaRoll = Math.random();
+    if (otaRoll < 0.55) return 'OTA_BOOKING_COM';
+    if (otaRoll < 0.95) return 'OTA_MMT';
+    if (otaRoll < 0.98) return 'OTA_EASEMYTRIP';
+    return 'OTA_CLEARTRIP';
+  }
+  
+  if (tier === 'GOLD') {
+    if (roll < 0.65) return 'WEB_DIRECT';
+    if (roll < 0.85) return 'PHONE';
+    // 15% OTA
+    const otaRoll = Math.random();
+    if (otaRoll < 0.55) return 'OTA_BOOKING_COM';
+    if (otaRoll < 0.95) return 'OTA_MMT';
+    if (otaRoll < 0.98) return 'OTA_EASEMYTRIP';
+    return 'OTA_CLEARTRIP';
+  }
+  
+  if (tier === 'SILVER') {
+    if (roll < 0.55) return 'WEB_DIRECT';
+    if (roll < 0.80) return 'PHONE';
+    // 20% OTA
+    const otaRoll = Math.random();
+    if (otaRoll < 0.55) return 'OTA_BOOKING_COM';
+    if (otaRoll < 0.95) return 'OTA_MMT';
+    if (otaRoll < 0.98) return 'OTA_EASEMYTRIP';
+    return 'OTA_CLEARTRIP';
+  }
+  
+  // MEMBER tier
+  if (roll < 0.45) return 'WEB_DIRECT';
+  if (roll < 0.75) return 'PHONE';
+  if (roll < 0.97) {
+    // 22% OTA
+    const otaRoll = Math.random();
+    if (otaRoll < 0.55) return 'OTA_BOOKING_COM';
+    if (otaRoll < 0.95) return 'OTA_MMT';
+    if (otaRoll < 0.98) return 'OTA_EASEMYTRIP';
+    return 'OTA_CLEARTRIP';
+  }
+  if (roll < 0.99) return 'WALK_IN';
+  return 'CORPORATE';
+}
+
 // ============================================================================
 // CLEANUP
 // ============================================================================
@@ -245,6 +348,21 @@ async function generateBookingsForUser(userData, properties, roomTypes) {
   const { user, loyaltyAccount, targetTier } = userData;
   const requirements = TIER_REQUIREMENTS[targetTier];
   
+  // Determine booking count based on tier
+  let targetBookings;
+  if (targetTier === 'DIAMOND') {
+    targetBookings = randomInt(20, 35);
+  } else if (targetTier === 'PLATINUM') {
+    targetBookings = randomInt(12, 20);
+  } else if (targetTier === 'GOLD') {
+    targetBookings = randomInt(6, 12);
+  } else if (targetTier === 'SILVER') {
+    targetBookings = randomInt(3, 6);
+  } else {
+    // MEMBER
+    targetBookings = randomInt(1, 3);
+  }
+  
   // Determine how to qualify for tier
   // Strategy: Use stays and nights (most realistic)
   let targetStays = requirements.stays || 0;
@@ -266,78 +384,89 @@ async function generateBookingsForUser(userData, properties, roomTypes) {
   let totalNights = 0;
   let totalSpend = 0;
   let staysCreated = 0;
+  let bookingsCreated = 0;
   
-  // Generate bookings until we meet requirements
-  while (staysCreated < targetStays || totalNights < targetNights || totalSpend < targetSpend) {
-    const property = randomElement(properties);
-    const roomType = randomElement(roomTypes.filter(rt => rt.propertyId === property.id));
-    
-    if (!roomType) continue;
-    
-    // Random stay duration (1-7 nights, longer for higher tiers)
-    const nights = targetTier === 'DIAMOND' 
-      ? randomInt(3, 10)
-      : targetTier === 'PLATINUM'
-      ? randomInt(2, 7)
-      : randomInt(1, 5);
-    
-    // Random price per night (₹1,500 - ₹5,000)
-    const pricePerNight = randomFloat(1500, 5000);
-    const totalPrice = pricePerNight * nights;
-    
-    // Random check-in date (past 12 months)
-    const daysAgo = randomInt(1, 365);
-    const checkIn = randomDateInPast(daysAgo);
-    const checkOut = addDays(checkIn, nights);
-    
-    // Determine booking status (mostly CHECKED_OUT for completed stays)
-    const statusRoll = Math.random();
-    let status = 'CHECKED_OUT';
-    if (statusRoll < 0.05) status = 'CHECKED_IN';
-    else if (statusRoll < 0.10) status = 'CONFIRMED';
-    else if (statusRoll < 0.15) status = 'CANCELLED';
-    else if (statusRoll < 0.17) status = 'NO_SHOW';
-    
-    // Booking source (prefer WEB_DIRECT for loyalty)
-    // Only use the 4 configured OTAs: Booking.com, Go-MMT, EaseMyTrip, Cleartrip
-    const sourceRoll = Math.random();
-    const source = sourceRoll < 0.5 ? 'WEB_DIRECT' 
-      : sourceRoll < 0.7 ? 'OTA_BOOKING_COM'
-      : sourceRoll < 0.85 ? 'OTA_MMT'
-      : sourceRoll < 0.98 ? 'PHONE'
-      : sourceRoll < 0.995 ? 'OTA_EASEMYTRIP'
-      : 'OTA_CLEARTRIP';
-    
-    // Create booking
-    const booking = await prisma.booking.create({
-      data: {
-        guestName: user.name,
-        email: user.email,
-        phone: user.phone,
-        checkIn,
-        checkOut,
-        guests: randomInt(1, 4),
-        rooms: 1,
-        totalPrice,
-        status,
-        currency: 'INR',
-        netAmount: totalPrice * 0.85, // Assume 15% tax
-        taxAmount: totalPrice * 0.15,
-        source,
-        propertyId: property.id,
-        roomTypeId: roomType.id,
-        loyaltyAccountId: loyaltyAccount.id,
-        confirmationNumber: `PNB-${property.id}-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+  // Generate bookings over 3 years
+  // Distribute: 20% Year 1, 30% Year 2, 50% Year 3
+  const year1Count = Math.floor(targetBookings * 0.2);
+  const year2Count = Math.floor(targetBookings * 0.3);
+  const year3Count = targetBookings - year1Count - year2Count;
+  
+  // Generate Year 1 bookings (1095-730 days ago)
+  for (let i = 0; i < year1Count; i++) {
+    const daysAgo = randomInt(730, 1095);
+    const booking = await createBookingForUser(
+      userData, properties, roomTypes, daysAgo, targetTier
+    );
+    if (booking) {
+      bookings.push(booking);
+      bookingsCreated++;
+      if (booking.status === 'CHECKED_OUT') {
+        staysCreated++;
+        totalNights += getDaysBetween(booking.checkIn, booking.checkOut);
+        totalSpend += booking.totalPrice;
       }
-    });
+    }
+  }
+  
+  // Generate Year 2 bookings (730-365 days ago)
+  for (let i = 0; i < year2Count; i++) {
+    const daysAgo = randomInt(365, 730);
+    const booking = await createBookingForUser(
+      userData, properties, roomTypes, daysAgo, targetTier
+    );
+    if (booking) {
+      bookings.push(booking);
+      bookingsCreated++;
+      if (booking.status === 'CHECKED_OUT') {
+        staysCreated++;
+        totalNights += getDaysBetween(booking.checkIn, booking.checkOut);
+        totalSpend += booking.totalPrice;
+      }
+    }
+  }
+  
+  // Generate Year 3 bookings (365-0 days ago)
+  for (let i = 0; i < year3Count; i++) {
+    const daysAgo = randomInt(0, 365);
+    const booking = await createBookingForUser(
+      userData, properties, roomTypes, daysAgo, targetTier
+    );
+    if (booking) {
+      bookings.push(booking);
+      bookingsCreated++;
+      if (booking.status === 'CHECKED_OUT') {
+        staysCreated++;
+        totalNights += getDaysBetween(booking.checkIn, booking.checkOut);
+        totalSpend += booking.totalPrice;
+      }
+    }
+  }
+  
+  // Generate additional bookings if we haven't met tier requirements
+  while ((staysCreated < targetStays || totalNights < targetNights || totalSpend < targetSpend) && bookingsCreated < targetBookings * 2) {
+    // Distribute additional bookings across all 3 years
+    const yearRoll = Math.random();
+    let daysAgo;
+    if (yearRoll < 0.2) {
+      daysAgo = randomInt(730, 1095); // Year 1
+    } else if (yearRoll < 0.5) {
+      daysAgo = randomInt(365, 730); // Year 2
+    } else {
+      daysAgo = randomInt(0, 365); // Year 3
+    }
     
-    bookings.push(booking);
-    
-    // Update totals (only for completed stays)
-    if (status === 'CHECKED_OUT') {
-      staysCreated++;
-      totalNights += nights;
-      totalSpend += totalPrice;
+    const booking = await createBookingForUser(
+      userData, properties, roomTypes, daysAgo, targetTier
+    );
+    if (booking) {
+      bookings.push(booking);
+      bookingsCreated++;
+      if (booking.status === 'CHECKED_OUT') {
+        staysCreated++;
+        totalNights += getDaysBetween(booking.checkIn, booking.checkOut);
+        totalSpend += booking.totalPrice;
+      }
     }
     
     // Break if we've exceeded requirements significantly
@@ -349,11 +478,101 @@ async function generateBookingsForUser(userData, properties, roomTypes) {
   return { bookings, totalNights, totalSpend, staysCreated };
 }
 
+async function createBookingForUser(userData, properties, roomTypes, daysAgo, tier) {
+  const { user, loyaltyAccount } = userData;
+  const property = randomElement(properties);
+  const roomType = randomElement(roomTypes.filter(rt => rt.propertyId === property.id));
+  
+  if (!roomType) return null;
+  
+  // Tier-specific stay duration
+  let nights;
+  if (tier === 'DIAMOND') {
+    nights = randomInt(3, 7);
+  } else if (tier === 'PLATINUM') {
+    nights = randomInt(3, 5);
+  } else if (tier === 'GOLD') {
+    nights = randomInt(2, 4);
+  } else if (tier === 'SILVER') {
+    nights = randomInt(2, 3);
+  } else {
+    // MEMBER
+    nights = randomInt(1, 2);
+  }
+  
+  // Tier-specific price range
+  let pricePerNight;
+  if (tier === 'DIAMOND') {
+    pricePerNight = randomFloat(6000, 15000);
+  } else if (tier === 'PLATINUM') {
+    pricePerNight = randomFloat(5000, 10000);
+  } else if (tier === 'GOLD') {
+    pricePerNight = randomFloat(4000, 8000);
+  } else if (tier === 'SILVER') {
+    pricePerNight = randomFloat(3000, 6000);
+  } else {
+    // MEMBER
+    pricePerNight = randomFloat(2000, 4000);
+  }
+  
+  const totalPrice = pricePerNight * nights;
+  
+  // Generate check-in date based on daysAgo
+  const checkIn = randomDateInRange(daysAgo + nights, daysAgo);
+  const checkOut = addDays(checkIn, nights);
+  
+  // Determine booking status based on time period
+  const status = getBookingStatusForTimePeriod(daysAgo, tier);
+  
+  // Get booking source based on tier
+  const source = getBookingSourceForTier(tier);
+  
+  // Only link to loyalty account if not OTA booking
+  const otaSources = ['OTA_BOOKING_COM', 'OTA_MMT', 'OTA_EASEMYTRIP', 'OTA_CLEARTRIP'];
+  const loyaltyAccountId = otaSources.includes(source) ? null : loyaltyAccount.id;
+  
+  // Create booking
+  const booking = await prisma.booking.create({
+    data: {
+      guestName: user.name,
+      email: user.email,
+      phone: user.phone,
+      checkIn,
+      checkOut,
+      guests: randomInt(1, 4),
+      rooms: 1,
+      totalPrice,
+      status,
+      currency: 'INR',
+      netAmount: totalPrice * 0.85, // Assume 15% tax
+      taxAmount: totalPrice * 0.15,
+      source,
+      propertyId: property.id,
+      roomTypeId: roomType.id,
+      loyaltyAccountId,
+      confirmationNumber: `PNB-${property.id}-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+    }
+  });
+  
+  return booking;
+}
+
 // ============================================================================
 // POINTS CALCULATION & AWARDING
 // ============================================================================
 
 async function calculateAndAwardPoints(booking, loyaltyAccount, tierAtBooking) {
+  // OTA bookings don't earn points
+  const otaSources = ['OTA_BOOKING_COM', 'OTA_MMT', 'OTA_EASEMYTRIP', 'OTA_CLEARTRIP'];
+  if (otaSources.includes(booking.source)) {
+    return; // No points for OTA bookings
+  }
+  
+  // Only award points if booking is linked to loyalty account
+  if (!booking.loyaltyAccountId || !loyaltyAccount) {
+    return;
+  }
+  
   const basePointsRate = POINTS_PER_100[tierAtBooking] || POINTS_PER_100.MEMBER;
   let points = Math.floor((booking.totalPrice / 100) * basePointsRate);
   
@@ -500,9 +719,12 @@ async function seedLoyaltyAndBookings(options = {}) {
       const tierAtBooking = account.tier;
       
       for (const booking of bookings) {
-        // Award points based on tier (using final tier for simplicity)
-        // In a real scenario, you'd track tier changes over time
-        await calculateAndAwardPoints(booking, account, tierAtBooking);
+        // Only award points if booking is linked to loyalty account (not OTA)
+        if (booking.loyaltyAccountId) {
+          // Award points based on tier (using final tier for simplicity)
+          // In a real scenario, you'd track tier changes over time
+          await calculateAndAwardPoints(booking, account, tierAtBooking);
+        }
       }
       
       // Step 7: Recalculate tier after points are awarded
