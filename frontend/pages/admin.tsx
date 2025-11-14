@@ -79,6 +79,8 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
   const [currentTime, setCurrentTime] = useState('');
   const [bookingsCount, setBookingsCount] = useState(0); // Client-side bookings count
   const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [loyaltyCount, setLoyaltyCount] = useState(loyalty?.length || 0); // Client-side loyalty count
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   const defaultPropertyId = properties?.[0]?.id || null;
   const defaultBrandId = brands?.[0]?.id || null;
   const defaultScopeType: StaffScopeType = defaultPropertyId ? 'PROPERTY' : defaultBrandId ? 'BRAND' : 'ORG';
@@ -102,6 +104,34 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
         }
       };
       fetchBookingsCount();
+    }
+  }, [authStatus]);
+
+  // Fetch loyalty accounts count client-side after authentication
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      const fetchLoyaltyCount = async () => {
+        try {
+          setLoyaltyLoading(true);
+          const response = await fetch('/api/loyalty/accounts', {
+            credentials: 'include',
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const accounts = data.accounts || data.data || [];
+            setLoyaltyCount(accounts.length);
+          }
+        } catch (error) {
+          console.error('Error fetching loyalty count:', error);
+          // Silently fail - loyalty count is not critical for dashboard
+        } finally {
+          setLoyaltyLoading(false);
+        }
+      };
+      fetchLoyaltyCount();
     }
   }, [authStatus]);
   
@@ -622,7 +652,7 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       brands: brands?.length,
       properties: properties?.length,
       bookings: bookings?.length,
-      loyalty: loyalty?.length,
+      loyalty: loyaltyCount,
       users: users?.length,
       stats
     });
@@ -962,9 +992,11 @@ useEffect(() => {
 
                   <Card variant="default" padding="lg">
                     <div className="text-sm font-semibold text-neutral-600 mb-2">Loyalty Members</div>
-                    <div className="text-4xl font-bold text-sauna-500">{loyalty?.length || 0}</div>
+                    <div className="text-4xl font-bold text-sauna-500">
+                      {loyaltyLoading ? '...' : loyaltyCount}
+                    </div>
                     <div className="text-sm text-neutral-500 mt-2">
-                      {loyalty?.filter(l => l.tier === 'PLATINUM').length || 0} platinum
+                      {loyaltyLoading ? 'Loading...' : 'Click Loyalty tab to view'}
                     </div>
                   </Card>
 
@@ -1440,7 +1472,7 @@ useEffect(() => {
                 <div>
                   <h2 className="text-2xl font-bold text-neutral-900">Loyalty Program</h2>
                   <div className="text-sm text-neutral-600 mt-1">
-                    {loyalty.length} total members
+                    {loyaltyLoading ? 'Loading...' : `${loyaltyCount} total members`}
                   </div>
                 </div>
                 <div className="flex gap-3">
