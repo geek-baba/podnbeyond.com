@@ -163,58 +163,50 @@ export default function BookingsPage() {
             </div>
 
             {/* Right: Title */}
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Bookings</h1>
-              <p className="text-neutral-300 text-sm">Manage all bookings</p>
+            <div className="text-right flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-1">Bookings</h1>
+                <p className="text-neutral-300 text-sm">Manage all bookings</p>
+              </div>
+              <a href="/admin/bookings/new">
+                <button className="px-6 py-2 bg-white text-neutral-900 rounded-button font-semibold hover:bg-neutral-100 transition-all">
+                  ➕ Create Booking
+                </button>
+              </a>
             </div>
           </div>
 
-          {/* Header Tabs - Like Communication Hub */}
+          {/* Booking Navigation - Only booking-related actions */}
           <div className="flex items-center gap-3 flex-wrap">
             <a href="/admin/bookings">
               <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/bookings')
+                router.asPath === '/admin/bookings'
                   ? 'bg-white text-neutral-900'
                   : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
               }`}>
-                📋 Bookings
+                📋 All Bookings
               </button>
             </a>
-            <a href="/admin/communication-hub">
+            <a href="/admin/bookings/new">
               <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/communication-hub') ||
-                router.asPath?.startsWith('/admin/templates') ||
-                router.asPath?.startsWith('/admin/analytics')
+                router.asPath === '/admin/bookings/new'
                   ? 'bg-white text-neutral-900'
                   : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
               }`}>
-                💬 Communication Hub
+                ➕ Create Booking
               </button>
             </a>
-            <a href="/admin/loyalty">
+            <a href="/admin/bookings/calendar">
               <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/loyalty')
+                router.asPath === '/admin/bookings/calendar'
                   ? 'bg-white text-neutral-900'
                   : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
               }`}>
-                ⭐ Loyalty Program
-              </button>
-            </a>
-            <a href="/admin/integrations">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/integrations')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ⚙️ Integrations
+                📅 Calendar View
               </button>
             </a>
             <a href="/admin">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath === '/admin'
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
                 ← Admin Dashboard
               </button>
             </a>

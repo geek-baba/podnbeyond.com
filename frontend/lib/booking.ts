@@ -523,6 +523,79 @@ export async function rejectBooking(id: number, data: { reason?: string }): Prom
 }
 
 /**
+ * Confirm booking (transition from PENDING to CONFIRMED)
+ */
+export async function confirmBooking(id: number, data: { notes?: string } = {}): Promise<BookingDetailResponse> {
+  const apiUrl = getBookingApiUrl();
+  // Use update to change status to CONFIRMED
+  return updateBooking(id, { status: 'CONFIRMED' as BookingStatus, notesInternal: data.notes });
+}
+
+/**
+ * Hold booking (create a hold booking)
+ */
+export async function holdBooking(id: number, data: { holdExpiresAt?: string; notes?: string } = {}): Promise<BookingDetailResponse> {
+  const apiUrl = getBookingApiUrl();
+  // Use update to change status to HOLD
+  return updateBooking(id, { 
+    status: 'HOLD' as BookingStatus, 
+    holdExpiresAt: data.holdExpiresAt,
+    notesInternal: data.notes 
+  });
+}
+
+/**
+ * Duplicate booking (create a copy of an existing booking)
+ */
+export async function duplicateBooking(id: number): Promise<BookingDetailResponse> {
+  // First, get the existing booking
+  const existingBooking = await getBooking(id);
+  
+  if (!existingBooking.success || !existingBooking.data) {
+    throw new Error('Failed to fetch booking to duplicate');
+  }
+
+  const booking = existingBooking.data;
+  
+  // Create a new booking with the same data but new dates (default: today + same duration)
+  const checkInDate = new Date();
+  const checkOutDate = new Date();
+  const nights = Math.ceil((new Date(booking.checkOut).getTime() - new Date(booking.checkIn).getTime()) / (1000 * 60 * 60 * 24));
+  checkOutDate.setDate(checkOutDate.getDate() + nights);
+
+  const newBookingData: Partial<Booking> = {
+    propertyId: booking.propertyId,
+    roomTypeId: booking.roomTypeId,
+    ratePlanId: booking.ratePlanId,
+    checkIn: checkInDate.toISOString().split('T')[0],
+    checkOut: checkOutDate.toISOString().split('T')[0],
+    guests: booking.guests,
+    rooms: booking.rooms || 1,
+    source: booking.source,
+    guestName: booking.guestName,
+    email: booking.email,
+    phone: booking.phone,
+    specialRequests: booking.specialRequests,
+    notesInternal: `Duplicated from booking #${booking.confirmationNumber || booking.id}`,
+    notesGuest: booking.notesGuest,
+    cancellationPolicyId: booking.cancellationPolicyId,
+    totalPrice: booking.totalPrice,
+    currency: booking.currency,
+  };
+
+  // If it's an OTA booking, copy OTA info
+  if (booking.sourceReservationId) {
+    newBookingData.sourceReservationId = booking.sourceReservationId;
+  }
+  if (booking.sourceCommissionPct) {
+    newBookingData.sourceCommissionPct = booking.sourceCommissionPct;
+  }
+
+  // Create the new booking
+  return createBooking(newBookingData);
+}
+
+/**
  * Get booking audit log
  */
 export async function getBookingAuditLog(id: number): Promise<{ success: boolean; data: BookingAuditLog[] }> {

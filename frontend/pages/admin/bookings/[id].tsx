@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Header from '../../../components/layout/Header';
 import {
   getBooking,
   Booking,
@@ -15,6 +17,10 @@ import {
   calculateOutstandingBalance,
   getStatusColor,
   getSourceColor,
+  updateBooking,
+  confirmBooking,
+  holdBooking,
+  duplicateBooking,
 } from '../../../lib/booking';
 import ModifyBookingModal from '../../../components/booking/ModifyBookingModal';
 import CheckInModal from '../../../components/booking/CheckInModal';
@@ -97,7 +103,7 @@ export default function BookingDetailPage() {
 
   const outstandingBalance = calculateOutstandingBalance(booking);
 
-  const handleAction = (action: string, booking: Booking) => {
+  const handleAction = async (action: string, booking: Booking) => {
     switch (action) {
       case 'modify':
         setModifyModalOpen(true);
@@ -110,6 +116,42 @@ export default function BookingDetailPage() {
         break;
       case 'cancel':
         setCancelModalOpen(true);
+        break;
+      case 'confirm':
+        if (confirm('Are you sure you want to confirm this booking?')) {
+          try {
+            await confirmBooking(booking.id);
+            await handleModalSuccess();
+          } catch (err: any) {
+            alert(`Failed to confirm booking: ${err.message}`);
+          }
+        }
+        break;
+      case 'hold':
+        const holdExpiresAt = prompt('Enter hold expiration date (YYYY-MM-DD) or leave blank for no expiration:');
+        if (holdExpiresAt !== null) {
+          try {
+            await holdBooking(booking.id, { 
+              holdExpiresAt: holdExpiresAt || undefined,
+              notes: 'Booking placed on hold by staff'
+            });
+            await handleModalSuccess();
+          } catch (err: any) {
+            alert(`Failed to hold booking: ${err.message}`);
+          }
+        }
+        break;
+      case 'duplicate':
+        if (confirm('Create a duplicate of this booking?')) {
+          try {
+            const response = await duplicateBooking(booking.id);
+            if (response.success && response.data) {
+              router.push(`/admin/bookings/${response.data.id}`);
+            }
+          } catch (err: any) {
+            alert(`Failed to duplicate booking: ${err.message}`);
+          }
+        }
         break;
       default:
         console.log('Action not implemented:', action);
@@ -132,6 +174,42 @@ export default function BookingDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Head>
+        <title>Booking #{booking?.confirmationNumber || booking?.id} | POD N BEYOND Admin</title>
+        <meta name="description" content="Booking details" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      
+      <Header />
+      
+      {/* Booking Navigation - Only booking-related actions */}
+      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 flex-wrap mb-4">
+            <a href="/admin/bookings">
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                📋 All Bookings
+              </button>
+            </a>
+            <a href="/admin/bookings/new">
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                ➕ Create Booking
+              </button>
+            </a>
+            <a href="/admin/bookings/calendar">
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                📅 Calendar View
+              </button>
+            </a>
+            <a href="/admin">
+              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
+                ← Admin Dashboard
+              </button>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -334,21 +412,44 @@ export default function BookingDetailPage() {
           {activeTab === 'actions' && (
             <div className="space-y-4">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Status-based actions */}
+                {booking.status === 'PENDING' && (
                   <button
-                    onClick={() => handleAction('modify', booking)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    onClick={() => handleAction('confirm', booking)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
                   >
-                    Modify Booking
+                    ✓ Confirm Booking
                   </button>
+                )}
+                {['PENDING', 'CONFIRMED'].includes(booking.status) && (
+                  <>
+                    <button
+                      onClick={() => handleAction('modify', booking)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    >
+                      ✏️ Modify Booking
+                    </button>
+                    <button
+                      onClick={() => handleAction('hold', booking)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
+                    >
+                      ⏸️ Hold Booking
+                    </button>
+                    <button
+                      onClick={() => handleAction('cancel', booking)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                    >
+                      ✕ Cancel Booking
+                    </button>
+                  </>
                 )}
                 {booking.status === 'CONFIRMED' && (
                   <button
                     onClick={() => handleAction('check-in', booking)}
                     className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
                   >
-                    Check-in
+                    🔑 Check-in
                   </button>
                 )}
                 {booking.status === 'CHECKED_IN' && (
@@ -356,17 +457,26 @@ export default function BookingDetailPage() {
                     onClick={() => handleAction('check-out', booking)}
                     className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
                   >
-                    Check-out
+                    🚪 Check-out
                   </button>
                 )}
-                {['PENDING', 'CONFIRMED'].includes(booking.status) && (
-                  <button
-                    onClick={() => handleAction('cancel', booking)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
-                  >
-                    Cancel Booking
-                  </button>
-                )}
+                
+                {/* Always available actions */}
+                <button
+                  onClick={() => handleAction('duplicate', booking)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                >
+                  📋 Duplicate Booking
+                </button>
+              </div>
+
+              {/* Help text */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-600">
+                  <strong>Available Actions:</strong> Actions are shown based on the booking status. 
+                  Duplicate booking creates a copy with new dates starting from today. 
+                  Hold booking temporarily reserves the booking without full confirmation.
+                </p>
               </div>
             </div>
           )}
