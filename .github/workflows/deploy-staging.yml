@@ -202,6 +202,9 @@ jobs:
                     npx prisma migrate resolve --rolled-back "20251112220044_booking_module_phase1" 2>&1 || true
                     npx prisma migrate resolve --rolled-back "20251113070000_communication_hub_enhancements" 2>&1 || true
                     npx prisma migrate resolve --rolled-back "20250115000000_loyalty_program_phase1" 2>&1 || true
+                    npx prisma migrate resolve --rolled-back "20250115000001_loyalty_program_phase1_set_default" 2>&1 || true
+                    npx prisma migrate resolve --rolled-back "20250115000002_add_easemytrip_cleartrip_booking_sources" 2>&1 || true
+                    npx prisma migrate resolve --rolled-back "20250115000003_remove_unused_ota_sources" 2>&1 || true
                     echo "✓ Recovery attempt complete. Will retry migration..."
                   fi
                 fi
@@ -209,9 +212,12 @@ jobs:
                 # Also check for P3009 error specifically (failed migrations blocking new ones)
                 if echo "$MIGRATION_STATUS" | grep -qi "P3009\|failed migrations in the target database"; then
                   echo "⚠️  Detected P3009 error - failed migrations blocking new ones"
-                  echo "Attempting to resolve known loyalty program migration..."
+                  echo "Attempting to resolve known loyalty program migrations..."
                   npx prisma migrate resolve --rolled-back "20250115000000_loyalty_program_phase1" 2>&1 || true
-                  echo "✓ Attempted to resolve failed migration"
+                  npx prisma migrate resolve --rolled-back "20250115000001_loyalty_program_phase1_set_default" 2>&1 || true
+                  npx prisma migrate resolve --rolled-back "20250115000002_add_easemytrip_cleartrip_booking_sources" 2>&1 || true
+                  npx prisma migrate resolve --rolled-back "20250115000003_remove_unused_ota_sources" 2>&1 || true
+                  echo "✓ Attempted to resolve failed migrations"
                 fi
                 
                 echo "Running Prisma migrations..."

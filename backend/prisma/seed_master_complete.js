@@ -119,8 +119,10 @@ async function cleanupAllData(keepStaff = false) {
     console.log('  👥 Deleting guest/member users...');
     
     // Find users with only GUEST or MEMBER roles (no staff roles)
+    // BUT keep the super admin (shwet@thedesi.email)
     const guestUsers = await prisma.user.findMany({
       where: {
+        email: { not: 'shwet@thedesi.email' }, // Keep super admin
         userRoles: {
           none: {
             roleKey: { in: ['STAFF_FRONTDESK', 'STAFF_OPS', 'MANAGER', 'ADMIN', 'SUPERADMIN'] }
@@ -142,9 +144,9 @@ async function cleanupAllData(keepStaff = false) {
         id: { in: guestUsers.map(u => u.id) }
       }
     });
-    console.log(`    ✅ Deleted ${deletedUsers.count} guest/member users`);
+    console.log(`    ✅ Deleted ${deletedUsers.count} guest/member users (kept super admin)`);
   } else {
-    console.log('  ℹ️  Keeping existing staff users');
+    console.log('  ℹ️  Keeping existing staff users (including super admin)');
   }
   
   console.log('  ✅ Cleanup complete\n');
