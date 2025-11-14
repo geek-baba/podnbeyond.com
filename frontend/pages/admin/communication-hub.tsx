@@ -99,6 +99,7 @@ export default function CommunicationHub() {
   const [quickReplyTemplates, setQuickReplyTemplates] = useState<Array<{ id: number; name: string; type: string; channel: MessageChannel; body: string; subject: string | null }>>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  const [staffUsers, setStaffUsers] = useState<Array<{ id: string; name: string; email: string; role: string }>>([]);
   
   // Reply form
   const [replyForm, setReplyForm] = useState({
@@ -218,6 +219,7 @@ export default function CommunicationHub() {
       loadConversations();
       loadIntegrations();
       loadProperties();
+      loadStaffUsers();
     }
   }, [authStatus, filters]);
 
@@ -293,6 +295,30 @@ export default function CommunicationHub() {
       }
     } catch (error) {
       console.error('Failed to load properties:', error);
+    }
+  };
+
+  const loadStaffUsers = async () => {
+    try {
+      const response = await fetch('/api/users', {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+      const data = await response.json();
+      if (data.success && data.users) {
+        // Filter to only STAFF_FRONTDESK, STAFF_OPS, and MANAGER roles
+        const staff = data.users.filter((u: any) => 
+          ['STAFF_FRONTDESK', 'STAFF_OPS', 'MANAGER'].includes(u.roleKey)
+        );
+        setStaffUsers(staff.map((u: any) => ({
+          id: u.id,
+          name: u.name || u.email,
+          email: u.email,
+          role: u.roleKey || 'STAFF'
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to load staff users:', error);
     }
   };
 
@@ -1210,6 +1236,9 @@ export default function CommunicationHub() {
                             )}
                             {selectedConversation.property && (
                               <Badge variant="neutral">{selectedConversation.property.name}</Badge>
+                            )}
+                            {selectedConversation.assignedUser && (
+                              <Badge variant="neutral">👤 {selectedConversation.assignedUser.name}</Badge>
                             )}
                           </div>
                           <div className="flex flex-wrap gap-2">
