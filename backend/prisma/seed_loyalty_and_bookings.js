@@ -300,15 +300,18 @@ async function createUsersWithLoyaltyAccounts(totalUsers) {
       const email = generateEmail(name);
       const phone = generatePhone();
       
-      // Create user
-      const user = await prisma.user.create({
-        data: {
-          email,
-          name,
-          phone,
-          emailVerified: new Date(),
-        }
-      });
+      // Create or get user (handle case where user already exists)
+      let user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email,
+            name,
+            phone,
+            emailVerified: new Date(),
+          }
+        });
+      }
       
       // Create loyalty account
       const memberNumberStr = String(memberNumber).padStart(6, '0');
