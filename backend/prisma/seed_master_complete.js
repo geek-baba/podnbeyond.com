@@ -400,14 +400,46 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
   let smsCount = 0;
   let callCount = 0;
   
+  // Re-fetch staff users from database to ensure we have all staff with proper property scopes
+  const allStaffRoles = await prisma.userRole.findMany({
+    where: {
+      roleKey: { in: ['STAFF_FRONTDESK', 'STAFF_OPS', 'MANAGER'] },
+      scopeType: 'PROPERTY',
+      scopeId: { not: null }
+    },
+    include: {
+      user: true
+    }
+  });
+  
   // Get staff users by property
   const staffByProperty = {};
-  for (const staff of staffUsers) {
-    if (!staffByProperty[staff.property.id]) {
-      staffByProperty[staff.property.id] = [];
+  for (const staffRole of allStaffRoles) {
+    const propertyId = staffRole.scopeId;
+    if (!staffByProperty[propertyId]) {
+      staffByProperty[propertyId] = [];
     }
-    staffByProperty[staff.property.id].push(staff);
+    staffByProperty[propertyId].push({
+      user: staffRole.user,
+      role: staffRole.roleKey,
+      property: properties.find(p => p.id === propertyId) || properties[0]
+    });
   }
+  
+  // Also include staff from the passed staffUsers array (fallback)
+  for (const staff of staffUsers) {
+    const propertyId = staff.property.id;
+    if (!staffByProperty[propertyId]) {
+      staffByProperty[propertyId] = [];
+    }
+    // Only add if not already present
+    const exists = staffByProperty[propertyId].some(s => s.user.id === staff.user.id);
+    if (!exists) {
+      staffByProperty[propertyId].push(staff);
+    }
+  }
+  
+  console.log(`  📋 Staff distribution: ${Object.keys(staffByProperty).map(pid => `Property ${pid}: ${staffByProperty[pid].length} staff`).join(', ')}\n`);
   
   // Create threads for bookings (60% of bookings get threads)
   const bookingThreadsCount = Math.floor(bookings.length * 0.6);
@@ -479,16 +511,25 @@ async function createCommunicationHubData(bookings, users, staffUsers, propertie
     if (i % 4 === 0) priority = 'URGENT';
     else if (i % 4 === 1) priority = 'HIGH';
     
-    // Assignment: 60% STAFF_FRONTDESK, 30% MANAGER, 10% unassigned
+    // Assignment: 60% STAFF_FRONTDESK, 30% MANAGER, 10% STAFF_OPS (all assigned)
     let finalAssignedStaff = null;
-    if (i % 10 !== 0) {
-      const assignRoll = Math.random();
-      if (assignRoll < 0.6) {
-        const frontdesk = staff.filter(s => s.role === 'STAFF_FRONTDESK');
-        finalAssignedStaff = frontdesk.length > 0 ? frontdesk[i % frontdesk.length] : null;
-      } else {
-        const managers = staff.filter(s => s.role === 'MANAGER');
-        finalAssignedStaff = managers.length > 0 ? managers[i % managers.length] : null;
+    const assignRoll = Math.random();
+    if (assignRoll < 0.6) {
+      const frontdesk = staff.filter(s => s.role === 'STAFF_FRONTDESK');
+      finalAssignedStaff = frontdesk.length > 0 ? frontdesk[i % frontdesk.length] : null;
+    } else if (assignRoll < 0.9) {
+      const managers = staff.filter(s => s.role === 'MANAGER');
+      finalAssignedStaff = managers.length > 0 ? managers[i % managers.length] : null;
+    } else {
+      const ops = staff.filter(s => s.role === 'STAFF_OPS');
+      finalAssignedStaff = ops.length > 0 ? ops[i % ops.length] : null;
+    }
+    
+    // Fallback: if no staff for this property, assign from any property
+    if (!finalAssignedStaff && staff.length === 0) {
+      const allStaff = Object.values(staffByProperty).flat();
+      if (allStaff.length > 0) {
+        finalAssignedStaff = allStaff[i % allStaff.length];
       }
     }
     
