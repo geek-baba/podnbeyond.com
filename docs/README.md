@@ -41,10 +41,10 @@ docs/
 │   ├── whatsapp-gupshup.md     # Gupshup WhatsApp/SMS
 │   └── redis.md                 # Redis setup and BullMQ
 │
-├── specs/                       # Future plans and specifications
-│   ├── booking-redesign.md     # Booking module redesign plan
-│   ├── loyalty-redesign.md     # Loyalty program redesign plan
-│   └── communication-hub-v2.md # Communication Hub redesign plans
+├── specs/                       # Historical redesign plans (implemented)
+│   ├── booking-redesign.md     # Historical booking redesign plan
+│   ├── loyalty-redesign.md     # Historical loyalty redesign plan
+│   └── communication-hub-v2.md # Historical Communication Hub redesign plan
 │
 ├── meta/                        # Project metadata
 │   ├── backlog.md              # Post-MVP enhancements
@@ -103,11 +103,11 @@ docs/
 
 - **[Backlog](meta/backlog.md)** ⭐ **USE THIS** - Post-MVP enhancements and GitHub Actions CI/CD setup
 
-### Redesign Plans
+### Historical Redesign Plans (Implemented)
 
-- **[Booking Redesign](specs/booking-redesign.md)** - Comprehensive booking module redesign plan
-- **[Loyalty Redesign](specs/loyalty-redesign.md)** - Future loyalty program enhancements (perks, campaigns, redemption catalog)
-- **[Communication Hub V2](specs/communication-hub-v2.md)** - Historical Communication Hub redesign plans
+- **[Booking Redesign](specs/booking-redesign.md)** - Historical redesign plan (led to current implementation in `architecture/booking.md`)
+- **[Loyalty Redesign](specs/loyalty-redesign.md)** - Historical redesign plan (led to current implementation in `architecture/loyalty.md` - includes perks, campaigns, redemption catalog, points rules engine)
+- **[Communication Hub V2](specs/communication-hub-v2.md)** - Historical redesign plan (led to current implementation in `architecture/communication-hub.md`)
 
 ---
 
@@ -165,7 +165,7 @@ These documents reflect the current state of the codebase:
 - `architecture/booking.md` - Booking system (fully implemented)
 - `architecture/communication-hub.md` - Communication Hub (all 4 phases complete)
 - `architecture/rbac.md` - RBAC system (production-ready)
-- `architecture/loyalty.md` - Loyalty program (core system implemented)
+- `architecture/loyalty.md` - Loyalty program (fully implemented - includes perks, campaigns, redemption catalog, points rules engine)
 - `operations/deployment.md` - Current deployment process
 - `operations/seed-data.md` - Seed data scripts
 - `integrations/payment-razorpay.md` - Payment integration (partial, gaps noted)
@@ -173,13 +173,13 @@ These documents reflect the current state of the codebase:
 - `integrations/whatsapp-gupshup.md` - WhatsApp/SMS integration
 - `meta/backlog.md` - Post-MVP enhancements
 
-### 📋 Specifications (Future Plans)
+### 📋 Specifications (Historical Reference)
 
-These documents describe planned enhancements:
+These documents are historical redesign plans that led to the current implementation:
 
-- `specs/booking-redesign.md` - Booking module redesign (future)
-- `specs/loyalty-redesign.md` - Loyalty program enhancements (future)
-- `specs/communication-hub-v2.md` - Historical Communication Hub plans
+- `specs/booking-redesign.md` - Historical redesign plan (led to current implementation in `architecture/booking.md`)
+- `specs/loyalty-redesign.md` - Historical redesign plan (led to current implementation in `architecture/loyalty.md` - includes perks, campaigns, redemption catalog, points rules engine)
+- `specs/communication-hub-v2.md` - Historical redesign plan (led to current implementation in `architecture/communication-hub.md`)
 
 ### 📦 Archive (Historical Reference)
 
@@ -196,7 +196,7 @@ Historical and outdated documentation is archived in `archive/`:
 
 - **⭐ Marked docs** are the primary references for current processes
 - **Architecture docs** (`architecture/*`) describe current implementation
-- **Specs docs** (`specs/*`) describe future plans
+- **Specs docs** (`specs/*`) are historical redesign plans that led to current implementation
 - **Archive docs** (`archive/*`) are kept for historical reference only
 - All documentation is version controlled in Git
 
