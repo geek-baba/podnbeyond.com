@@ -11,6 +11,8 @@ import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
 import BookingFilters from '../../../components/booking/BookingFilters';
 import BookingList from '../../../components/booking/BookingList';
+import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import {
   getBookings,
   BookingFilters as BookingFiltersType,
@@ -236,9 +238,9 @@ export default function BookingsPage() {
           {/* Bookings List */}
           {!loading && !error && (
             <>
-              <div className="bg-white shadow rounded-lg overflow-hidden">
+              <Card variant="default" padding="none" className="overflow-hidden">
                 <BookingList bookings={bookings} onAction={handleAction} />
-              </div>
+              </Card>
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -248,20 +250,22 @@ export default function BookingsPage() {
                     {Math.min((filters.page || 1) * (filters.limit || 20), total)} of {total} bookings
                   </div>
                   <div className="flex space-x-2">
-                    <button
+                    <Button
                       onClick={() => handlePageChange((filters.page || 1) - 1)}
                       disabled={(filters.page || 1) === 1}
-                      className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      variant="secondary"
+                      size="sm"
                     >
                       Previous
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handlePageChange((filters.page || 1) + 1)}
                       disabled={(filters.page || 1) >= totalPages}
-                      className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      variant="secondary"
+                      size="sm"
                     >
                       Next
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

@@ -7,6 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Header from '../../../components/layout/Header';
+import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import {
   getBooking,
   Booking,
@@ -76,10 +78,10 @@ export default function BookingDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <p className="mt-2 text-gray-600">Loading booking...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900"></div>
+          <p className="mt-2 text-neutral-600">Loading booking...</p>
         </div>
       </div>
     );
@@ -87,15 +89,17 @@ export default function BookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600">{error || 'Booking not found'}</p>
-          <button
+          <Button
             onClick={() => router.push('/admin/bookings')}
-            className="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            variant="primary"
+            size="sm"
+            className="mt-4"
           >
             Back to Bookings
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -173,7 +177,7 @@ export default function BookingDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-50">
       <Head>
         <title>Booking #{booking?.confirmationNumber || booking?.id} | POD N BEYOND Admin</title>
         <meta name="description" content="Booking details" />
@@ -215,16 +219,16 @@ export default function BookingDetailPage() {
         <div className="mb-8">
           <button
             onClick={() => router.push('/admin/bookings')}
-            className="text-sm text-gray-600 hover:text-gray-900 mb-4"
+            className="text-sm text-neutral-600 hover:text-neutral-900 mb-4"
           >
             ← Back to Bookings
           </button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-neutral-900">
                 Booking #{booking.confirmationNumber || booking.id}
               </h1>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-2 text-sm text-neutral-600">
                 {booking.guestName} • {booking.email}
               </p>
             </div>
@@ -248,7 +252,7 @@ export default function BookingDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-neutral-200 mb-6">
           <nav className="-mb-px flex space-x-8">
             {(['summary', 'timeline', 'payments', 'notes', 'actions'] as const).map((tab) => (
               <button
@@ -257,7 +261,7 @@ export default function BookingDetailPage() {
                 className={`${
                   activeTab === tab
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
               >
                 {tab}
@@ -267,25 +271,25 @@ export default function BookingDetailPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <Card variant="default" padding="lg">
           {activeTab === 'summary' && (
             <div className="space-y-6">
               {/* Guest Details */}
               <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Guest Details</h2>
+                <h2 className="text-lg font-medium text-neutral-900 mb-4">Guest Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{booking.guestName}</p>
+                    <label className="text-sm font-medium text-neutral-500">Name</label>
+                    <p className="mt-1 text-sm text-neutral-900">{booking.guestName}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Email</label>
-                    <p className="mt-1 text-sm text-gray-900">{booking.email}</p>
+                    <label className="text-sm font-medium text-neutral-500">Email</label>
+                    <p className="mt-1 text-sm text-neutral-900">{booking.email}</p>
                   </div>
                   {booking.phone && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Phone</label>
-                      <p className="mt-1 text-sm text-gray-900">{booking.phone}</p>
+                      <label className="text-sm font-medium text-neutral-500">Phone</label>
+                      <p className="mt-1 text-sm text-neutral-900">{booking.phone}</p>
                     </div>
                   )}
                 </div>
@@ -293,47 +297,47 @@ export default function BookingDetailPage() {
 
               {/* Stay Details */}
               <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Stay Details</h2>
+                <h2 className="text-lg font-medium text-neutral-900 mb-4">Stay Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Property</label>
-                    <p className="mt-1 text-sm text-gray-900">{booking.property?.name || 'N/A'}</p>
+                    <label className="text-sm font-medium text-neutral-500">Property</label>
+                    <p className="mt-1 text-sm text-neutral-900">{booking.property?.name || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Room Type</label>
-                    <p className="mt-1 text-sm text-gray-900">{booking.roomType?.name || 'N/A'}</p>
+                    <label className="text-sm font-medium text-neutral-500">Room Type</label>
+                    <p className="mt-1 text-sm text-neutral-900">{booking.roomType?.name || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Check-in</label>
-                    <p className="mt-1 text-sm text-gray-900">{formatDate(booking.checkIn)}</p>
+                    <label className="text-sm font-medium text-neutral-500">Check-in</label>
+                    <p className="mt-1 text-sm text-neutral-900">{formatDate(booking.checkIn)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Check-out</label>
-                    <p className="mt-1 text-sm text-gray-900">{formatDate(booking.checkOut)}</p>
+                    <label className="text-sm font-medium text-neutral-500">Check-out</label>
+                    <p className="mt-1 text-sm text-neutral-900">{formatDate(booking.checkOut)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Guests</label>
-                    <p className="mt-1 text-sm text-gray-900">{booking.guests}</p>
+                    <label className="text-sm font-medium text-neutral-500">Guests</label>
+                    <p className="mt-1 text-sm text-neutral-900">{booking.guests}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Rooms</label>
-                    <p className="mt-1 text-sm text-gray-900">{booking.rooms}</p>
+                    <label className="text-sm font-medium text-neutral-500">Rooms</label>
+                    <p className="mt-1 text-sm text-neutral-900">{booking.rooms}</p>
                   </div>
                 </div>
               </div>
 
               {/* Pricing */}
               <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Pricing</h2>
+                <h2 className="text-lg font-medium text-neutral-900 mb-4">Pricing</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Total Price</label>
-                    <p className="mt-1 text-sm font-medium text-gray-900">
+                    <label className="text-sm font-medium text-neutral-500">Total Price</label>
+                    <p className="mt-1 text-sm font-medium text-neutral-900">
                       {formatCurrency(booking.totalPrice, booking.currency)}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Outstanding Balance</label>
+                    <label className="text-sm font-medium text-neutral-500">Outstanding Balance</label>
                     <p
                       className={`mt-1 text-sm font-medium ${
                         outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'
@@ -348,16 +352,16 @@ export default function BookingDetailPage() {
               {/* Source Information */}
               {booking.sourceReservationId && (
                 <div>
-                  <h2 className="text-lg font-medium text-gray-900 mb-4">Source Information</h2>
+                  <h2 className="text-lg font-medium text-neutral-900 mb-4">Source Information</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Source Reservation ID</label>
-                      <p className="mt-1 text-sm text-gray-900">{booking.sourceReservationId}</p>
+                      <label className="text-sm font-medium text-neutral-500">Source Reservation ID</label>
+                      <p className="mt-1 text-sm text-neutral-900">{booking.sourceReservationId}</p>
                     </div>
                     {booking.commissionAmount && (
                       <div>
-                        <label className="text-sm font-medium text-gray-500">Commission</label>
-                        <p className="mt-1 text-sm text-gray-900">
+                        <label className="text-sm font-medium text-neutral-500">Commission</label>
+                        <p className="mt-1 text-sm text-neutral-900">
                           {formatCurrency(booking.commissionAmount, booking.currency)}
                         </p>
                       </div>
@@ -370,7 +374,7 @@ export default function BookingDetailPage() {
 
           {activeTab === 'timeline' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Timeline</h2>
+              <h2 className="text-lg font-medium text-neutral-900 mb-4">Timeline</h2>
               <BookingTimeline
                 auditLogs={booking.bookingAuditLogs || []}
                 payments={booking.payments || []}
@@ -380,7 +384,7 @@ export default function BookingDetailPage() {
 
           {activeTab === 'payments' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Payments</h2>
+              <h2 className="text-lg font-medium text-neutral-900 mb-4">Payments</h2>
               <BookingPayments
                 payments={booking.payments || []}
                 outstandingBalance={outstandingBalance}
@@ -401,7 +405,7 @@ export default function BookingDetailPage() {
 
           {activeTab === 'notes' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Notes</h2>
+              <h2 className="text-lg font-medium text-neutral-900 mb-4">Notes</h2>
               <BookingNotes
                 booking={booking}
                 onUpdate={handleModalSuccess}
@@ -411,68 +415,77 @@ export default function BookingDetailPage() {
 
           {activeTab === 'actions' && (
             <div className="space-y-4">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Actions</h2>
+              <h2 className="text-lg font-medium text-neutral-900 mb-4">Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Status-based actions */}
                 {booking.status === 'PENDING' && (
-                  <button
+                  <Button
                     onClick={() => handleAction('confirm', booking)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                    variant="primary"
+                    size="sm"
                   >
                     ✓ Confirm Booking
-                  </button>
+                  </Button>
                 )}
                 {['PENDING', 'CONFIRMED'].includes(booking.status) && (
                   <>
-                    <button
+                    <Button
                       onClick={() => handleAction('modify', booking)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                      variant="primary"
+                      size="sm"
                     >
                       ✏️ Modify Booking
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleAction('hold', booking)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
+                      variant="secondary"
+                      size="sm"
                     >
                       ⏸️ Hold Booking
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleAction('cancel', booking)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                      variant="primary"
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700"
                     >
                       ✕ Cancel Booking
-                    </button>
+                    </Button>
                   </>
                 )}
                 {booking.status === 'CONFIRMED' && (
-                  <button
+                  <Button
                     onClick={() => handleAction('check-in', booking)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                    variant="primary"
+                    size="sm"
                   >
                     🔑 Check-in
-                  </button>
+                  </Button>
                 )}
                 {booking.status === 'CHECKED_IN' && (
-                  <button
+                  <Button
                     onClick={() => handleAction('check-out', booking)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                    variant="primary"
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700"
                   >
                     🚪 Check-out
-                  </button>
+                  </Button>
                 )}
                 
                 {/* Always available actions */}
-                <button
+                <Button
                   onClick={() => handleAction('duplicate', booking)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                  variant="secondary"
+                  size="sm"
                 >
                   📋 Duplicate Booking
-                </button>
+                </Button>
               </div>
 
               {/* Help text */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-md">
-                <p className="text-sm text-gray-600">
+              <div className="mt-6 p-4 bg-neutral-50 rounded-md">
+                <p className="text-sm text-neutral-600">
                   <strong>Available Actions:</strong> Actions are shown based on the booking status. 
                   Duplicate booking creates a copy with new dates starting from today. 
                   Hold booking temporarily reserves the booking without full confirmation.
@@ -480,7 +493,7 @@ export default function BookingDetailPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Modals */}
