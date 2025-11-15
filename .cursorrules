@@ -30,19 +30,38 @@ This is a hotel/property management system with:
 
 ## Agent Context Documents
 When working on specific features, refer to these comprehensive context documents:
-- **Communication Hub Redesign**: `docs/COMMUNICATION_HUB_AGENT_CONTEXT.md` - Complete context for Communication Hub redesign project including architecture, implementation status, RBAC integration, SLA tracking, thread linking, and next steps
-- **Communication Hub Plans**: 
-  - `docs/COMMUNICATION_HUB_REDESIGN.md` - Original redesign proposal
-  - `docs/COMMUNICATION_HUB_PHASED_PLAN_V2.md` - Updated phased implementation plan
-- **Booking Module Redesign**: `docs/BOOKING_MODULE_REDESIGN_PLAN.md` - Comprehensive phased plan for booking module redesign including database schema, API endpoints, UI components, and implementation timeline
-- **Booking Module Summary**: `docs/BOOKING_MODULE_REDESIGN_SUMMARY.md` - Executive summary of booking module redesign with high-level overview
-- **Booking Lifecycle**: `docs/BOOKING_LIFECYCLE.md` - Detailed booking lifecycle, state transitions, and state machine implementation
+
+### Architecture Documentation (Authoritative - Current Implementation)
+- **Booking System**: `docs/architecture/booking.md` - Complete booking lifecycle, state machine, API endpoints, and frontend components
+- **Communication Hub**: `docs/architecture/communication-hub.md` - Unified conversation management across Email, WhatsApp, SMS, and Voice
+- **RBAC System**: `docs/architecture/rbac.md` - Role-based access control, authentication, permissions, and invite system
+- **Loyalty Program**: `docs/architecture/loyalty.md` - Multi-tier loyalty system, points calculation, tier progression, and booking integration
+
+### Operations Documentation
+- **Deployment**: `docs/operations/deployment.md` - Current deployment process for staging and production
+- **Production Readiness**: `docs/operations/production-readiness.md` - Pre-launch checklist
+- **Seed Data**: `docs/operations/seed-data.md` - Seed data scripts and usage guide
+- **Environment Variables**: `docs/operations/environment-variables.md` - Complete environment variables reference
+
+### Integration Documentation
+- **Payment (Razorpay)**: `docs/integrations/payment-razorpay.md` - Payment integration (⚠️ partial implementation, security gaps noted)
+- **Email (Postmark)**: `docs/integrations/email-postmark.md` - Transactional email system with BullMQ queue
+- **WhatsApp/SMS (Gupshup)**: `docs/integrations/whatsapp-gupshup.md` - WhatsApp and SMS messaging integration
+
+### Specifications (Future Plans)
+- **Booking Redesign**: `docs/specs/booking-redesign.md` - Future booking module enhancements
+- **Loyalty Redesign**: `docs/specs/loyalty-redesign.md` - Future loyalty program enhancements (perks, campaigns, redemption catalog)
+
+### Meta Documentation
+- **Backlog**: `docs/meta/backlog.md` - Post-MVP enhancements and GitHub Actions CI/CD setup
 
 ## When Making Changes
-- Update relevant documentation in `docs/`
+- Update relevant documentation in `docs/architecture/`, `docs/operations/`, `docs/integrations/`, or `docs/meta/`
 - Follow existing code style and patterns
 - Test changes thoroughly before committing
 - Consider database migrations for schema changes
-- For Communication Hub work: Always check `COMMUNICATION_HUB_AGENT_CONTEXT.md` first to understand current implementation status
-- For Booking Module work: Always check `BOOKING_MODULE_REDESIGN_PLAN.md` and `BOOKING_LIFECYCLE.md` first to understand booking lifecycle, state transitions, and implementation plan
+- For Booking work: Check `docs/architecture/booking.md` for current implementation
+- For Communication Hub work: Check `docs/architecture/communication-hub.md` for current implementation
+- For RBAC work: Check `docs/architecture/rbac.md` for current implementation
+- For Loyalty work: Check `docs/architecture/loyalty.md` for current implementation, `docs/specs/loyalty-redesign.md` for future plans
 
