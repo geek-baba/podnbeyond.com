@@ -7,46 +7,48 @@ This document tracks future enhancements and improvements to be implemented afte
 
 ---
 
-## 🚀 GitHub Actions CI/CD Setup (Post-MVP)
+## 🚀 GitHub Actions CI/CD Setup
 
-### Status: ⏸️ Deferred until MVP is ready
+### Status: ✅ **IMPLEMENTED**
 
-**Why:** To avoid delaying development process. Manual deployment works fine for now.
+**Implementation:** GitHub Actions workflows are fully configured and operational.
 
-### What Needs to Be Done
+### What's Implemented
 
-#### 1. Setup Auto-Deploy to Staging
-- [ ] Create `.github/workflows/deploy-staging.yml`
-- [ ] Configure to trigger on `main` branch push
-- [ ] Deploy to `staging.capsulepodhotel.com`
-- [ ] Run automated tests before deployment
-- [ ] Health checks after deployment
+#### 1. Auto-Deploy to Staging ✅
+- ✅ Created `.github/workflows/deploy-staging.yml`
+- ✅ Configured to trigger on `main` branch push
+- ✅ Deploys to `staging.capsulepodhotel.com`
+- ✅ Includes health checks after deployment
+- ✅ Smart restart logic (only restarts when code/dependencies change)
+- ✅ Migration handling with recovery logic
+- ✅ Comprehensive error handling and logging
 
-#### 2. Setup Auto-Deploy to Production
-- [ ] Create `.github/workflows/deploy-production.yml`
-- [ ] Configure to trigger on `production` branch push
-- [ ] Deploy to `capsulepodhotel.com`
-- [ ] Require manual approval for production deploys
-- [ ] Run automated tests
-- [ ] Health checks after deployment
+#### 2. Auto-Deploy to Production ✅
+- ✅ Created `.github/workflows/deploy-production.yml`
+- ✅ Configured to trigger on `production` branch push (with manual approval option)
+- ✅ Deploys to `capsulepodhotel.com`
+- ✅ Requires manual approval for production deploys (via `workflow_dispatch` or branch protection)
+- ✅ Includes health checks after deployment
+- ✅ Migration handling
 
-#### 3. Branch Strategy
-- [ ] Establish `main` → development/staging branch
-- [ ] Establish `production` → production branch (protected)
-- [ ] Create PR workflow: `main` → `production` (with review)
-- [ ] Document branching strategy
-- [ ] Note: Current workflow is manual - push to `main`, user handles `production` merges
+#### 3. Branch Strategy ✅
+- ✅ `main` → development/staging branch (auto-deploys to staging)
+- ✅ `production` → production branch (auto-deploys to production)
+- ✅ Current workflow: push to `main` (auto-deploys to staging), user handles `production` merges
 
-#### 4. GitHub Secrets Required
-- [ ] `STAGING_SSH_KEY` - SSH private key for staging user
-- [ ] `PROD_SSH_KEY` - SSH private key for production user
-- [ ] `STAGING_DEPLOY_HOST` - Staging server IP
-- [ ] `PROD_DEPLOY_HOST` - Production server IP
-- [ ] `STAGING_DEPLOY_USER` - `capsulepodhotel-staging`
-- [ ] `PROD_DEPLOY_USER` - `capsulepodhotel`
-- [ ] `STAGING_DEPLOY_PATH` - `/home/capsulepodhotel-staging/htdocs/staging.capsulepodhotel.com`
-- [ ] `PROD_DEPLOY_PATH` - `/home/capsulepodhotel/htdocs/capsulepodhotel.com`
-- [ ] Environment-specific secrets (Postmark, Razorpay, Database URLs)
+#### 4. GitHub Secrets ✅
+- ✅ All required secrets configured:
+  - `STAGING_SSH_KEY`, `PROD_SSH_KEY`
+  - `STAGING_DEPLOY_HOST`, `PROD_DEPLOY_HOST`
+  - `STAGING_DEPLOY_USER`, `PROD_DEPLOY_USER`
+  - `STAGING_DEPLOY_PATH`, `PROD_DEPLOY_PATH`
+  - Environment-specific secrets (Postmark, Razorpay, Database URLs, Redis, etc.)
+
+### Future Enhancements (Optional)
+- [ ] Add automated tests before deployment (currently placeholder)
+- [ ] Add linting checks before deployment (currently placeholder)
+- [ ] Add deployment notifications (Slack, email, etc.)
 
 ---
 
@@ -87,35 +89,67 @@ This document tracks future enhancements and improvements to be implemented afte
 ---
 
 ### 3. Redis Email Queue
-- [ ] Install Redis on production server
-- [ ] Update `REDIS_ENABLED=true` in backend `.env`
-- [ ] Test email queue functionality
-- [ ] Monitor queue performance
-- [ ] Configure queue retry logic
-- [ ] Add queue monitoring dashboard
+
+### Status: ✅ **IMPLEMENTED**
+
+**Implementation:** Redis email queue is fully implemented using BullMQ.
+
+**What's Implemented:**
+- ✅ Email queue system using BullMQ (`backend/lib/queue.js`)
+- ✅ Redis connection handling with fallback to synchronous sending
+- ✅ Queue worker with concurrency control (5 concurrent emails)
+- ✅ Retry logic (3 attempts with exponential backoff)
+- ✅ Job cleanup (completed jobs removed after 24h, failed jobs after 7 days)
+- ✅ Queue statistics endpoint (`getQueueStats()`)
+- ✅ Environment-specific queue prefixes (staging/prod separation)
+- ✅ Logs show "✅ Email queue initialized (Redis connected)"
+
+**Configuration:**
+- Set `REDIS_ENABLED=true` in backend `.env` to enable
+- Set `REDIS_HOST` and `REDIS_PORT` (defaults: localhost:6379)
+- Set `QUEUE_PREFIX` for environment separation (defaults to `NODE_ENV`)
 
 **Current State:**  
-- `REDIS_ENABLED=false` (emails sent synchronously)
+- Code is implemented and ready
+- Requires Redis server installed and `REDIS_ENABLED=true` in production `.env`
+- Falls back to synchronous email sending if Redis unavailable
 
-**Files to Update:**
-- `backend/.env`
-- `backend/lib/queue.ts` (may need updates)
-- Install Redis: `sudo apt install redis-server`
+**Optional Enhancements:**
+- [ ] Add queue monitoring dashboard (UI for queue stats)
+- [ ] Add queue metrics/alerting (monitor queue depth, failed jobs)
+- [ ] Add queue pause/resume functionality
 
 ---
 
 ### 4. PM2 Startup Script
-- [ ] Generate PM2 startup script: `pm2 startup`
-- [ ] Configure to run on server boot
-- [ ] Test server restart scenario
-- [ ] Document startup process
 
-**Commands:**
+### Status: ⚠️ **PARTIALLY IMPLEMENTED**
+
+**What's Done:**
+- ✅ `pm2 save` is executed in deployment workflows (saves current PM2 process list)
+- ✅ Deployment docs include `pm2 startup` command
+- ⚠️ Need to verify if `pm2 startup` was actually run on production/staging servers
+
+**To Complete:**
+- [ ] Verify `pm2 startup` was run on staging server
+- [ ] Verify `pm2 startup` was run on production server
+- [ ] Test server restart scenario (reboot server, verify PM2 processes auto-start)
+- [ ] Document startup process status
+
+**Commands to Run (if not already done):**
 ```bash
+# On staging server
 pm2 startup
-# Follow the instructions provided
+# Follow the instructions provided (will output a sudo command)
+pm2 save
+
+# On production server
+pm2 startup
+# Follow the instructions provided (will output a sudo command)
 pm2 save
 ```
+
+**Note:** The `pm2 startup` command generates a systemd service that auto-starts PM2 on server boot. This needs to be run once per server and requires sudo access.
 
 ---
 
@@ -202,12 +236,13 @@ find "$BACKUP_DIR" -name "backup_*.sql" -mtime +30 -delete
 ### Medium Priority (Post-Launch)
 1. [ ] Monitoring & Alerting
 2. [ ] SSL auto-renewal verification
-3. [ ] PM2 startup script
-4. [ ] GitHub Actions CI/CD
+3. [ ] PM2 startup script verification (check if already configured)
+4. ✅ ~~GitHub Actions CI/CD~~ - **DONE**
 
 ### Low Priority (Nice to Have)
-1. [ ] Redis email queue
+1. ✅ ~~Redis email queue~~ - **DONE** (code implemented, needs Redis server + env var)
 2. [ ] Advanced monitoring features
+3. [ ] Queue monitoring dashboard
 
 ---
 
@@ -235,17 +270,17 @@ find "$BACKUP_DIR" -name "backup_*.sql" -mtime +30 -delete
 ## ✅ Checklist Summary
 
 **GitHub Actions CI/CD:**
-- [ ] Staging auto-deploy workflow
-- [ ] Production auto-deploy workflow
-- [ ] Branch strategy setup
-- [ ] GitHub secrets configuration
-- [ ] Testing & validation
+- ✅ Staging auto-deploy workflow - **DONE**
+- ✅ Production auto-deploy workflow - **DONE**
+- ✅ Branch strategy setup - **DONE**
+- ✅ GitHub secrets configuration - **DONE**
+- [ ] Testing & validation (add automated tests before deployment)
 
 **Optional Enhancements:**
 - [ ] Rate limiting optimization
 - [ ] Real Razorpay credentials
-- [ ] Redis email queue
-- [ ] PM2 startup script
+- ✅ ~~Redis email queue~~ - **DONE** (code implemented)
+- [ ] PM2 startup script verification
 - [ ] SSL auto-renewal
 - [ ] Monitoring & alerting
 - [ ] Database backups
