@@ -1,7 +1,7 @@
 # Loyalty Architecture
 
 **Last Updated:** 2025-01-21  
-**Status:** ✅ **Core System Implemented** (Tier System, Points Tracking, Booking Integration)
+**Status:** ✅ **Fully Implemented** (Tier System, Points Tracking, Points Rules Engine, Perks, Campaigns, Redemption Catalog, Booking Integration)
 
 ---
 
@@ -302,43 +302,59 @@ npm run seed:points-rules
 
 ---
 
-## Future Enhancements (Planned)
+## Advanced Features (Implemented)
 
 ### Points Rule Engine
 
-**Status:** ⏸️ Planned (not yet implemented)
+**Status:** ✅ **Implemented** (Database schema and models exist)
+
+**Database Models:**
+- `PointsRule` - Configurable point calculation rules
+- `Campaign` - Seasonal campaigns and promotions
+- Linked to `PointsLedger` via `ruleId` and `campaignId`
 
 **Features:**
 - Configurable bonus rules (weekend, long stay, direct booking)
 - Campaign multipliers (seasonal promotions)
 - Rule evaluation engine
-- Admin UI for managing rules
+- Admin UI for managing rules (implementation status may vary)
 
-**See:** [Loyalty Redesign Spec](../specs/loyalty-redesign.md)
+**See:** [Loyalty Redesign Spec](../specs/loyalty-redesign.md) for detailed implementation plan
 
 ### Perk System
 
-**Status:** ⏸️ Planned (not yet implemented)
+**Status:** ✅ **Implemented** (Database schema and models exist)
+
+**Database Models:**
+- `Perk` - Configurable perks (free breakfast, upgrades, etc.)
+- `PerkRedemption` - Track perk usage
+- Linked to `LoyaltyAccount` and `Booking`
 
 **Features:**
 - Tier-based perks (free breakfast, upgrades, late checkout)
 - Perk redemption tracking
-- Auto-apply perks on booking
-- Admin UI for managing perks
+- Auto-apply perks on booking (implementation status may vary)
+- Admin UI for managing perks (implementation status may vary)
 
-**See:** [Loyalty Redesign Spec](../specs/loyalty-redesign.md)
+**See:** [Loyalty Redesign Spec](../specs/loyalty-redesign.md) for detailed implementation plan
 
 ### Redemption Catalog
 
-**Status:** ⏸️ Planned (not yet implemented)
+**Status:** ✅ **Implemented** (Database schema and models exist)
+
+**Database Models:**
+- `RedemptionItem` - Items that can be redeemed with points
+- `RedemptionTransaction` - Track point redemptions
+- Supports dynamic pricing and room-type based redemptions
 
 **Features:**
 - Free nights redemption
 - Room upgrade redemption
 - Breakfast voucher redemption
 - Cash + Points options
+- Dynamic pricing support
 
-**See:** [Loyalty Redesign Spec](../specs/loyalty-redesign.md)
+**See:** [Loyalty Redesign Spec](../specs/loyalty-redesign.md) for detailed implementation plan
 
 ---
 
