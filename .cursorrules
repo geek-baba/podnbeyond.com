@@ -48,9 +48,10 @@ When working on specific features, refer to these comprehensive context document
 - **Email (Postmark)**: `docs/integrations/email-postmark.md` - Transactional email system with BullMQ queue
 - **WhatsApp/SMS (Gupshup)**: `docs/integrations/whatsapp-gupshup.md` - WhatsApp and SMS messaging integration
 
-### Specifications (Future Plans)
-- **Booking Redesign**: `docs/specs/booking-redesign.md` - Future booking module enhancements
-- **Loyalty Redesign**: `docs/specs/loyalty-redesign.md` - Future loyalty program enhancements (perks, campaigns, redemption catalog)
+### Specifications (Historical Reference)
+- **Booking Redesign**: `docs/specs/booking-redesign.md` - Historical redesign plan (led to current implementation in `docs/architecture/booking.md`)
+- **Communication Hub v2**: `docs/specs/communication-hub-v2.md` - Historical redesign plan (led to current implementation in `docs/architecture/communication-hub.md`)
+- **Loyalty Redesign**: `docs/specs/loyalty-redesign.md` - Historical redesign plan (led to current implementation in `docs/architecture/loyalty.md` - includes perks, campaigns, redemption catalog, points rules engine)
 
 ### Meta Documentation
 - **Backlog**: `docs/meta/backlog.md` - Post-MVP enhancements and GitHub Actions CI/CD setup

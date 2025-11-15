@@ -4,6 +4,8 @@
  */
 
 import React, { useState } from 'react';
+import Button from '../ui/Button';
+import Card from '../ui/Card';
 import { BookingFilters as BookingFiltersType, BookingStatus, BookingSource } from '../../lib/booking';
 
 interface BookingFiltersProps {
@@ -51,11 +53,11 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
   ];
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+    <Card variant="default" padding="md" className="mb-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* Search */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Search
           </label>
           <input
@@ -63,20 +65,20 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
             placeholder="Name, email, confirmation number..."
             value={localFilters.search || ''}
             onChange={(e) => handleFilterChange('search', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
         </div>
 
         {/* Property */}
         {properties.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-neutral-700 mb-1">
               Property
             </label>
             <select
               value={localFilters.propertyId || ''}
               onChange={(e) => handleFilterChange('propertyId', e.target.value ? parseInt(e.target.value) : undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
             >
               <option value="">All Properties</option>
               {properties.map((property) => (
@@ -90,13 +92,13 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
 
         {/* Status */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Status
           </label>
           <select
             value={localFilters.status || ''}
             onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           >
             <option value="">All Statuses</option>
             {statusOptions.map((status) => (
@@ -109,13 +111,13 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
 
         {/* Source */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Source
           </label>
           <select
             value={localFilters.source || ''}
             onChange={(e) => handleFilterChange('source', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           >
             <option value="">All Sources</option>
             {sourceOptions.map((source) => (
@@ -128,67 +130,68 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
 
         {/* Check-in From */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Check-in From
           </label>
           <input
             type="date"
             value={localFilters.checkInFrom || ''}
             onChange={(e) => handleFilterChange('checkInFrom', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
         </div>
 
         {/* Check-in To */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Check-in To
           </label>
           <input
             type="date"
             value={localFilters.checkInTo || ''}
             onChange={(e) => handleFilterChange('checkInTo', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
         </div>
 
         {/* Check-out From */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Check-out From
           </label>
           <input
             type="date"
             value={localFilters.checkOutFrom || ''}
             onChange={(e) => handleFilterChange('checkOutFrom', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
         </div>
 
         {/* Check-out To */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-700 mb-1">
             Check-out To
           </label>
           <input
             type="date"
             value={localFilters.checkOutTo || ''}
             onChange={(e) => handleFilterChange('checkOutTo', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
         </div>
       </div>
 
       {/* Reset Button */}
       <div className="mt-4 flex justify-end">
-        <button
+        <Button
           onClick={handleReset}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          variant="secondary"
+          size="sm"
         >
           Reset Filters
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 
