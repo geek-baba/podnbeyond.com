@@ -24,7 +24,7 @@ This document tracks future enhancements and improvements to be implemented afte
 
 #### 2. Setup Auto-Deploy to Production
 - [ ] Create `.github/workflows/deploy-production.yml`
-- [ ] Configure to trigger on `prod` branch push
+- [ ] Configure to trigger on `production` branch push
 - [ ] Deploy to `capsulepodhotel.com`
 - [ ] Require manual approval for production deploys
 - [ ] Run automated tests
@@ -32,9 +32,10 @@ This document tracks future enhancements and improvements to be implemented afte
 
 #### 3. Branch Strategy
 - [ ] Establish `main` → development/staging branch
-- [ ] Establish `prod` → production branch (protected)
-- [ ] Create PR workflow: `main` → `prod` (with review)
+- [ ] Establish `production` → production branch (protected)
+- [ ] Create PR workflow: `main` → `production` (with review)
 - [ ] Document branching strategy
+- [ ] Note: Current workflow is manual - push to `main`, user handles `production` merges
 
 #### 4. GitHub Secrets Required
 - [ ] `STAGING_SSH_KEY` - SSH private key for staging user
