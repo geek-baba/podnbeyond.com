@@ -11,6 +11,7 @@ import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
+import { useToast } from '../../../components/ui/toast';
 import axios from 'axios';
 
 interface Campaign {
@@ -36,6 +37,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export default function CampaignsPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useAuth();
+  const { toast } = useToast();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,10 +165,19 @@ export default function CampaignsPage() {
       await axios.delete(`${API_URL}/api/loyalty/campaigns/${id}`, {
         withCredentials: true,
       });
+      toast({
+        variant: 'success',
+        title: 'Campaign deleted',
+        message: 'The campaign has been removed',
+      });
       fetchCampaigns();
     } catch (err: any) {
       console.error('Error deleting campaign:', err);
-      alert(err.response?.data?.error || 'Failed to delete campaign');
+      toast({
+        variant: 'error',
+        title: 'Failed to delete campaign',
+        message: err.response?.data?.error || err.message,
+      });
     }
   };
 
@@ -180,7 +191,12 @@ export default function CampaignsPage() {
       try {
         rules = JSON.parse(formData.rules);
       } catch (err) {
-        setError('Invalid JSON in rules');
+        toast({
+          variant: 'error',
+          title: 'Invalid JSON',
+          message: 'Please check the rules JSON format',
+          duration: null, // Persistent until dismissed
+        });
         return;
       }
 
@@ -201,11 +217,20 @@ export default function CampaignsPage() {
         });
       }
 
+      toast({
+        variant: 'success',
+        title: 'Campaign saved',
+        message: editingCampaign ? 'Campaign updated successfully' : 'Campaign created successfully',
+      });
       setShowModal(false);
       fetchCampaigns();
     } catch (err: any) {
       console.error('Error saving campaign:', err);
-      setError(err.response?.data?.error || 'Failed to save campaign');
+      toast({
+        variant: 'error',
+        title: 'Failed to save campaign',
+        message: err.response?.data?.error || err.message,
+      });
     }
   };
 
@@ -318,12 +343,7 @@ export default function CampaignsPage() {
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+        {/* Error messages now use toast notifications */}
 
         {/* Campaigns List */}
         {loading ? (

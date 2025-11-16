@@ -11,6 +11,7 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/Tabs';
+import { useToast } from '../../../components/ui/toast';
 import {
   getBooking,
   Booking,
@@ -42,6 +43,7 @@ import IssueRefundModal from '../../../components/booking/IssueRefundModal';
 export default function BookingDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { toast } = useToast();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,9 +131,19 @@ export default function BookingDetailPage() {
         if (confirm('Are you sure you want to confirm this booking?')) {
           try {
             await confirmBooking(booking.id);
+            toast({
+              variant: 'success',
+              title: 'Booking confirmed',
+              message: 'The booking has been confirmed successfully',
+              duration: 5000,
+            });
             await handleModalSuccess();
           } catch (err: any) {
-            alert(`Failed to confirm booking: ${err.message}`);
+            toast({
+              variant: 'error',
+              title: 'Failed to confirm booking',
+              message: err.message,
+            });
           }
         }
         break;
@@ -143,9 +155,19 @@ export default function BookingDetailPage() {
               holdExpiresAt: holdExpiresAt || undefined,
               notes: 'Booking placed on hold by staff'
             });
+            toast({
+              variant: 'warning',
+              title: 'Booking held',
+              message: 'This booking is now on hold',
+              duration: 4000,
+            });
             await handleModalSuccess();
           } catch (err: any) {
-            alert(`Failed to hold booking: ${err.message}`);
+            toast({
+              variant: 'error',
+              title: 'Failed to hold booking',
+              message: err.message,
+            });
           }
         }
         break;
@@ -154,10 +176,19 @@ export default function BookingDetailPage() {
           try {
             const response = await duplicateBooking(booking.id);
             if (response.success && response.data) {
+              toast({
+                variant: 'success',
+                title: 'Booking duplicated',
+                message: 'A copy of this booking has been created',
+              });
               router.push(`/admin/bookings/${response.data.id}`);
             }
           } catch (err: any) {
-            alert(`Failed to duplicate booking: ${err.message}`);
+            toast({
+              variant: 'error',
+              title: 'Failed to duplicate booking',
+              message: err.message,
+            });
           }
         }
         break;

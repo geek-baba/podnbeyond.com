@@ -9,6 +9,7 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { useToast } from '../../components/ui/toast';
 
 interface Integration {
   id: number;
@@ -140,9 +141,8 @@ export default function IntegrationsAdmin() {
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
+  const { toast } = useToast();
 
   // Check authorization
   useEffect(() => {
@@ -176,7 +176,6 @@ export default function IntegrationsAdmin() {
   const loadIntegrations = async () => {
     try {
       setLoading(true);
-      setError(null);
       
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -205,14 +204,26 @@ export default function IntegrationsAdmin() {
       if (data.success) {
         setIntegrations(data.integrations || []);
       } else {
-        setError(data.error || 'Failed to load integrations');
+        toast({
+          variant: 'error',
+          title: 'Failed to load integrations',
+          message: data.error || 'Please refresh the page',
+        });
       }
     } catch (error: any) {
       console.error('Failed to load integrations:', error);
       if (error.name === 'AbortError') {
-        setError('Request timeout. Please refresh the page.');
+        toast({
+          variant: 'error',
+          title: 'Request timeout',
+          message: 'Please refresh the page',
+        });
       } else {
-        setError(`Failed to load integrations: ${error.message || 'Unknown error'}`);
+        toast({
+          variant: 'error',
+          title: 'Failed to load integrations',
+          message: error.message || 'Unknown error',
+        });
       }
     } finally {
       setLoading(false);
@@ -226,8 +237,6 @@ export default function IntegrationsAdmin() {
       config: { ...integration.config }
     });
     setShowForm(true);
-    setError(null);
-    setSuccess(null);
   };
 
   const handleCreate = (provider: string) => {
@@ -258,8 +267,6 @@ export default function IntegrationsAdmin() {
       testMode: false,
     });
     setShowForm(true);
-    setError(null);
-    setSuccess(null);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -267,8 +274,6 @@ export default function IntegrationsAdmin() {
     if (!formData) return;
 
     setSaving(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const response = await fetch('/api/integrations', {
@@ -283,7 +288,11 @@ export default function IntegrationsAdmin() {
       const data = await response.json();
       
       if (data.success) {
-        setSuccess('Integration saved successfully');
+        toast({
+          variant: 'success',
+          title: 'Integration saved',
+          message: 'Configuration updated successfully',
+        });
         setShowForm(false);
         setFormData(null);
         setSelectedIntegration(null);
@@ -291,10 +300,18 @@ export default function IntegrationsAdmin() {
         // Clear cache on backend
         await fetch('/api/integrations/clear-cache', { method: 'POST' }).catch(() => {});
       } else {
-        setError(data.error || 'Failed to save integration');
+        toast({
+          variant: 'error',
+          title: 'Save failed',
+          message: data.error || 'Failed to save integration',
+        });
       }
     } catch (error: any) {
-      setError(error.message || 'Failed to save integration');
+      toast({
+        variant: 'error',
+        title: 'Save failed',
+        message: error.message || 'Failed to save integration',
+      });
     } finally {
       setSaving(false);
     }
@@ -321,8 +338,6 @@ export default function IntegrationsAdmin() {
 
   const handleTest = async (provider: string) => {
     setTesting(provider);
-    setError(null);
-    setSuccess(null);
 
     try {
       const response = await fetch(`/api/integrations/${provider}/test`, {
@@ -332,16 +347,32 @@ export default function IntegrationsAdmin() {
       const data = await response.json();
       if (data.success && data.testResult) {
         if (data.testResult.success) {
-          setSuccess(`Connection test successful: ${data.testResult.message}`);
+          toast({
+            variant: 'success',
+            title: 'Connection test successful',
+            message: data.testResult.message,
+          });
         } else {
-          setError(`Connection test failed: ${data.testResult.message}`);
+          toast({
+            variant: 'error',
+            title: 'Connection test failed',
+            message: data.testResult.message,
+          });
         }
         await loadIntegrations();
       } else {
-        setError('Failed to test integration');
+        toast({
+          variant: 'error',
+          title: 'Test failed',
+          message: 'Failed to test integration',
+        });
       }
     } catch (error: any) {
-      setError(error.message || 'Failed to test integration');
+      toast({
+        variant: 'error',
+        title: 'Test failed',
+        message: error.message || 'Failed to test integration',
+      });
     } finally {
       setTesting(null);
     }
@@ -493,17 +524,7 @@ export default function IntegrationsAdmin() {
       <Container>
         <div className="py-8">
 
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-              {success}
-            </div>
-          )}
+          {/* Error and success messages now use toast notifications */}
 
           {/* Available Providers to Add - Redesigned as List */}
           {Object.keys(groupedAvailableProviders).length > 0 && (

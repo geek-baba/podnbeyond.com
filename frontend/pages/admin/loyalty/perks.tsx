@@ -11,6 +11,7 @@ import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
+import { useToast } from '../../../components/ui/toast';
 import axios from 'axios';
 
 interface Perk {
@@ -42,6 +43,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export default function PerksPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useAuth();
+  const { toast } = useToast();
   const [perks, setPerks] = useState<Perk[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,10 +165,19 @@ export default function PerksPage() {
       await axios.delete(`${API_URL}/api/loyalty/perks/${id}`, {
         withCredentials: true,
       });
+      toast({
+        variant: 'success',
+        title: 'Perk deleted',
+        message: 'The perk has been removed',
+      });
       fetchPerks();
     } catch (err: any) {
       console.error('Error deleting perk:', err);
-      alert(err.response?.data?.error || 'Failed to delete perk');
+      toast({
+        variant: 'error',
+        title: 'Failed to delete perk',
+        message: err.response?.data?.error || err.message,
+      });
     }
   };
 
@@ -181,7 +192,12 @@ export default function PerksPage() {
         conditions = JSON.parse(formData.conditions);
         value = JSON.parse(formData.value);
       } catch (err) {
-        setError('Invalid JSON in conditions or value');
+        toast({
+          variant: 'error',
+          title: 'Invalid JSON',
+          message: 'Please check the conditions or value JSON format',
+          duration: null, // Persistent until dismissed
+        });
         return;
       }
 
@@ -206,11 +222,20 @@ export default function PerksPage() {
         });
       }
 
+      toast({
+        variant: 'success',
+        title: 'Perk saved',
+        message: editingPerk ? 'Perk updated successfully' : 'Perk created successfully',
+      });
       setShowModal(false);
       fetchPerks();
     } catch (err: any) {
       console.error('Error saving perk:', err);
-      setError(err.response?.data?.error || 'Failed to save perk');
+      toast({
+        variant: 'error',
+        title: 'Failed to save perk',
+        message: err.response?.data?.error || err.message,
+      });
     }
   };
 
@@ -322,12 +347,7 @@ export default function PerksPage() {
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+        {/* Error messages now use toast notifications */}
 
         {/* Perks List */}
         {loading ? (
