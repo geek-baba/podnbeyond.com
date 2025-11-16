@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/useAuth';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Header from '../../components/layout/Header';
-import Footer from '../../components/layout/Footer';
+import AdminShell, { BreadcrumbItem } from '../../components/layout/AdminShell';
+import PageHeader from '../../components/layout/PageHeader';
 import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -131,7 +130,7 @@ const INTEGRATION_TEMPLATES = {
 };
 
 export default function IntegrationsAdmin() {
-  const { data: session, status: authStatus, signOut } = useAuth();
+  const { data: session, status: authStatus } = useAuth();
   const router = useRouter();
   
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -443,83 +442,38 @@ export default function IntegrationsAdmin() {
 
   if (authStatus === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">
-          {authStatus === 'loading' ? 'Checking authentication...' : 'Loading integrations...'}
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto mb-4"></div>
+          <p className="text-neutral-600">
+            {authStatus === 'loading' ? 'Checking authentication...' : 'Loading integrations...'}
+          </p>
         </div>
       </div>
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Integrations' },
+  ];
+
   return (
-    <>
-      <Head>
-        <title>Third-Party Integrations - Admin</title>
-      </Head>
-      <Header />
-
-      {/* Admin Header - Matching Admin Dashboard */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            {/* Left: User Info */}
-            <div className="flex items-start gap-6">
-              {/* User Info - Top Left */}
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                  </p>
-                </div>
-                <div className="h-12 w-px bg-neutral-700"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Title */}
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Third-Party Integrations</h1>
-              <p className="text-neutral-300 text-sm">Manage API keys, credentials, and enable/disable integrations</p>
-            </div>
-          </div>
-
-          {/* Header Tabs - Like Communication Hub */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <a href="/admin/communication-hub">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/communication-hub')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                💬 Communication Hub
-              </button>
-            </a>
-            <a href="/admin/integrations">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/integrations')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ⚙️ Integrations
-              </button>
-            </a>
-            <a href="/admin">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ← Admin Dashboard
-              </button>
-            </a>
-          </div>
-        </Container>
-      </section>
+    <AdminShell
+      title="Integrations | POD N BEYOND Admin"
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title="Integrations"
+        subtitle="Manage API keys, credentials, and enable or disable integrations."
+        secondaryActions={
+          <a href="/admin/communication-hub">
+            <Button variant="secondary" size="sm">
+              Communication Hub
+            </Button>
+          </a>
+        }
+      />
 
       <Container>
         <div className="py-8">
@@ -1024,8 +978,7 @@ export default function IntegrationsAdmin() {
           ))}
         </div>
       </Container>
-      <Footer />
-    </>
+    </AdminShell>
   );
 }
 

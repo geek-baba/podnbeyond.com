@@ -6,9 +6,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../lib/useAuth';
-import Head from 'next/head';
-import Header from '../../../components/layout/Header';
+import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShell';
+import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
+import Button from '../../../components/ui/Button';
 import {
   getBookings,
   Booking,
@@ -21,7 +22,7 @@ import {
 
 export default function BookingCalendarPage() {
   const router = useRouter();
-  const { data: session, status: authStatus, signOut } = useAuth();
+  const { status: authStatus } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +164,7 @@ export default function BookingCalendarPage() {
     year: 'numeric',
   });
 
-  // Show loading state
+  // Show loading / unauthenticated state
   if (authStatus === 'loading' || authStatus === 'unauthenticated') {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -175,92 +176,51 @@ export default function BookingCalendarPage() {
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Bookings', href: '/admin/bookings' },
+    { label: 'Booking Calendar' },
+  ];
+
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Booking Calendar | POD N BEYOND Admin</title>
-        <meta name="description" content="Booking calendar view" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <Header />
-
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            {/* Left: User Info */}
-            <div className="flex items-start gap-6">
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                  </p>
-                </div>
-                <div className="h-12 w-px bg-neutral-700"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Title */}
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Booking Calendar</h1>
-              <p className="text-neutral-300 text-sm">Visual calendar view of all bookings</p>
-            </div>
-          </div>
-
-          {/* Booking Navigation */}
-          <div className="flex items-center gap-3 flex-wrap">
+    <AdminShell
+      title="Booking Calendar | POD N BEYOND Admin"
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title="Booking Calendar"
+        subtitle="Visual calendar view of all bookings"
+        secondaryActions={
+          <>
             <a href="/admin/bookings">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                📋 All Bookings
-              </button>
+              <Button variant="secondary" size="sm">
+                All Bookings
+              </Button>
             </a>
             <a href="/admin/bookings/new">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ➕ Create Booking
-              </button>
+              <Button size="sm">
+                Create Booking
+              </Button>
             </a>
-            <a href="/admin/bookings/calendar">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white text-neutral-900">
-                📅 Calendar View
-              </button>
-            </a>
-            <a href="/admin">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ← Admin Dashboard
-              </button>
-            </a>
-          </div>
-        </Container>
-      </section>
+          </>
+        }
+      />
 
-      {/* Content */}
-      <section className="py-12">
-        <Container>
+      <Container>
           {/* Calendar Controls */}
-          <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <div className="bg-white shadow-card rounded-card p-6 mb-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 <button
                   onClick={previousMonth}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+                  className="px-4 py-2 border border-neutral-300 rounded-button hover:bg-neutral-50 text-neutral-700"
                 >
                   ← Previous
                 </button>
-                <h2 className="text-2xl font-bold text-gray-900">{monthYearString}</h2>
+                <h2 className="text-2xl font-bold text-neutral-900">{monthYearString}</h2>
                 <button
                   onClick={nextMonth}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+                  className="px-4 py-2 border border-neutral-300 rounded-button hover:bg-neutral-50 text-neutral-700"
                 >
                   Next →
                 </button>
@@ -275,11 +235,11 @@ export default function BookingCalendarPage() {
               {/* Property Filter */}
               {properties.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">Property</label>
                   <select
                     value={selectedProperty}
                     onChange={(e) => setSelectedProperty(e.target.value ? Number(e.target.value) : '')}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">All Properties</option>
                     {properties.map((property) => (
@@ -310,13 +270,13 @@ export default function BookingCalendarPage() {
 
           {/* Calendar Grid */}
           {!loading && !error && (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-white shadow-card rounded-card overflow-hidden">
               {/* Calendar Header - Days of week */}
-              <div className="grid grid-cols-7 border-b border-gray-200">
+              <div className="grid grid-cols-7 border-b border-neutral-200">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                   <div
                     key={day}
-                    className="px-4 py-3 text-center text-sm font-semibold text-gray-700 bg-gray-50"
+                    className="px-4 py-3 text-center text-sm font-semibold text-neutral-700 bg-neutral-50"
                   >
                     {day}
                   </div>
@@ -332,13 +292,13 @@ export default function BookingCalendarPage() {
                   return (
                     <div
                       key={index}
-                      className={`min-h-[120px] border-b border-r border-gray-200 p-2 ${
-                        !date ? 'bg-gray-50' : isTodayDate ? 'bg-blue-50' : 'bg-white'
-                      } ${date ? 'hover:bg-gray-50' : ''}`}
+                      className={`min-h-[120px] border-b border-r border-neutral-200 p-2 ${
+                        !date ? 'bg-neutral-50' : isTodayDate ? 'bg-blue-50' : 'bg-white'
+                      } ${date ? 'hover:bg-neutral-50' : ''}`}
                     >
                       {date && (
                         <>
-                          <div className={`text-sm font-semibold mb-1 ${isTodayDate ? 'text-blue-600' : 'text-gray-900'}`}>
+                          <div className={`text-sm font-semibold mb-1 ${isTodayDate ? 'text-blue-600' : 'text-neutral-900'}`}>
                             {date.getDate()}
                           </div>
                           <div className="space-y-1 max-h-[80px] overflow-y-auto">
@@ -356,7 +316,7 @@ export default function BookingCalendarPage() {
                               </div>
                             ))}
                             {dayBookings.length > 3 && (
-                              <div className="text-xs text-gray-500 font-medium">
+                              <div className="text-xs text-neutral-500 font-medium">
                                 +{dayBookings.length - 3} more
                               </div>
                             )}
@@ -372,8 +332,8 @@ export default function BookingCalendarPage() {
 
           {/* Legend */}
           {!loading && !error && (
-            <div className="mt-6 bg-white shadow rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Legend</h3>
+            <div className="mt-6 bg-white shadow-card rounded-card p-4">
+              <h3 className="text-sm font-semibold text-neutral-700 mb-2">Legend</h3>
               <div className="flex flex-wrap gap-4 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-blue-50 border border-blue-300 rounded"></div>
@@ -389,8 +349,7 @@ export default function BookingCalendarPage() {
             </div>
           )}
         </Container>
-      </section>
-    </div>
+    </AdminShell>
   );
 }
 
