@@ -6,9 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../lib/useAuth';
-import Head from 'next/head';
-import Header from '../../../components/layout/Header';
+import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShell';
+import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
+import Card from '../../../components/ui/Card';
+import Button from '../../../components/ui/Button';
 import axios from 'axios';
 
 interface PointsRule {
@@ -221,54 +223,28 @@ export default function PointsRulesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Points Rules | POD N BEYOND Admin</title>
-        <meta name="description" content="Manage loyalty points calculation rules" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <Header />
-
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            <div className="flex items-start gap-6">
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Points Rules Management</h1>
-                <p className="text-neutral-300">Configure loyalty points calculation rules</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push('/admin/loyalty')}
-                className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors text-sm"
-              >
-                ← Back to Loyalty Program
-              </button>
-              <button
-                onClick={handleCreate}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
-              >
-                + Create Rule
-              </button>
-            </div>
-          </div>
-        </Container>
-      </section>
+    <AdminShell
+      title="Points Rules | POD N BEYOND Admin"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/admin' },
+        { label: 'Loyalty', href: '/admin/loyalty' },
+        { label: 'Points Rules' },
+      ]}
+    >
+      <PageHeader
+        title="Points Rules Management"
+        subtitle="Configure loyalty points calculation rules"
+        primaryAction={<Button onClick={handleCreate}>Add Rule</Button>}
+        secondaryActions={
+          <Button variant="secondary" size="sm" onClick={() => router.push('/admin/loyalty')}>
+            Back to Loyalty
+          </Button>
+        }
+      />
 
       <Container>
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <Card variant="default" padding="md" className="mb-6">
           <div className="flex items-center gap-4 flex-wrap">
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
@@ -297,7 +273,7 @@ export default function PointsRulesPage() {
               </select>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Error Message */}
         {error && (
@@ -313,17 +289,12 @@ export default function PointsRulesPage() {
             <p className="text-neutral-600">Loading rules...</p>
           </div>
         ) : rules.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <Card variant="default" padding="lg" className="text-center">
             <p className="text-neutral-600 mb-4">No points rules found</p>
-            <button
-              onClick={handleCreate}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Create Your First Rule
-            </button>
-          </div>
+            <Button onClick={handleCreate}>Create Your First Rule</Button>
+          </Card>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <Card variant="default" padding="none" className="overflow-hidden">
             <table className="min-w-full divide-y divide-neutral-200">
               <thead className="bg-neutral-50">
                 <tr>
@@ -368,7 +339,7 @@ export default function PointsRulesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        rule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        rule.isActive ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-800'
                       }`}>
                         {rule.isActive ? 'Active' : 'Inactive'}
                       </span>
@@ -401,7 +372,7 @@ export default function PointsRulesPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </Container>
 
@@ -552,7 +523,7 @@ export default function PointsRulesPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminShell>
   );
 }
 

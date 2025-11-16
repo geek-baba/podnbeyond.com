@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Head from 'next/head';
+import AdminShell, { BreadcrumbItem } from '../../components/layout/AdminShell';
+import PageHeader from '../../components/layout/PageHeader';
+import Container from '../../components/layout/Container';
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 
 interface Content {
   id: number;
@@ -311,30 +315,25 @@ const CMSAdminPage: React.FC = () => {
   ];
 
   return (
-    <>
-      <Head>
-        <title>CMS Admin - Pod & Beyond Hotel</title>
-      </Head>
+    <AdminShell
+      title="CMS Admin | POD N BEYOND"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/admin' },
+        { label: 'CMS' },
+      ]}
+    >
+      <PageHeader
+        title="CMS Management"
+        subtitle="Manage your hotel website content"
+        primaryAction={
+          <a href="/admin">
+            <Button variant="secondary" size="sm">Back to Admin</Button>
+          </a>
+        }
+      />
 
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">CMS Management</h1>
-                <p className="mt-2 text-gray-600">Manage your hotel website content</p>
-              </div>
-              <a
-                href="/admin"
-                className="inline-flex items-center px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                ← Back to Admin
-              </a>
-            </div>
-          </div>
-
-          {/* Tabs */}
+      <Container>
+        {/* Tabs */}
           <div className="mb-8">
             <div className="border-b border-gray-200">
               <nav className="-mb-px flex space-x-8">
@@ -366,7 +365,7 @@ const CMSAdminPage: React.FC = () => {
           )}
 
           {/* Content */}
-          <div className="bg-white rounded-lg shadow">
+          <Card variant="default" padding="lg">
             {loading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
@@ -858,10 +857,9 @@ const CMSAdminPage: React.FC = () => {
                 )}
               </div>
             )}
-          </div>
-        </div>
-      </div>
-    </>
+          </Card>
+      </Container>
+    </AdminShell>
   );
 };
 

@@ -6,9 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../lib/useAuth';
-import Head from 'next/head';
-import Header from '../../../components/layout/Header';
+import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShell';
+import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
+import Card from '../../../components/ui/Card';
+import Button from '../../../components/ui/Button';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
 import { useToast } from '../../../components/ui/toast';
@@ -266,54 +268,28 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Campaigns Management | POD N BEYOND Admin</title>
-        <meta name="description" content="Manage loyalty campaigns" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <Header />
-
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            <div className="flex items-start gap-6">
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Campaigns Management</h1>
-                <p className="text-neutral-300">Configure seasonal campaigns and promotions</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push('/admin/loyalty')}
-                className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors text-sm"
-              >
-                ← Back to Loyalty Program
-              </button>
-              <button
-                onClick={handleCreate}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm font-medium"
-              >
-                + Create Campaign
-              </button>
-            </div>
-          </div>
-        </Container>
-      </section>
+    <AdminShell
+      title="Campaigns Management | POD N BEYOND Admin"
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/admin' },
+        { label: 'Loyalty', href: '/admin/loyalty' },
+        { label: 'Campaigns' },
+      ]}
+    >
+      <PageHeader
+        title="Campaigns Management"
+        subtitle="Configure seasonal campaigns and promotions"
+        primaryAction={<Button onClick={handleCreate}>Create Campaign</Button>}
+        secondaryActions={
+          <Button variant="secondary" size="sm" onClick={() => router.push('/admin/loyalty')}>
+            Back to Loyalty
+          </Button>
+        }
+      />
 
       <Container>
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <Card variant="default" padding="md" className="mb-6">
           <div className="flex items-center gap-4 flex-wrap">
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
@@ -341,7 +317,7 @@ export default function CampaignsPage() {
               </select>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Error messages now use toast notifications */}
 
@@ -352,17 +328,12 @@ export default function CampaignsPage() {
             <p className="text-neutral-600">Loading campaigns...</p>
           </div>
         ) : campaigns.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <Card variant="default" padding="lg" className="text-center">
             <p className="text-neutral-600 mb-4">No campaigns found</p>
-            <button
-              onClick={handleCreate}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Create Your First Campaign
-            </button>
-          </div>
+            <Button onClick={handleCreate}>Create Your First Campaign</Button>
+          </Card>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <Card variant="default" padding="none" className="overflow-hidden">
             <table className="min-w-full divide-y divide-neutral-200">
               <thead className="bg-neutral-50">
                 <tr>
@@ -448,7 +419,7 @@ export default function CampaignsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </Container>
 
@@ -579,7 +550,7 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminShell>
   );
 }
 
