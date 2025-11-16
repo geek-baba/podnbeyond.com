@@ -1,18 +1,18 @@
 import React, { forwardRef } from 'react';
 
 /**
- * Input Component
- * Accessible input with error states and focus rings
+ * SelectNative Component
+ * Native select element with consistent styling matching Input component
  */
 
-export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface SelectNativeProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   error?: string;
   variant?: 'default' | 'error' | 'disabled';
   size?: 'sm' | 'md';
   className?: string;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
+export const SelectNative = forwardRef<HTMLSelectElement, SelectNativeProps>(
   (
     {
       error,
@@ -24,6 +24,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       id,
       'aria-invalid': ariaInvalid,
       'aria-describedby': ariaDescribedBy,
+      children,
       ...props
     },
     ref
@@ -43,12 +44,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     };
 
     // Generate error ID if error exists
-    const errorId = error ? `${id || 'input'}-error` : undefined;
+    const errorId = error ? `${id || 'select'}-error` : undefined;
     const descriptionId = ariaDescribedBy || errorId;
 
     return (
       <>
-        <input
+        <select
           ref={ref}
           id={id}
           disabled={disabled || effectiveVariant === 'disabled'}
@@ -56,9 +57,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={ariaInvalid !== undefined ? ariaInvalid : !!error}
           aria-describedby={descriptionId}
           aria-required={required}
-          className={`w-full border rounded-button focus:outline-none focus:ring-2 ${sizeClasses[size]} ${variantClasses[effectiveVariant]} ${className}`}
+          className={`w-full border rounded-button focus:outline-none focus:ring-2 bg-white ${sizeClasses[size]} ${variantClasses[effectiveVariant]} ${className}`}
           {...props}
-        />
+        >
+          {children}
+        </select>
         {error && errorId && (
           <div id={errorId} className="mt-1 text-sm text-red-600" role="alert">
             {error}
@@ -69,6 +72,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-Input.displayName = 'Input';
+SelectNative.displayName = 'SelectNative';
 
-export default Input;
+export default SelectNative;
+

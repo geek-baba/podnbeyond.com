@@ -478,6 +478,7 @@ export default function BookingDetailPage() {
                   Hold booking temporarily reserves the booking without full confirmation.
                 </p>
               </div>
+            </div>
             </TabsContent>
           </Card>
         </Tabs>

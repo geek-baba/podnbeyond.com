@@ -9,6 +9,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import FormField from '../components/ui/FormField';
 import { getBookings } from '../lib/booking';
 
 interface AdminDashboardProps {
@@ -2971,45 +2972,45 @@ useEffect(() => {
                       <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-700">
                         Property Details
                       </h4>
-                      <Input
-                        label="Property Name"
-                        value={propertyForm?.name ?? ''}
-                        onChange={(event) => handlePropertyFormChange('name', event.target.value)}
-                        fullWidth
-                      />
+                      <FormField label="Property Name">
+                        <Input
+                          value={propertyForm?.name ?? ''}
+                          onChange={(event) => handlePropertyFormChange('name', event.target.value)}
+                        />
+                      </FormField>
                       <div className="grid gap-4 md:grid-cols-2">
-                        <Input
-                          label="Phone"
-                          value={propertyForm?.phone ?? ''}
-                          onChange={(event) => handlePropertyFormChange('phone', event.target.value)}
-                          fullWidth
-                        />
-                        <Input
-                          label="Email"
-                          type="email"
-                          value={propertyForm?.email ?? ''}
-                          onChange={(event) => handlePropertyFormChange('email', event.target.value)}
-                          fullWidth
-                        />
-                        <Input
-                          label="Timezone"
-                          value={propertyForm?.timezone ?? 'Asia/Kolkata'}
-                          onChange={(event) => handlePropertyFormChange('timezone', event.target.value)}
-                          fullWidth
-                        />
-                        <Input
-                          label="Currency"
-                          value={propertyForm?.currency ?? 'INR'}
-                          onChange={(event) => handlePropertyFormChange('currency', event.target.value)}
-                          fullWidth
-                        />
-                        <Input
-                          label="Default Buffer (%)"
-                          type="number"
-                          value={propertyForm?.defaultBuffer ?? '0'}
-                          onChange={(event) => handlePropertyFormChange('defaultBuffer', event.target.value)}
-                          fullWidth
-                        />
+                        <FormField label="Phone">
+                          <Input
+                            value={propertyForm?.phone ?? ''}
+                            onChange={(event) => handlePropertyFormChange('phone', event.target.value)}
+                          />
+                        </FormField>
+                        <FormField label="Email">
+                          <Input
+                            type="email"
+                            value={propertyForm?.email ?? ''}
+                            onChange={(event) => handlePropertyFormChange('email', event.target.value)}
+                          />
+                        </FormField>
+                        <FormField label="Timezone">
+                          <Input
+                            value={propertyForm?.timezone ?? 'Asia/Kolkata'}
+                            onChange={(event) => handlePropertyFormChange('timezone', event.target.value)}
+                          />
+                        </FormField>
+                        <FormField label="Currency">
+                          <Input
+                            value={propertyForm?.currency ?? 'INR'}
+                            onChange={(event) => handlePropertyFormChange('currency', event.target.value)}
+                          />
+                        </FormField>
+                        <FormField label="Default Buffer (%)">
+                          <Input
+                            type="number"
+                            value={propertyForm?.defaultBuffer ?? '0'}
+                            onChange={(event) => handlePropertyFormChange('defaultBuffer', event.target.value)}
+                          />
+                        </FormField>
                       </div>
 
                       <label className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
@@ -3023,24 +3024,24 @@ useEffect(() => {
                       </label>
 
                       <div className="grid gap-4 md:grid-cols-2">
-                        <Input
-                          label="City"
-                          value={propertyForm?.city ?? ''}
-                          onChange={(event) => handlePropertyFormChange('city', event.target.value)}
-                          fullWidth
-                        />
-                        <Input
-                          label="State"
-                          value={propertyForm?.state ?? ''}
-                          onChange={(event) => handlePropertyFormChange('state', event.target.value)}
-                          fullWidth
-                        />
-                        <Input
-                          label="Postal Code"
-                          value={propertyForm?.pincode ?? ''}
-                          onChange={(event) => handlePropertyFormChange('pincode', event.target.value)}
-                          fullWidth
-                        />
+                        <FormField label="City">
+                          <Input
+                            value={propertyForm?.city ?? ''}
+                            onChange={(event) => handlePropertyFormChange('city', event.target.value)}
+                          />
+                        </FormField>
+                        <FormField label="State">
+                          <Input
+                            value={propertyForm?.state ?? ''}
+                            onChange={(event) => handlePropertyFormChange('state', event.target.value)}
+                          />
+                        </FormField>
+                        <FormField label="Postal Code">
+                          <Input
+                            value={propertyForm?.pincode ?? ''}
+                            onChange={(event) => handlePropertyFormChange('pincode', event.target.value)}
+                          />
+                        </FormField>
                       </div>
 
                       <div>
@@ -3103,12 +3104,12 @@ useEffect(() => {
                             <div key={key} className="rounded-xl border border-neutral-200 px-4 py-4 shadow-sm">
                               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                 <div className="flex-1">
-                                  <Input
-                                    label="Room Type Name"
-                                    value={roomType.name}
-                                    onChange={(event) => updateRoomTypeField(index, 'name', event.target.value)}
-                                    fullWidth
-                                  />
+                                  <FormField label="Room Type Name">
+                                    <Input
+                                      value={roomType.name}
+                                      onChange={(event) => updateRoomTypeField(index, 'name', event.target.value)}
+                                    />
+                                  </FormField>
                                 </div>
                                 <div className="flex items-center gap-4">
                                   <label className="flex items-center gap-2 text-xs font-medium text-neutral-600">
@@ -3132,40 +3133,40 @@ useEffect(() => {
                               </div>
 
                               <div className="grid gap-4 pt-4 md:grid-cols-5">
-                                <Input
-                                  label="Base Pods"
-                                  type="number"
-                                  value={roomType.baseRooms}
-                                  onChange={(event) => updateRoomTypeField(index, 'baseRooms', event.target.value)}
-                                  fullWidth
-                                />
-                                <Input
-                                  label="Capacity"
-                                  type="number"
-                                  value={roomType.capacity}
-                                  onChange={(event) => updateRoomTypeField(index, 'capacity', event.target.value)}
-                                  fullWidth
-                                />
-                                <Input
-                                  label="BAR Price (INR)"
-                                  type="number"
-                                  value={roomType.ratePlanPrice ?? ''}
-                                  onChange={(event) => updateRoomTypeField(index, 'ratePlanPrice', event.target.value)}
-                                  fullWidth
-                                />
-                                <Input
-                                  label="Sort Order"
-                                  type="number"
-                                  value={roomType.sortOrder ?? String(index)}
-                                  onChange={(event) => updateRoomTypeField(index, 'sortOrder', event.target.value)}
-                                  fullWidth
-                                />
-                                <Input
-                                  label="Code (optional)"
-                                  value={roomType.code ?? ''}
-                                  onChange={(event) => updateRoomTypeField(index, 'code', event.target.value)}
-                                  fullWidth
-                                />
+                                <FormField label="Base Pods">
+                                  <Input
+                                    type="number"
+                                    value={roomType.baseRooms}
+                                    onChange={(event) => updateRoomTypeField(index, 'baseRooms', event.target.value)}
+                                  />
+                                </FormField>
+                                <FormField label="Capacity">
+                                  <Input
+                                    type="number"
+                                    value={roomType.capacity}
+                                    onChange={(event) => updateRoomTypeField(index, 'capacity', event.target.value)}
+                                  />
+                                </FormField>
+                                <FormField label="BAR Price (INR)">
+                                  <Input
+                                    type="number"
+                                    value={roomType.ratePlanPrice ?? ''}
+                                    onChange={(event) => updateRoomTypeField(index, 'ratePlanPrice', event.target.value)}
+                                  />
+                                </FormField>
+                                <FormField label="Sort Order">
+                                  <Input
+                                    type="number"
+                                    value={roomType.sortOrder ?? String(index)}
+                                    onChange={(event) => updateRoomTypeField(index, 'sortOrder', event.target.value)}
+                                  />
+                                </FormField>
+                                <FormField label="Code (optional)" optional>
+                                  <Input
+                                    value={roomType.code ?? ''}
+                                    onChange={(event) => updateRoomTypeField(index, 'code', event.target.value)}
+                                  />
+                                </FormField>
                               </div>
 
                               <div className="pt-4">

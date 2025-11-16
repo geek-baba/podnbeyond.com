@@ -7,6 +7,7 @@ import Container from '../components/layout/Container';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import FormField from '../components/ui/FormField';
 import Badge from '../components/ui/Badge';
 
 export default function BookingPage() {
@@ -188,26 +189,26 @@ export default function BookingPage() {
 
                       {/* Date Selection */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                          type="date"
-                          name="checkIn"
-                          label="Check-in *"
-                          value={formData.checkIn}
-                          onChange={handleInputChange}
-                          min={new Date().toISOString().split('T')[0]}
-                          required
-                          fullWidth
-                        />
-                        <Input
-                          type="date"
-                          name="checkOut"
-                          label="Check-out *"
-                          value={formData.checkOut}
-                          onChange={handleInputChange}
-                          min={formData.checkIn || new Date().toISOString().split('T')[0]}
-                          required
-                          fullWidth
-                        />
+                        <FormField label="Check-in *" required>
+                          <Input
+                            type="date"
+                            name="checkIn"
+                            value={formData.checkIn}
+                            onChange={handleInputChange}
+                            min={new Date().toISOString().split('T')[0]}
+                            required
+                          />
+                        </FormField>
+                        <FormField label="Check-out *" required>
+                          <Input
+                            type="date"
+                            name="checkOut"
+                            value={formData.checkOut}
+                            onChange={handleInputChange}
+                            min={formData.checkIn || new Date().toISOString().split('T')[0]}
+                            required
+                          />
+                        </FormField>
                       </div>
 
                       {/* Guests */}
@@ -242,38 +243,38 @@ export default function BookingPage() {
                     <div className="space-y-6 animate-fade-in">
                       <h2 className="text-2xl font-bold text-neutral-900 mb-6">Guest Information</h2>
                       
-                      <Input
-                        type="text"
-                        name="guestName"
-                        label="Full Name *"
-                        value={formData.guestName}
-                        onChange={handleInputChange}
-                        placeholder="John Doe"
-                        required
-                        fullWidth
-                      />
+                      <FormField label="Full Name *" required>
+                        <Input
+                          type="text"
+                          name="guestName"
+                          value={formData.guestName}
+                          onChange={handleInputChange}
+                          placeholder="John Doe"
+                          required
+                        />
+                      </FormField>
 
-                      <Input
-                        type="email"
-                        name="email"
-                        label="Email Address *"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="john@example.com"
-                        required
-                        fullWidth
-                      />
+                      <FormField label="Email Address *" required>
+                        <Input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          placeholder="john@example.com"
+                          required
+                        />
+                      </FormField>
 
-                      <Input
-                        type="tel"
-                        name="phone"
-                        label="Phone Number *"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="+91 98765 43210"
-                        required
-                        fullWidth
-                      />
+                      <FormField label="Phone Number *" required>
+                        <Input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          placeholder="+91 98765 43210"
+                          required
+                        />
+                      </FormField>
 
                       <div>
                         <label className="block text-sm font-semibold text-neutral-700 mb-2">

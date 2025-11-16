@@ -16,6 +16,9 @@ import Card from '../../../components/ui/Card';
 import TableContainer from '../../../components/ui/TableContainer';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
+import Input from '../../../components/ui/Input';
+import SelectNative from '../../../components/ui/SelectNative';
+import FormField from '../../../components/ui/FormField';
 import { mapLoyaltyTierToBadgeVariant } from '../../../lib/badge-mappers';
 
 interface LoyaltyAccount {
@@ -266,28 +269,20 @@ export default function LoyaltyPage() {
           <Card variant="default" padding="md" className="mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Search */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  Search
-                </label>
-                <input
+              <FormField label="Search">
+                <Input
                   type="text"
                   placeholder="Email, name, or member ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
                 />
-              </div>
+              </FormField>
 
               {/* Tier Filter */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  Tier
-                </label>
-                <select
+              <FormField label="Tier">
+                <SelectNative
                   value={tierFilter}
                   onChange={(e) => setTierFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
                 >
                   <option value="">All Tiers</option>
                   <option value="MEMBER">Member</option>
@@ -295,8 +290,8 @@ export default function LoyaltyPage() {
                   <option value="GOLD">Gold</option>
                   <option value="PLATINUM">Platinum</option>
                   <option value="DIAMOND">Diamond</option>
-                </select>
-              </div>
+                </SelectNative>
+              </FormField>
             </div>
           </Card>
 

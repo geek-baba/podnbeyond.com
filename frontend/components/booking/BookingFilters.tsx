@@ -6,6 +6,9 @@
 import React, { useState } from 'react';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
+import Input from '../ui/Input';
+import SelectNative from '../ui/SelectNative';
+import FormField from '../ui/FormField';
 import { BookingFilters as BookingFiltersType, BookingStatus, BookingSource } from '../../lib/booking';
 
 interface BookingFiltersProps {
@@ -56,29 +59,21 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
     <Card variant="default" padding="md" className="mb-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* Search */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Search
-          </label>
-          <input
+        <FormField label="Search">
+          <Input
             type="text"
             placeholder="Name, email, confirmation number..."
             value={localFilters.search || ''}
             onChange={(e) => handleFilterChange('search', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
-        </div>
+        </FormField>
 
         {/* Property */}
         {properties.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">
-              Property
-            </label>
-            <select
+          <FormField label="Property">
+            <SelectNative
               value={localFilters.propertyId || ''}
               onChange={(e) => handleFilterChange('propertyId', e.target.value ? parseInt(e.target.value) : undefined)}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
             >
               <option value="">All Properties</option>
               {properties.map((property) => (
@@ -86,19 +81,15 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
                   {property.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </SelectNative>
+          </FormField>
         )}
 
         {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Status
-          </label>
-          <select
+        <FormField label="Status">
+          <SelectNative
             value={localFilters.status || ''}
             onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           >
             <option value="">All Statuses</option>
             {statusOptions.map((status) => (
@@ -106,18 +97,14 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
                 {status.replace(/_/g, ' ')}
               </option>
             ))}
-          </select>
-        </div>
+          </SelectNative>
+        </FormField>
 
         {/* Source */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Source
-          </label>
-          <select
+        <FormField label="Source">
+          <SelectNative
             value={localFilters.source || ''}
             onChange={(e) => handleFilterChange('source', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           >
             <option value="">All Sources</option>
             {sourceOptions.map((source) => (
@@ -125,60 +112,44 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
                 {source.replace(/_/g, ' ')}
               </option>
             ))}
-          </select>
-        </div>
+          </SelectNative>
+        </FormField>
 
         {/* Check-in From */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Check-in From
-          </label>
-          <input
+        <FormField label="Check-in From">
+          <Input
             type="date"
             value={localFilters.checkInFrom || ''}
             onChange={(e) => handleFilterChange('checkInFrom', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
-        </div>
+        </FormField>
 
         {/* Check-in To */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Check-in To
-          </label>
-          <input
+        <FormField label="Check-in To">
+          <Input
             type="date"
             value={localFilters.checkInTo || ''}
             onChange={(e) => handleFilterChange('checkInTo', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
-        </div>
+        </FormField>
 
         {/* Check-out From */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Check-out From
-          </label>
-          <input
+        <FormField label="Check-out From">
+          <Input
             type="date"
             value={localFilters.checkOutFrom || ''}
             onChange={(e) => handleFilterChange('checkOutFrom', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
-        </div>
+        </FormField>
 
         {/* Check-out To */}
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1">
-            Check-out To
-          </label>
-          <input
+        <FormField label="Check-out To">
+          <Input
             type="date"
             value={localFilters.checkOutTo || ''}
             onChange={(e) => handleFilterChange('checkOutTo', e.target.value || undefined)}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
-        </div>
+        </FormField>
       </div>
 
       {/* Reset Button */}
