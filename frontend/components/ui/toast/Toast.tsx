@@ -25,7 +25,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss, style }) => {
 
   // Animate progress bar
   useEffect(() => {
-    if (progressRef.current && toast.duration !== null && toast.duration > 0 && !toast.isDismissing) {
+    if (progressRef.current && toast.duration != null && toast.duration > 0 && !toast.isDismissing) {
       const duration = toast.duration;
       progressRef.current.style.animation = `toast-progress ${duration}ms linear`;
     }
@@ -189,7 +189,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss, style }) => {
         style={style}
       >
         {/* Progress bar */}
-        {toast.duration !== null && !toast.isDismissing && (
+        {toast.duration != null && !toast.isDismissing && (
           <div
             ref={progressRef}
             className={`absolute top-0 left-0 right-0 h-1 ${classes.accent} rounded-t-card toast-progress-bar`}
