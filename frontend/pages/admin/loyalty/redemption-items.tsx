@@ -12,6 +12,8 @@ import Container from '../../../components/layout/Container';
 import Card from '../../../components/ui/Card';
 import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../../components/ui/Modal';
+import { useToast } from '../../../components/ui/toast';
 import axios from 'axios';
 
 interface RedemptionItem {
@@ -44,11 +46,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export default function RedemptionItemsPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useAuth();
+  const { toast } = useToast();
   const [items, setItems] = useState<RedemptionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<RedemptionItem | null>(null);
+  const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const [filterItemType, setFilterItemType] = useState<string>('');
 
@@ -160,10 +164,6 @@ export default function RedemptionItemsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this redemption item?')) {
-      return;
-    }
-
     try {
       await axios.delete(`${API_URL}/api/loyalty/redemption-items/${id}`, {
         withCredentials: true,
@@ -171,8 +171,20 @@ export default function RedemptionItemsPage() {
       fetchItems();
     } catch (err: any) {
       console.error('Error deleting redemption item:', err);
-      alert(err.response?.data?.error || 'Failed to delete redemption item');
+      toast({
+        variant: 'error',
+        title: 'Failed to delete redemption item',
+        message: err.response?.data?.error || err.message,
+      });
     }
+  };
+
+  const openDeleteModal = (id: number) => {
+    setDeleteItemId(id);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteItemId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -397,7 +409,7 @@ export default function RedemptionItemsPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => openDeleteModal(item.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Delete
@@ -410,6 +422,43 @@ export default function RedemptionItemsPage() {
           </Card>
         )}
       </Container>
+
+      {/* Delete Redemption Item Confirmation Modal */}
+      <Modal
+        open={deleteItemId !== null}
+        onClose={closeDeleteModal}
+      >
+        <ModalHeader
+          title="Delete redemption item"
+          subtitle="Are you sure you want to delete this redemption item? This action cannot be undone."
+          onClose={closeDeleteModal}
+        />
+        <ModalBody>
+          <p className="text-sm text-neutral-600">
+            Deleting a redemption item will remove it from the catalog. Members will no longer be able to redeem this item.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={closeDeleteModal}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (deleteItemId !== null) {
+                handleDelete(deleteItemId);
+              }
+              closeDeleteModal();
+            }}
+          >
+            Delete item
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Create/Edit Modal */}
       {showModal && (

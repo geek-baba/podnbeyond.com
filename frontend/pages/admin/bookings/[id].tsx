@@ -11,6 +11,8 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/Tabs';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../../components/ui/Modal';
+import Input from '../../../components/ui/Input';
 import { useToast } from '../../../components/ui/toast';
 import {
   getBooking,
@@ -56,6 +58,11 @@ export default function BookingDetailPage() {
   const [recordCashModalOpen, setRecordCashModalOpen] = useState(false);
   const [issueRefundModalOpen, setIssueRefundModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<number | null>(null);
+  const [confirmBookingModalOpen, setConfirmBookingModalOpen] = useState(false);
+  const [duplicateBookingModalOpen, setDuplicateBookingModalOpen] = useState(false);
+  const [holdBookingModalOpen, setHoldBookingModalOpen] = useState(false);
+  const [holdExpiresAtInput, setHoldExpiresAtInput] = useState<string>('');
+  const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
 
   // Fetch booking
   useEffect(() => {
@@ -114,6 +121,8 @@ export default function BookingDetailPage() {
   const outstandingBalance = calculateOutstandingBalance(booking);
 
   const handleAction = async (action: string, booking: Booking) => {
+    setPendingBooking(booking);
+
     switch (action) {
       case 'modify':
         setModifyModalOpen(true);
@@ -128,69 +137,13 @@ export default function BookingDetailPage() {
         setCancelModalOpen(true);
         break;
       case 'confirm':
-        if (confirm('Are you sure you want to confirm this booking?')) {
-          try {
-            await confirmBooking(booking.id);
-            toast({
-              variant: 'success',
-              title: 'Booking confirmed',
-              message: 'The booking has been confirmed successfully',
-              duration: 5000,
-            });
-            await handleModalSuccess();
-          } catch (err: any) {
-            toast({
-              variant: 'error',
-              title: 'Failed to confirm booking',
-              message: err.message,
-            });
-          }
-        }
+        setConfirmBookingModalOpen(true);
         break;
       case 'hold':
-        const holdExpiresAt = prompt('Enter hold expiration date (YYYY-MM-DD) or leave blank for no expiration:');
-        if (holdExpiresAt !== null) {
-          try {
-            await holdBooking(booking.id, { 
-              holdExpiresAt: holdExpiresAt || undefined,
-              notes: 'Booking placed on hold by staff'
-            });
-            toast({
-              variant: 'warning',
-              title: 'Booking held',
-              message: 'This booking is now on hold',
-              duration: 4000,
-            });
-            await handleModalSuccess();
-          } catch (err: any) {
-            toast({
-              variant: 'error',
-              title: 'Failed to hold booking',
-              message: err.message,
-            });
-          }
-        }
+        setHoldBookingModalOpen(true);
         break;
       case 'duplicate':
-        if (confirm('Create a duplicate of this booking?')) {
-          try {
-            const response = await duplicateBooking(booking.id);
-            if (response.success && response.data) {
-              toast({
-                variant: 'success',
-                title: 'Booking duplicated',
-                message: 'A copy of this booking has been created',
-              });
-              router.push(`/admin/bookings/${response.data.id}`);
-            }
-          } catch (err: any) {
-            toast({
-              variant: 'error',
-              title: 'Failed to duplicate booking',
-              message: err.message,
-            });
-          }
-        }
+        setDuplicateBookingModalOpen(true);
         break;
       default:
         console.log('Action not implemented:', action);
@@ -208,6 +161,77 @@ export default function BookingDetailPage() {
       }
     } catch (err: any) {
       console.error('Error refreshing booking:', err);
+    }
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!pendingBooking) return;
+
+    try {
+      await confirmBooking(pendingBooking.id);
+      toast({
+        variant: 'success',
+        title: 'Booking confirmed',
+        message: 'The booking has been confirmed successfully',
+        duration: 5000,
+      });
+      setConfirmBookingModalOpen(false);
+      await handleModalSuccess();
+    } catch (err: any) {
+      toast({
+        variant: 'error',
+        title: 'Failed to confirm booking',
+        message: err.message,
+      });
+    }
+  };
+
+  const handleHoldBooking = async () => {
+    if (!pendingBooking) return;
+
+    try {
+      await holdBooking(pendingBooking.id, {
+        holdExpiresAt: holdExpiresAtInput || undefined,
+        notes: 'Booking placed on hold by staff',
+      });
+      toast({
+        variant: 'warning',
+        title: 'Booking held',
+        message: 'This booking is now on hold',
+        duration: 4000,
+      });
+      setHoldBookingModalOpen(false);
+      setHoldExpiresAtInput('');
+      await handleModalSuccess();
+    } catch (err: any) {
+      toast({
+        variant: 'error',
+        title: 'Failed to hold booking',
+        message: err.message,
+      });
+    }
+  };
+
+  const handleDuplicateBooking = async () => {
+    if (!pendingBooking) return;
+
+    try {
+      const response = await duplicateBooking(pendingBooking.id);
+      if (response.success && response.data) {
+        toast({
+          variant: 'success',
+          title: 'Booking duplicated',
+          message: 'A copy of this booking has been created',
+        });
+        setDuplicateBookingModalOpen(false);
+        router.push(`/admin/bookings/${response.data.id}`);
+      }
+    } catch (err: any) {
+      toast({
+        variant: 'error',
+        title: 'Failed to duplicate booking',
+        message: err.message,
+      });
     }
   };
 
@@ -476,6 +500,123 @@ export default function BookingDetailPage() {
             </TabsContent>
           </Card>
         </Tabs>
+
+        {/* Confirm Booking Modal */}
+        <Modal
+          open={confirmBookingModalOpen}
+          onClose={() => setConfirmBookingModalOpen(false)}
+        >
+          <ModalHeader
+            title="Confirm booking"
+            subtitle="Are you sure you want to confirm this booking?"
+            onClose={() => setConfirmBookingModalOpen(false)}
+          />
+          <ModalBody>
+            <p className="text-sm text-neutral-600">
+              This will move the booking into a confirmed state and may trigger guest communication and payment workflows.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setConfirmBookingModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmBooking}
+            >
+              Confirm booking
+            </Button>
+          </ModalFooter>
+        </Modal>
+
+        {/* Hold Booking Modal */}
+        <Modal
+          open={holdBookingModalOpen}
+          onClose={() => {
+            setHoldBookingModalOpen(false);
+            setHoldExpiresAtInput('');
+          }}
+        >
+          <ModalHeader
+            title="Place booking on hold"
+            subtitle="Optionally set a hold expiration date."
+            onClose={() => {
+              setHoldBookingModalOpen(false);
+              setHoldExpiresAtInput('');
+            }}
+          />
+          <ModalBody>
+            <div className="space-y-3">
+              <p className="text-sm text-neutral-600">
+                You can place this booking on hold. Optionally, set a hold expiration date. Leave blank for no expiration.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Hold expiration date (YYYY-MM-DD)
+                </label>
+                <Input
+                  type="date"
+                  value={holdExpiresAtInput}
+                  onChange={(e) => setHoldExpiresAtInput(e.target.value)}
+                />
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setHoldBookingModalOpen(false);
+                setHoldExpiresAtInput('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleHoldBooking}
+            >
+              Place on hold
+            </Button>
+          </ModalFooter>
+        </Modal>
+
+        {/* Duplicate Booking Modal */}
+        <Modal
+          open={duplicateBookingModalOpen}
+          onClose={() => setDuplicateBookingModalOpen(false)}
+        >
+          <ModalHeader
+            title="Duplicate booking"
+            subtitle="Create a copy of this booking."
+            onClose={() => setDuplicateBookingModalOpen(false)}
+          />
+          <ModalBody>
+            <p className="text-sm text-neutral-600">
+              This will create a new booking with the same guest, dates, and details. You can modify the duplicate after it is created.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setDuplicateBookingModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleDuplicateBooking}
+            >
+              Create duplicate
+            </Button>
+          </ModalFooter>
+        </Modal>
 
       {/* Modals */}
       {booking && (

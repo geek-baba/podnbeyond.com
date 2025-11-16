@@ -7,6 +7,8 @@ import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Badge, { type BadgeVariant } from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../components/ui/Modal';
+import { useToast } from '../../components/ui/toast';
 
 type MessageTemplateType = 'BOOKING_CONFIRMATION' | 'CHECK_IN' | 'CHECK_OUT' | 'CANCELLATION' | 'FAQ' | 'CUSTOM';
 type MessageChannel = 'WHATSAPP' | 'SMS' | 'EMAIL';
@@ -34,6 +36,7 @@ interface TemplateVariable {
 
 export default function TemplatesPage() {
   const { data: session, status: authStatus, signOut } = useAuth();
+  const { toast } = useToast();
   const router = useRouter();
   
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -44,6 +47,7 @@ export default function TemplatesPage() {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [previewData, setPreviewData] = useState<{ subject: string | null; body: string } | null>(null);
   const [previewBookingId, setPreviewBookingId] = useState<string>('');
+  const [deleteTemplateId, setDeleteTemplateId] = useState<number | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -147,18 +151,31 @@ export default function TemplatesPage() {
         await loadTemplates();
         setShowModal(false);
         resetForm();
+        toast({
+          variant: 'success',
+          title: editingTemplate ? 'Template updated' : 'Template created',
+          message: editingTemplate
+            ? 'The message template has been updated successfully.'
+            : 'A new message template has been created successfully.',
+        });
       } else {
-        alert(`Failed: ${data.error}`);
+        toast({
+          variant: 'error',
+          title: 'Failed to save template',
+          message: data.error || 'An unexpected error occurred while saving the template.',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving template:', error);
-      alert('Failed to save template');
+      toast({
+        variant: 'error',
+        title: 'Failed to save template',
+        message: error?.message || 'An unexpected error occurred while saving the template.',
+      });
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
-    
     try {
       const response = await fetch(`/api/templates/${id}`, {
         method: 'DELETE',
@@ -167,12 +184,25 @@ export default function TemplatesPage() {
       const data = await response.json();
       if (data.success) {
         await loadTemplates();
+        toast({
+          variant: 'success',
+          title: 'Template deleted',
+          message: 'The message template has been deleted successfully.',
+        });
       } else {
-        alert(`Failed: ${data.error}`);
+        toast({
+          variant: 'error',
+          title: 'Failed to delete template',
+          message: data.error || 'An unexpected error occurred while deleting the template.',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting template:', error);
-      alert('Failed to delete template');
+      toast({
+        variant: 'error',
+        title: 'Failed to delete template',
+        message: error?.message || 'An unexpected error occurred while deleting the template.',
+      });
     }
   };
 
@@ -193,7 +223,11 @@ export default function TemplatesPage() {
 
   const handlePreview = async () => {
     if (!previewBookingId || !editingTemplate) {
-      alert('Please enter a booking ID for preview');
+      toast({
+        variant: 'warning',
+        title: 'Booking ID required',
+        message: 'Please enter a booking ID to generate a preview.',
+      });
       return;
     }
     
@@ -208,11 +242,19 @@ export default function TemplatesPage() {
       if (data.success) {
         setPreviewData(data.preview);
       } else {
-        alert(`Failed: ${data.error}`);
+        toast({
+          variant: 'error',
+          title: 'Failed to preview template',
+          message: data.error || 'An unexpected error occurred while generating the preview.',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error previewing template:', error);
-      alert('Failed to preview template');
+      toast({
+        variant: 'error',
+        title: 'Failed to preview template',
+        message: error?.message || 'An unexpected error occurred while generating the preview.',
+      });
     }
   };
 
@@ -246,6 +288,10 @@ export default function TemplatesPage() {
       textarea.focus();
       setFormData({ ...formData, body: textarea.value });
     }
+  };
+
+  const closeDeleteTemplateModal = () => {
+    setDeleteTemplateId(null);
   };
 
   // Map template type to Badge variant
@@ -374,7 +420,7 @@ export default function TemplatesPage() {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => handleDelete(template.id)}
+                            onClick={() => setDeleteTemplateId(template.id)}
                             className="bg-red-600 hover:bg-red-700 text-white border-red-600"
                           >
                             Delete
@@ -388,6 +434,43 @@ export default function TemplatesPage() {
             </Card>
           </div>
         </Container>
+
+      {/* Delete Template Confirmation Modal */}
+      <Modal
+        open={deleteTemplateId !== null}
+        onClose={closeDeleteTemplateModal}
+      >
+        <ModalHeader
+          title="Delete template"
+          subtitle="Are you sure you want to delete this template? This action cannot be undone."
+          onClose={closeDeleteTemplateModal}
+        />
+        <ModalBody>
+          <p className="text-sm text-neutral-600">
+            Deleting a template will remove it from the admin. Any flows that reference this template will no longer be able to use it.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={closeDeleteTemplateModal}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (deleteTemplateId !== null) {
+                handleDelete(deleteTemplateId);
+              }
+              closeDeleteTemplateModal();
+            }}
+          >
+            Delete template
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Create/Edit Modal */}
       {showModal && (

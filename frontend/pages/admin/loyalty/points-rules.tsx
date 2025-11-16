@@ -12,6 +12,8 @@ import Container from '../../../components/layout/Container';
 import Card from '../../../components/ui/Card';
 import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../../components/ui/Modal';
+import { useToast } from '../../../components/ui/toast';
 import axios from 'axios';
 
 interface PointsRule {
@@ -36,11 +38,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 export default function PointsRulesPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useAuth();
+  const { toast } = useToast();
   const [rules, setRules] = useState<PointsRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState<PointsRule | null>(null);
+  const [deleteRuleId, setDeleteRuleId] = useState<number | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const [filterRuleType, setFilterRuleType] = useState<string>('');
 
@@ -140,10 +144,6 @@ export default function PointsRulesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this rule?')) {
-      return;
-    }
-
     try {
       await axios.delete(`${API_URL}/api/loyalty/points-rules/${id}`, {
         withCredentials: true,
@@ -151,8 +151,20 @@ export default function PointsRulesPage() {
       fetchRules();
     } catch (err: any) {
       console.error('Error deleting rule:', err);
-      alert(err.response?.data?.error || 'Failed to delete rule');
+      toast({
+        variant: 'error',
+        title: 'Failed to delete rule',
+        message: err.response?.data?.error || err.message,
+      });
     }
+  };
+
+  const openDeleteModal = (id: number) => {
+    setDeleteRuleId(id);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteRuleId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -357,7 +369,7 @@ export default function PointsRulesPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(rule.id)}
+                        onClick={() => openDeleteModal(rule.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Delete
@@ -370,6 +382,43 @@ export default function PointsRulesPage() {
           </Card>
         )}
       </Container>
+
+      {/* Delete Rule Confirmation Modal */}
+      <Modal
+        open={deleteRuleId !== null}
+        onClose={closeDeleteModal}
+      >
+        <ModalHeader
+          title="Delete rule"
+          subtitle="Are you sure you want to delete this rule? This action cannot be undone."
+          onClose={closeDeleteModal}
+        />
+        <ModalBody>
+          <p className="text-sm text-neutral-600">
+            Deleting a points rule will remove it from the loyalty engine. Future points calculations will no longer use this rule.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={closeDeleteModal}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (deleteRuleId !== null) {
+                handleDelete(deleteRuleId);
+              }
+              closeDeleteModal();
+            }}
+          >
+            Delete rule
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Create/Edit Modal */}
       {showModal && (

@@ -14,6 +14,7 @@ import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../../components/ui/Modal';
 import { useToast } from '../../../components/ui/toast';
 import axios from 'axios';
 
@@ -50,6 +51,7 @@ export default function CampaignsPage() {
   const [filterCampaignType, setFilterCampaignType] = useState<string>('');
   const [analytics, setAnalytics] = useState<Record<number, any>>({});
   const [loadingAnalytics, setLoadingAnalytics] = useState<Record<number, boolean>>({});
+  const [deleteCampaignId, setDeleteCampaignId] = useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -160,10 +162,6 @@ export default function CampaignsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) {
-      return;
-    }
-
     try {
       await axios.delete(`${API_URL}/api/loyalty/campaigns/${id}`, {
         withCredentials: true,
@@ -182,6 +180,14 @@ export default function CampaignsPage() {
         message: err.response?.data?.error || err.message,
       });
     }
+  };
+
+  const openDeleteModal = (id: number) => {
+    setDeleteCampaignId(id);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteCampaignId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -408,7 +414,7 @@ export default function CampaignsPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(campaign.id)}
+                        onClick={() => openDeleteModal(campaign.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Delete
@@ -421,6 +427,43 @@ export default function CampaignsPage() {
           </Card>
         )}
       </Container>
+
+      {/* Delete Campaign Confirmation Modal */}
+      <Modal
+        open={deleteCampaignId !== null}
+        onClose={closeDeleteModal}
+      >
+        <ModalHeader
+          title="Delete campaign"
+          subtitle="Are you sure you want to delete this campaign? This action cannot be undone."
+          onClose={closeDeleteModal}
+        />
+        <ModalBody>
+          <p className="text-sm text-neutral-600">
+            Deleting a campaign will remove it from the loyalty program. Members will no longer earn points from this campaign.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={closeDeleteModal}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              if (deleteCampaignId !== null) {
+                handleDelete(deleteCampaignId);
+              }
+              closeDeleteModal();
+            }}
+          >
+            Delete campaign
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Create/Edit Modal */}
       {showModal && (

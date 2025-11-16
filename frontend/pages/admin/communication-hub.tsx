@@ -7,6 +7,8 @@ import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../components/ui/Modal';
+import { useToast } from '../../components/ui/toast';
 
 type ConversationStatus = 'NEW' | 'IN_PROGRESS' | 'WAITING_FOR_GUEST' | 'RESOLVED' | 'ARCHIVED';
 type Priority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
@@ -72,6 +74,7 @@ interface ConversationDetail extends Conversation {
 export default function CommunicationHub() {
   const { data: session, status: authStatus, signOut } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDetail | null>(null);
@@ -83,6 +86,7 @@ export default function CommunicationHub() {
   const [properties, setProperties] = useState<Array<{ id: number; name: string; slug: string }>>([]);
   const [selectedConversationIds, setSelectedConversationIds] = useState<Set<number>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [bulkActionModal, setBulkActionModal] = useState<{ action: 'assign' | 'status' | 'archive'; value?: string } | null>(null);
   const [filters, setFilters] = useState({
     status: '' as ConversationStatus | '',
     assignedTo: '',
@@ -466,16 +470,24 @@ export default function CommunicationHub() {
       // setSelectedConversation(null); // Commented out to prevent clearing current selection
       
       if (showErrors) {
-        // Only show alert for actual errors, not for intentional silent failures
+        // Only show toast for actual errors, not for intentional silent failures
         const errorMessage = error instanceof Error
           ? error.message
           : 'Failed to load conversation details. Please try again.';
         
         // Check if it's a network error
         if (error instanceof TypeError && error.message.includes('fetch')) {
-          alert('Network error: Could not connect to the server. Please check your connection and try again.');
+          toast({
+            variant: 'error',
+            title: 'Network error',
+            message: 'Could not connect to the server. Please check your connection and try again.',
+          });
         } else {
-          alert(errorMessage);
+          toast({
+            variant: 'error',
+            title: 'Failed to load conversation',
+            message: errorMessage,
+          });
         }
       }
     } finally {
@@ -539,7 +551,11 @@ export default function CommunicationHub() {
 
   const useQuickReply = async (template: { id: number; body: string; subject: string | null; channel: MessageChannel }) => {
     if (!selectedConversation?.booking?.id) {
-      alert('This template requires a booking. Please select a conversation with a booking.');
+      toast({
+        variant: 'warning',
+        title: 'Booking required',
+        message: 'This template requires a booking. Please select a conversation with a booking.',
+      });
       return;
     }
     
@@ -570,11 +586,19 @@ export default function CommunicationHub() {
         // If email, we might want to set subject too, but for now just the body
         // The subject will be handled in the sendReply function
       } else {
-        alert(`Failed to load template: ${data.error}`);
+        toast({
+          variant: 'error',
+          title: 'Failed to load template',
+          message: data.error || 'Please try again.',
+        });
       }
     } catch (error) {
       console.error('Error loading template:', error);
-      alert('Failed to load template');
+      toast({
+        variant: 'error',
+        title: 'Failed to load template',
+        message: 'Please try again or check your network connection.',
+      });
     } finally {
       setLoadingTemplate(false);
     }
@@ -595,7 +619,11 @@ export default function CommunicationHub() {
       }
     } catch (error) {
       console.error('Failed to update status:', error);
-      alert('Failed to update status');
+      toast({
+        variant: 'error',
+        title: 'Failed to update status',
+        message: 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -614,7 +642,11 @@ export default function CommunicationHub() {
       }
     } catch (error) {
       console.error('Failed to update priority:', error);
-      alert('Failed to update priority');
+      toast({
+        variant: 'error',
+        title: 'Failed to update priority',
+        message: 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -633,7 +665,11 @@ export default function CommunicationHub() {
       }
     } catch (error) {
       console.error('Failed to assign conversation:', error);
-      alert('Failed to assign conversation');
+      toast({
+        variant: 'error',
+        title: 'Failed to assign conversation',
+        message: 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -659,14 +695,21 @@ export default function CommunicationHub() {
 
   const performBulkAction = async (action: 'assign' | 'status' | 'archive', value?: string) => {
     if (selectedConversationIds.size === 0) {
-      alert('Please select at least one conversation');
+      toast({
+        variant: 'warning',
+        title: 'No conversations selected',
+        message: 'Please select at least one conversation to perform this action.',
+      });
       return;
     }
 
-    if (!confirm(`Are you sure you want to ${action} ${selectedConversationIds.size} conversation(s)?`)) {
-      return;
-    }
+    setBulkActionModal({ action, value });
+  };
 
+  const confirmBulkAction = async () => {
+    if (!bulkActionModal) return;
+
+    const { action, value } = bulkActionModal;
     try {
       setBulkActionLoading(true);
       const response = await fetch('/api/conversations/bulk', {
@@ -687,13 +730,26 @@ export default function CommunicationHub() {
         if (selectedConversation?.id && selectedConversationIds.has(selectedConversation.id)) {
           await loadConversationDetails(selectedConversation.id);
         }
-        alert(`Successfully ${action}ed ${data.updated} conversation(s)`);
+        toast({
+          variant: 'success',
+          title: 'Bulk action completed',
+          message: `Successfully ${action}ed ${data.updated} conversation(s)`,
+        });
+        setBulkActionModal(null);
       } else {
-        alert(`Failed: ${data.error}`);
+        toast({
+          variant: 'error',
+          title: 'Bulk action failed',
+          message: data.error || 'Please try again.',
+        });
       }
     } catch (error) {
       console.error('Bulk action error:', error);
-      alert('Failed to perform bulk action');
+      toast({
+        variant: 'error',
+        title: 'Bulk action failed',
+        message: 'Please try again or check your network connection.',
+      });
     } finally {
       setBulkActionLoading(false);
     }
@@ -727,8 +783,17 @@ export default function CommunicationHub() {
         if (data.success) {
           await loadConversationDetails(selectedConversation.id);
           setReplyForm({ message: '', channel: 'whatsapp' });
+          toast({
+            variant: 'success',
+            title: 'Reply sent',
+            message: 'Your message has been sent successfully.',
+          });
         } else {
-          alert(`Failed: ${data.error}`);
+          toast({
+            variant: 'error',
+            title: 'Failed to send reply',
+            message: data.error || 'Please try again.',
+          });
         }
       } else {
         // WhatsApp/SMS
@@ -737,7 +802,11 @@ export default function CommunicationHub() {
         const phone = participants.find(p => /\+?\d/.test(p)) || 
                      messages.find(m => m.type === 'MESSAGE' || m.type === 'CALL')?.from;
         if (!phone) {
-          alert('No phone number found for this conversation');
+          toast({
+            variant: 'warning',
+            title: 'Phone number required',
+            message: 'No phone number found for this conversation.',
+          });
           return;
         }
 
@@ -757,13 +826,26 @@ export default function CommunicationHub() {
         if (data.success) {
           await loadConversationDetails(selectedConversation.id);
           setReplyForm({ message: '', channel: 'whatsapp' });
+          toast({
+            variant: 'success',
+            title: 'Reply sent',
+            message: 'Your message has been sent successfully.',
+          });
         } else {
-          alert(`Failed: ${data.error}`);
+          toast({
+            variant: 'error',
+            title: 'Failed to send reply',
+            message: data.error || 'Please try again.',
+          });
         }
       }
     } catch (error) {
       console.error('Reply error:', error);
-      alert('Failed to send reply');
+      toast({
+        variant: 'error',
+        title: 'Failed to send reply',
+        message: 'Please try again or check your network connection.',
+      });
     } finally {
       setSending(false);
     }
@@ -784,12 +866,25 @@ export default function CommunicationHub() {
       if (data.success) {
         await loadConversationDetails(selectedConversation.id);
         setNoteForm({ content: '' });
+        toast({
+          variant: 'success',
+          title: 'Note added',
+          message: 'Your note has been added successfully.',
+        });
       } else {
-        alert(`Failed: ${data.error}`);
+        toast({
+          variant: 'error',
+          title: 'Failed to add note',
+          message: data.error || 'Please try again.',
+        });
       }
     } catch (error) {
       console.error('Note error:', error);
-      alert('Failed to add note');
+      toast({
+        variant: 'error',
+        title: 'Failed to add note',
+        message: 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -1496,7 +1591,11 @@ export default function CommunicationHub() {
                                     onClick={async () => {
                                       const phone = booking.phone || guestContext.contact?.phone;
                                       if (!phone) {
-                                        alert('No phone number available');
+                                        toast({
+                                          variant: 'warning',
+                                          title: 'Phone number required',
+                                          message: 'No phone number available for this booking.',
+                                        });
                                         return;
                                       }
                                       const message = `Hi ${booking.guestName}, your booking #${booking.id} is confirmed. Check-in: ${new Date(booking.checkIn).toLocaleDateString()}. We look forward to hosting you!`;
@@ -1512,12 +1611,24 @@ export default function CommunicationHub() {
                                         });
                                         const data = await response.json();
                                         if (data.success) {
-                                          alert('Confirmation sent!');
+                                          toast({
+                                            variant: 'success',
+                                            title: 'Confirmation sent',
+                                            message: 'The booking confirmation has been sent successfully.',
+                                          });
                                         } else {
-                                          alert(`Failed: ${data.error}`);
+                                          toast({
+                                            variant: 'error',
+                                            title: 'Failed to send confirmation',
+                                            message: data.error || 'Please try again.',
+                                          });
                                         }
                                       } catch (error) {
-                                        alert('Failed to send confirmation');
+                                        toast({
+                                          variant: 'error',
+                                          title: 'Failed to send confirmation',
+                                          message: 'Please try again or check your network connection.',
+                                        });
                                       }
                                     }}
                                   >
@@ -1595,6 +1706,33 @@ export default function CommunicationHub() {
 
           </div>
         </Container>
+
+      {/* Bulk Action Confirmation Modal */}
+      <Modal open={bulkActionModal !== null} onClose={() => setBulkActionModal(null)}>
+        <ModalHeader
+          title="Confirm Bulk Action"
+          subtitle={`Are you sure you want to ${bulkActionModal?.action} ${selectedConversationIds.size} conversation(s)?`}
+          onClose={() => setBulkActionModal(null)}
+        />
+        <ModalBody>
+          <p className="text-neutral-600">
+            This action will be applied to {selectedConversationIds.size} selected conversation(s). This cannot be undone.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setBulkActionModal(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={confirmBulkAction}
+            disabled={bulkActionLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+          >
+            {bulkActionLoading ? 'Processing...' : `Confirm ${bulkActionModal?.action || 'Action'}`}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </AdminShell>
   );
 }

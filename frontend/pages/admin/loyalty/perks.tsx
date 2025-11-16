@@ -14,6 +14,7 @@ import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../../components/ui/Modal';
 import { useToast } from '../../../components/ui/toast';
 import axios from 'axios';
 
@@ -54,6 +55,7 @@ export default function PerksPage() {
   const [editingPerk, setEditingPerk] = useState<Perk | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const [filterPerkType, setFilterPerkType] = useState<string>('');
+  const [deletePerkId, setDeletePerkId] = useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -160,10 +162,6 @@ export default function PerksPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this perk?')) {
-      return;
-    }
-
     try {
       await axios.delete(`${API_URL}/api/loyalty/perks/${id}`, {
         withCredentials: true,
@@ -182,6 +180,14 @@ export default function PerksPage() {
         message: err.response?.data?.error || err.message,
       });
     }
+  };
+
+  const openDeleteModal = (id: number) => {
+    setDeletePerkId(id);
+  };
+
+  const closeDeleteModal = () => {
+    setDeletePerkId(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -414,7 +420,7 @@ export default function PerksPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(perk.id)}
+                        onClick={() => openDeleteModal(perk.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Delete
@@ -426,6 +432,43 @@ export default function PerksPage() {
             </table>
           </Card>
         )}
+
+        {/* Delete Perk Confirmation Modal */}
+        <Modal
+          open={deletePerkId !== null}
+          onClose={closeDeleteModal}
+        >
+          <ModalHeader
+            title="Delete perk"
+            subtitle="Are you sure you want to delete this perk? This action cannot be undone."
+            onClose={closeDeleteModal}
+          />
+          <ModalBody>
+            <p className="text-sm text-neutral-600">
+              Deleting a perk will remove it from the loyalty program. Members will no longer be able to redeem or see this perk.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={closeDeleteModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (deletePerkId !== null) {
+                  handleDelete(deletePerkId);
+                }
+                closeDeleteModal();
+              }}
+            >
+              Delete perk
+            </Button>
+          </ModalFooter>
+        </Modal>
       </Container>
 
       {/* Create/Edit Modal */}

@@ -5,6 +5,8 @@ import PageHeader from '../../components/layout/PageHeader';
 import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../../components/ui/Modal';
+import { useToast } from '../../components/ui/toast';
 
 interface Content {
   id: number;
@@ -54,6 +56,10 @@ const CMSAdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'content' | 'images' | 'testimonials' | 'amenities'>('content');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { toast } = useToast();
+  const [deleteImageId, setDeleteImageId] = useState<number | null>(null);
+  const [deleteTestimonialId, setDeleteTestimonialId] = useState<number | null>(null);
+  const [deleteAmenityId, setDeleteAmenityId] = useState<number | null>(null);
 
   // Content Management
   const [contents, setContents] = useState<Content[]>([]);
@@ -200,6 +206,11 @@ const CMSAdminPage: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setMessage({ type: 'success', text: 'Image uploaded successfully' });
+      toast({
+        variant: 'success',
+        title: 'Image uploaded',
+        message: 'The image has been uploaded successfully.',
+      });
       setSelectedFile(null);
       setImageForm({
         type: '',
@@ -208,22 +219,36 @@ const CMSAdminPage: React.FC = () => {
         description: ''
       });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to upload image' });
+      toast({
+        variant: 'error',
+        title: 'Failed to upload image',
+        message: error?.message || 'Please try again or check your network connection.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleImageDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
-    
     try {
       await axios.delete(`/api/cms/images/${id}`);
       setMessage({ type: 'success', text: 'Image deleted successfully' });
+      toast({
+        variant: 'success',
+        title: 'Image deleted',
+        message: 'The image has been removed successfully.',
+      });
+      setDeleteImageId(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to delete image' });
+      toast({
+        variant: 'error',
+        title: 'Failed to delete image',
+        message: error?.message || 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -238,6 +263,11 @@ const CMSAdminPage: React.FC = () => {
         await axios.post('/api/cms/testimonials', testimonialForm);
       }
       setMessage({ type: 'success', text: 'Testimonial saved successfully' });
+      toast({
+        variant: 'success',
+        title: 'Testimonial saved',
+        message: 'The testimonial has been saved successfully.',
+      });
       setEditingTestimonial(null);
       setTestimonialForm({
         guestName: '',
@@ -251,20 +281,34 @@ const CMSAdminPage: React.FC = () => {
       fetchData();
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save testimonial' });
+      toast({
+        variant: 'error',
+        title: 'Failed to save testimonial',
+        message: 'Please try again or check your network connection.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleTestimonialDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this testimonial?')) return;
-    
     try {
       await axios.delete(`/api/cms/testimonials/${id}`);
       setMessage({ type: 'success', text: 'Testimonial deleted successfully' });
+      toast({
+        variant: 'success',
+        title: 'Testimonial deleted',
+        message: 'The testimonial has been removed successfully.',
+      });
+      setDeleteTestimonialId(null);
       fetchData();
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to delete testimonial' });
+      toast({
+        variant: 'error',
+        title: 'Failed to delete testimonial',
+        message: 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -279,6 +323,11 @@ const CMSAdminPage: React.FC = () => {
         await axios.post('/api/cms/amenities', amenityForm);
       }
       setMessage({ type: 'success', text: 'Amenity saved successfully' });
+      toast({
+        variant: 'success',
+        title: 'Amenity saved',
+        message: 'The amenity has been saved successfully.',
+      });
       setEditingAmenity(null);
       setAmenityForm({
         name: '',
@@ -290,20 +339,34 @@ const CMSAdminPage: React.FC = () => {
       fetchData();
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save amenity' });
+      toast({
+        variant: 'error',
+        title: 'Failed to save amenity',
+        message: 'Please try again or check your network connection.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleAmenityDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this amenity?')) return;
-    
     try {
       await axios.delete(`/api/cms/amenities/${id}`);
       setMessage({ type: 'success', text: 'Amenity deleted successfully' });
+      toast({
+        variant: 'success',
+        title: 'Amenity deleted',
+        message: 'The amenity has been removed successfully.',
+      });
+      setDeleteAmenityId(null);
       fetchData();
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to delete amenity' });
+      toast({
+        variant: 'error',
+        title: 'Failed to delete amenity',
+        message: 'Please try again or check your network connection.',
+      });
     }
   };
 
@@ -590,7 +653,7 @@ const CMSAdminPage: React.FC = () => {
                               {image.title && <p className="text-neutral-600 text-sm">{image.title}</p>}
                             </div>
                             <button
-                              onClick={() => handleImageDelete(image.id)}
+                              onClick={() => setDeleteImageId(image.id)}
                               className="text-red-600 hover:text-red-800 text-sm"
                             >
                               Delete
@@ -732,7 +795,7 @@ const CMSAdminPage: React.FC = () => {
                                 {testimonial.isActive ? 'Active' : 'Inactive'}
                               </span>
                               <button
-                                onClick={() => handleTestimonialDelete(testimonial.id)}
+                                onClick={() => setDeleteTestimonialId(testimonial.id)}
                                 className="text-red-600 hover:text-red-800 text-sm"
                               >
                                 Delete
@@ -843,7 +906,7 @@ const CMSAdminPage: React.FC = () => {
                                 {amenity.isActive ? 'Active' : 'Inactive'}
                               </span>
                               <button
-                                onClick={() => handleAmenityDelete(amenity.id)}
+                                onClick={() => setDeleteAmenityId(amenity.id)}
                                 className="text-red-600 hover:text-red-800 text-sm"
                               >
                                 Delete
@@ -859,6 +922,84 @@ const CMSAdminPage: React.FC = () => {
             )}
           </Card>
       </Container>
+
+      {/* Delete Image Modal */}
+      <Modal open={deleteImageId !== null} onClose={() => setDeleteImageId(null)}>
+        <ModalHeader
+          title="Delete Image"
+          subtitle="Are you sure you want to delete this image? This action cannot be undone."
+          onClose={() => setDeleteImageId(null)}
+        />
+        <ModalBody>
+          <p className="text-neutral-600">
+            This image will be permanently removed from your CMS. Any content referencing this image may be affected.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setDeleteImageId(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => deleteImageId !== null && handleImageDelete(deleteImageId)}
+            className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+          >
+            Delete Image
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Delete Testimonial Modal */}
+      <Modal open={deleteTestimonialId !== null} onClose={() => setDeleteTestimonialId(null)}>
+        <ModalHeader
+          title="Delete Testimonial"
+          subtitle="Are you sure you want to delete this testimonial? This action cannot be undone."
+          onClose={() => setDeleteTestimonialId(null)}
+        />
+        <ModalBody>
+          <p className="text-neutral-600">
+            This testimonial will be permanently removed from your CMS. It will no longer appear on your website.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setDeleteTestimonialId(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => deleteTestimonialId !== null && handleTestimonialDelete(deleteTestimonialId)}
+            className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+          >
+            Delete Testimonial
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Delete Amenity Modal */}
+      <Modal open={deleteAmenityId !== null} onClose={() => setDeleteAmenityId(null)}>
+        <ModalHeader
+          title="Delete Amenity"
+          subtitle="Are you sure you want to delete this amenity? This action cannot be undone."
+          onClose={() => setDeleteAmenityId(null)}
+        />
+        <ModalBody>
+          <p className="text-neutral-600">
+            This amenity will be permanently removed from your CMS. It will no longer appear on your website.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setDeleteAmenityId(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => deleteAmenityId !== null && handleAmenityDelete(deleteAmenityId)}
+            className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+          >
+            Delete Amenity
+          </Button>
+        </ModalFooter>
+      </Modal>
     </AdminShell>
   );
 };

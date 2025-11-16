@@ -9,6 +9,7 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import DateRangePicker from '../../components/ui/DateRangePicker';
 import FormField from '../../components/ui/FormField';
+import { useToast } from '../../components/ui/toast';
 
 interface AnalyticsData {
   overview: {
@@ -39,6 +40,7 @@ interface AnalyticsData {
 export default function AnalyticsPage() {
   const { data: session, status: authStatus, signOut } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [properties, setProperties] = useState<Array<{ id: number; name: string }>>([]);
@@ -129,7 +131,11 @@ export default function AnalyticsPage() {
       const userId = session?.user?.id || session?.user?.email;
       if (!userId) {
         console.error('No user ID found in session:', session);
-        alert('Failed to load analytics: User session not found. Please log in again.');
+        toast({
+          variant: 'error',
+          title: 'Authentication required',
+          message: 'User session not found. Please log in again.',
+        });
         setLoading(false);
         return;
       }
@@ -186,7 +192,11 @@ export default function AnalyticsPage() {
         stack: error.stack,
       });
       const errorMessage = error.message || 'Failed to fetch analytics';
-      alert(`Failed to load analytics: ${errorMessage}\n\nCheck browser console for more details.`);
+      toast({
+        variant: 'error',
+        title: 'Failed to load analytics',
+        message: `${errorMessage}. Check browser console for more details.`,
+      });
     } finally {
       setLoading(false);
     }
@@ -228,9 +238,18 @@ export default function AnalyticsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast({
+        variant: 'success',
+        title: 'Export successful',
+        message: `Data exported successfully as ${format.toUpperCase()}.`,
+      });
     } catch (error) {
       console.error('Export error:', error);
-      alert('Failed to export data');
+      toast({
+        variant: 'error',
+        title: 'Export failed',
+        message: 'Failed to export data. Please try again or check your network connection.',
+      });
     }
   };
 
