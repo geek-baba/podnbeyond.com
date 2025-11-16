@@ -635,7 +635,6 @@ export default function AnalyticsPage() {
                 </div>
               </Card>
             </div>
-          </div>
         </Container>
     </AdminShell>
   );
