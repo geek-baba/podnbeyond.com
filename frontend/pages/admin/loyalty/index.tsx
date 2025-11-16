@@ -10,6 +10,10 @@ import Head from 'next/head';
 import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
 import Link from 'next/link';
+import Badge from '../../../components/ui/Badge';
+import type { BadgeVariant } from '../../../components/ui/Badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import Card from '../../../components/ui/Card';
 
 interface LoyaltyAccount {
   id: number;
@@ -116,21 +120,16 @@ export default function LoyaltyPage() {
     return true;
   });
 
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'DIAMOND':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'PLATINUM':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'GOLD':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'SILVER':
-        return 'bg-gray-100 text-gray-600 border-gray-300';
-      case 'MEMBER':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-600 border-gray-300';
-    }
+  // Helper function to map loyalty tier to Badge variant
+  const mapLoyaltyTierToBadgeVariant = (tier: string): BadgeVariant => {
+    const tierMap: Record<string, BadgeVariant> = {
+      'MEMBER': 'member',
+      'SILVER': 'silver',
+      'GOLD': 'gold',
+      'PLATINUM': 'platinum',
+      'DIAMOND': 'diamond',
+    };
+    return tierMap[tier] || 'neutral';
   };
 
   const formatCurrency = (amount: number) => {
@@ -273,11 +272,11 @@ export default function LoyaltyPage() {
       <section className="py-12">
         <Container>
           {/* Filters */}
-          <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+          <Card variant="default" padding="md" className="mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Search */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
                   Search
                 </label>
                 <input
@@ -285,19 +284,19 @@ export default function LoyaltyPage() {
                   placeholder="Email, name, or member ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
                 />
               </div>
 
               {/* Tier Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
                   Tier
                 </label>
                 <select
                   value={tierFilter}
                   onChange={(e) => setTierFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-button focus:outline-none focus:ring-2 focus:ring-neutral-900"
                 >
                   <option value="">All Tiers</option>
                   <option value="MEMBER">Member</option>
@@ -308,7 +307,7 @@ export default function LoyaltyPage() {
                 </select>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Error Message */}
           {error && (
@@ -327,108 +326,82 @@ export default function LoyaltyPage() {
 
           {/* Accounts List */}
           {!loading && !error && (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-white shadow-card rounded-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-neutral-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-neutral-900">
                     Loyalty Members
                   </h2>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-neutral-500">
                     {filteredAccounts.length} {filteredAccounts.length === 1 ? 'member' : 'members'}
                   </span>
                 </div>
               </div>
 
               {filteredAccounts.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Member
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tier
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Points
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Lifetime Stays
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Lifetime Nights
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Lifetime Spend
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredAccounts.map((account) => (
-                        <tr key={account.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {account.userName || 
-                                (account.user?.firstName && account.user?.lastName
-                                  ? `${account.user.firstName} ${account.user.lastName}`
-                                  : 'N/A')}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {account.userEmail || account.user?.email || 'No email'}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              {account.memberNumber ? `Member: ${account.memberNumber}` : `ID: ${account.id}`}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getTierColor(
-                                account.tier
-                              )}`}
-                            >
-                              {account.tier}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {account.points.toLocaleString()}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {account.lifetimeStays}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {account.lifetimeNights}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {formatCurrency(account.lifetimeSpend)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => router.push(`/admin?tab=loyalty&edit=${account.id}`)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              View Details
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Member</TableHead>
+                      <TableHead>Tier</TableHead>
+                      <TableHead>Points</TableHead>
+                      <TableHead>Lifetime Stays</TableHead>
+                      <TableHead>Lifetime Nights</TableHead>
+                      <TableHead>Lifetime Spend</TableHead>
+                      <TableHead align="right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAccounts.map((account) => (
+                      <TableRow key={account.id}>
+                        <TableCell nowrap>
+                          <div className="text-sm font-medium">
+                            {account.userName || 
+                              (account.user?.firstName && account.user?.lastName
+                                ? `${account.user.firstName} ${account.user.lastName}`
+                                : 'N/A')}
+                          </div>
+                          <div className="text-sm text-neutral-500">
+                            {account.userEmail || account.user?.email || 'No email'}
+                          </div>
+                          <div className="text-xs text-neutral-400">
+                            {account.memberNumber ? `Member: ${account.memberNumber}` : `ID: ${account.id}`}
+                          </div>
+                        </TableCell>
+                        <TableCell nowrap>
+                          <Badge variant={mapLoyaltyTierToBadgeVariant(account.tier)} size="sm">
+                            {account.tier}
+                          </Badge>
+                        </TableCell>
+                        <TableCell nowrap>
+                          <div className="text-sm font-medium">
+                            {account.points.toLocaleString()}
+                          </div>
+                        </TableCell>
+                        <TableCell nowrap>
+                          <div className="text-sm">{account.lifetimeStays}</div>
+                        </TableCell>
+                        <TableCell nowrap>
+                          <div className="text-sm">{account.lifetimeNights}</div>
+                        </TableCell>
+                        <TableCell nowrap>
+                          <div className="text-sm">{formatCurrency(account.lifetimeSpend)}</div>
+                        </TableCell>
+                        <TableCell align="right" nowrap>
+                          <button
+                            onClick={() => router.push(`/admin?tab=loyalty&edit=${account.id}`)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            View Details
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">
+                  <p className="text-neutral-500">
                     {search || tierFilter
                       ? 'No members found matching your filters.'
                       : 'No loyalty members yet.'}

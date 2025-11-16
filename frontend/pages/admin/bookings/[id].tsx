@@ -9,6 +9,8 @@ import Head from 'next/head';
 import Header from '../../../components/layout/Header';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import Badge from '../../../components/ui/Badge';
+import type { BadgeVariant } from '../../../components/ui/Badge';
 import {
   getBooking,
   Booking,
@@ -17,8 +19,6 @@ import {
   formatDateTime,
   formatCurrency,
   calculateOutstandingBalance,
-  getStatusColor,
-  getSourceColor,
   updateBooking,
   confirmBooking,
   holdBooking,
@@ -106,6 +106,40 @@ export default function BookingDetailPage() {
   }
 
   const outstandingBalance = calculateOutstandingBalance(booking);
+
+  // Helper functions to map booking status/source to Badge variants
+  const mapBookingStatusToBadgeVariant = (status: string): BadgeVariant => {
+    const statusMap: Record<string, BadgeVariant> = {
+      'PENDING': 'pending',
+      'CONFIRMED': 'confirmed',
+      'HOLD': 'hold',
+      'CANCELLED': 'cancelled',
+      'CHECKED_IN': 'checkedIn',
+      'CHECKED_OUT': 'checkedOut',
+      'NO_SHOW': 'noShow',
+      'COMPLETED': 'completed',
+      'FAILED': 'failed',
+      'REJECTED': 'failed',
+    };
+    return statusMap[status] || 'neutral';
+  };
+
+  const mapBookingSourceToBadgeVariant = (source: string): BadgeVariant => {
+    const sourceMap: Record<string, BadgeVariant> = {
+      'WEB_DIRECT': 'webDirect',
+      'WALK_IN': 'walkIn',
+      'PHONE': 'phone',
+      'CORPORATE': 'corporate',
+      'OTA_BOOKING_COM': 'ota',
+      'OTA_MMT': 'ota',
+      'OTA_GOIBIBO': 'ota',
+      'OTA_YATRA': 'ota',
+      'OTA_AGODA': 'ota',
+      'OTA_EASEMYTRIP': 'ota',
+      'OTA_CLEARTRIP': 'ota',
+    };
+    return sourceMap[source] || 'neutral';
+  };
 
   const handleAction = async (action: string, booking: Booking) => {
     switch (action) {
@@ -233,20 +267,12 @@ export default function BookingDetailPage() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <span
-                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(
-                  booking.status
-                )}`}
-              >
+              <Badge variant={mapBookingStatusToBadgeVariant(booking.status)} size="md">
                 {booking.status.replace(/_/g, ' ')}
-              </span>
-              <span
-                className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getSourceColor(
-                  booking.source
-                )}`}
-              >
+              </Badge>
+              <Badge variant={mapBookingSourceToBadgeVariant(booking.source)} size="md">
                 {booking.source.replace(/_/g, ' ')}
-              </span>
+              </Badge>
             </div>
           </div>
         </div>

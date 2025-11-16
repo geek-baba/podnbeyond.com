@@ -6,10 +6,11 @@
 import React from 'react';
 import Link from 'next/link';
 import Button from '../ui/Button';
+import Badge from '../ui/Badge';
+import type { BadgeVariant } from '../ui/Badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/Table';
 import {
   Booking,
-  getStatusColor,
-  getSourceColor,
   formatDate,
   formatCurrency,
   calculateOutstandingBalance,
@@ -20,6 +21,41 @@ interface BookingListProps {
   onAction?: (action: string, booking: Booking) => void;
 }
 
+// Helper functions to map booking status/source to Badge variants
+function mapBookingStatusToBadgeVariant(status: string): BadgeVariant {
+  const statusMap: Record<string, BadgeVariant> = {
+    'PENDING': 'pending',
+    'CONFIRMED': 'confirmed',
+    'HOLD': 'hold',
+    'CANCELLED': 'cancelled',
+    'CHECKED_IN': 'checkedIn',
+    'CHECKED_OUT': 'checkedOut',
+    'NO_SHOW': 'noShow',
+    'COMPLETED': 'completed',
+    'FAILED': 'failed',
+    'REJECTED': 'failed', // Rejected uses same style as failed
+  };
+  return statusMap[status] || 'neutral';
+}
+
+function mapBookingSourceToBadgeVariant(source: string): BadgeVariant {
+  const sourceMap: Record<string, BadgeVariant> = {
+    'WEB_DIRECT': 'webDirect',
+    'WALK_IN': 'walkIn',
+    'PHONE': 'phone',
+    'CORPORATE': 'corporate',
+    // All OTA sources map to 'ota' variant
+    'OTA_BOOKING_COM': 'ota',
+    'OTA_MMT': 'ota',
+    'OTA_GOIBIBO': 'ota',
+    'OTA_YATRA': 'ota',
+    'OTA_AGODA': 'ota',
+    'OTA_EASEMYTRIP': 'ota',
+    'OTA_CLEARTRIP': 'ota',
+  };
+  return sourceMap[source] || 'neutral';
+}
+
 export default function BookingList({ bookings, onAction }: BookingListProps) {
   const handleAction = (action: string, booking: Booking) => {
     if (onAction) {
@@ -28,87 +64,61 @@ export default function BookingList({ bookings, onAction }: BookingListProps) {
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-neutral-200">
-        <thead className="bg-neutral-100">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Confirmation #
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Guest
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Property
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Dates
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Source
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Total
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Balance
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-neutral-200">
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Confirmation #</TableHead>
+            <TableHead>Guest</TableHead>
+            <TableHead>Property</TableHead>
+            <TableHead>Dates</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Source</TableHead>
+            <TableHead>Total</TableHead>
+            <TableHead>Balance</TableHead>
+            <TableHead align="right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {bookings.map((booking) => {
             const outstandingBalance = calculateOutstandingBalance(booking);
             return (
-              <tr key={booking.id} className="hover:bg-neutral-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-neutral-900">
+              <TableRow key={booking.id}>
+                <TableCell nowrap>
+                  <div className="text-sm font-medium">
                     {booking.confirmationNumber || `#${booking.id}`}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-neutral-900">{booking.guestName}</div>
+                </TableCell>
+                <TableCell nowrap>
+                  <div className="text-sm font-medium">{booking.guestName}</div>
                   <div className="text-sm text-neutral-500">{booking.email}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-neutral-900">{booking.property?.name || 'N/A'}</div>
+                </TableCell>
+                <TableCell nowrap>
+                  <div className="text-sm">{booking.property?.name || 'N/A'}</div>
                   {booking.roomType && (
                     <div className="text-sm text-neutral-500">{booking.roomType.name}</div>
                   )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-neutral-900">{formatDate(booking.checkIn)}</div>
+                </TableCell>
+                <TableCell nowrap>
+                  <div className="text-sm">{formatDate(booking.checkIn)}</div>
                   <div className="text-sm text-neutral-500">to {formatDate(booking.checkOut)}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                      booking.status
-                    )}`}
-                  >
+                </TableCell>
+                <TableCell nowrap>
+                  <Badge variant={mapBookingStatusToBadgeVariant(booking.status)} size="sm">
                     {booking.status.replace(/_/g, ' ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSourceColor(
-                      booking.source
-                    )}`}
-                  >
+                  </Badge>
+                </TableCell>
+                <TableCell nowrap>
+                  <Badge variant={mapBookingSourceToBadgeVariant(booking.source)} size="sm">
                     {booking.source.replace(/_/g, ' ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-neutral-900">
+                  </Badge>
+                </TableCell>
+                <TableCell nowrap>
+                  <div className="text-sm font-medium">
                     {formatCurrency(booking.totalPrice, booking.currency)}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                </TableCell>
+                <TableCell nowrap>
                   <div
                     className={`text-sm font-medium ${
                       outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'
@@ -116,37 +126,35 @@ export default function BookingList({ bookings, onAction }: BookingListProps) {
                   >
                     {formatCurrency(outstandingBalance, booking.currency)}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                </TableCell>
+                <TableCell align="right" nowrap>
                   <Link
                     href={`/admin/bookings/${booking.id}`}
                     className="text-blue-600 hover:text-blue-900 mr-4 focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   >
                     View
                   </Link>
-                  <div className="inline-block relative">
-                    <Button
-                      onClick={() => handleAction('actions', booking)}
-                      variant="ghost"
-                      size="sm"
-                      aria-label="More actions"
-                      className="px-2"
-                    >
-                      ⋮
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+                  <Button
+                    onClick={() => handleAction('actions', booking)}
+                    variant="ghost"
+                    size="sm"
+                    aria-label="More actions"
+                    className="px-2"
+                  >
+                    ⋮
+                  </Button>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       {bookings.length === 0 && (
         <div className="text-center py-12">
           <p className="text-neutral-500">No bookings found</p>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
