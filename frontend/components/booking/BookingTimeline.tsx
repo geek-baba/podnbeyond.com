@@ -4,12 +4,13 @@
  */
 
 import React from 'react';
+import Badge from '../ui/Badge';
+import { mapBookingStatusToBadgeVariant } from '../../lib/badge-mappers';
 import {
   BookingAuditLog,
   Payment,
   formatDateTime,
   formatCurrency,
-  getStatusColor,
   getPaymentMethod,
   getPaymentCurrency,
 } from '../../lib/booking';
@@ -102,8 +103,8 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
     }
     // Default icon
     return (
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center">
+        <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
@@ -117,7 +118,7 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
     if (action.includes('CANCEL')) return 'text-red-600';
     if (action.includes('TRANSITION')) return 'text-yellow-600';
     if (action.includes('Payment')) return 'text-indigo-600';
-    return 'text-gray-600';
+    return 'text-neutral-600';
   };
 
   const formatAction = (action: string) => {
@@ -130,26 +131,25 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
 
   const formatMeta = (meta: any, type: 'audit' | 'payment') => {
     if (type === 'payment' && meta.amount) {
+      // Map payment status to booking status badge variant for consistency
+      const statusVariant = meta.status === 'COMPLETED' 
+        ? 'completed' 
+        : meta.status === 'PENDING' 
+        ? 'pending' 
+        : 'failed';
+      
       return (
-        <div className="mt-2 text-sm text-gray-600">
+        <div className="mt-2 text-sm text-neutral-600">
           <div>
             Amount: {formatCurrency(meta.amount, meta.currency || 'INR')}
           </div>
           <div>Method: {meta.method || 'N/A'}</div>
           {meta.status && (
-            <div>
+            <div className="mt-1">
               Status:{' '}
-              <span
-                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  meta.status === 'COMPLETED'
-                    ? 'bg-green-100 text-green-800'
-                    : meta.status === 'PENDING'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-              >
+              <Badge variant={statusVariant} size="sm">
                 {meta.status}
-              </span>
+              </Badge>
             </div>
           )}
         </div>
@@ -158,21 +158,27 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
 
     if (meta.fromState && meta.toState) {
       return (
-        <div className="mt-2 text-sm text-gray-600">
-          <div>
-            Status: <span className="font-medium">{meta.fromState}</span> →{' '}
-            <span className="font-medium">{meta.toState}</span>
+        <div className="mt-2 text-sm text-neutral-600">
+          <div className="flex items-center gap-2">
+            <span>Status:</span>
+            <Badge variant={mapBookingStatusToBadgeVariant(meta.fromState)} size="sm">
+              {meta.fromState.replace(/_/g, ' ')}
+            </Badge>
+            <span>→</span>
+            <Badge variant={mapBookingStatusToBadgeVariant(meta.toState)} size="sm">
+              {meta.toState.replace(/_/g, ' ')}
+            </Badge>
           </div>
-          {meta.reason && <div>Reason: {meta.reason}</div>}
+          {meta.reason && <div className="mt-1">Reason: {meta.reason}</div>}
         </div>
       );
     }
 
     if (meta.changes) {
       return (
-        <div className="mt-2 text-sm text-gray-600">
+        <div className="mt-2 text-sm text-neutral-600">
           <div>Changes:</div>
-          <pre className="mt-1 text-xs bg-gray-50 p-2 rounded">
+          <pre className="mt-1 text-xs bg-neutral-50 p-2 rounded">
             {JSON.stringify(meta.changes, null, 2)}
           </pre>
         </div>
@@ -181,8 +187,8 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
 
     if (meta && Object.keys(meta).length > 0) {
       return (
-        <div className="mt-2 text-sm text-gray-600">
-          <pre className="text-xs bg-gray-50 p-2 rounded">
+        <div className="mt-2 text-sm text-neutral-600">
+          <pre className="text-xs bg-neutral-50 p-2 rounded">
             {JSON.stringify(meta, null, 2)}
           </pre>
         </div>
@@ -195,7 +201,7 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
   if (timelineItems.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">No timeline entries found</p>
+        <p className="text-neutral-500">No timeline entries found</p>
       </div>
     );
   }
@@ -208,7 +214,7 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
             <div className="relative pb-8">
               {idx !== timelineItems.length - 1 && (
                 <span
-                  className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
+                  className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-neutral-200"
                   aria-hidden="true"
                 />
               )}
@@ -221,11 +227,11 @@ export default function BookingTimeline({ auditLogs, payments = [] }: BookingTim
                         <p className={`text-sm font-medium ${getActionColor(item.action)}`}>
                           {formatAction(item.action)}
                         </p>
-                        <p className="mt-0.5 text-sm text-gray-500">
+                        <p className="mt-0.5 text-sm text-neutral-500">
                           by {item.performedBy === 'system' ? 'System' : item.performedBy}
                         </p>
                       </div>
-                      <time className="flex-shrink-0 whitespace-nowrap text-sm text-gray-500">
+                      <time className="flex-shrink-0 whitespace-nowrap text-sm text-neutral-500">
                         {formatDateTime(item.timestamp)}
                       </time>
                     </div>

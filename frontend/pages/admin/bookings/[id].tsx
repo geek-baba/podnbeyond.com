@@ -10,6 +10,7 @@ import Header from '../../../components/layout/Header';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/Tabs';
 import {
   getBooking,
   Booking,
@@ -247,27 +248,18 @@ export default function BookingDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-neutral-200 mb-6">
-          <nav className="-mb-px flex space-x-8">
-            {(['summary', 'timeline', 'payments', 'notes', 'actions'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`${
-                  activeTab === tab
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as typeof activeTab)}>
+          <TabsList>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsTrigger value="actions">Actions</TabsTrigger>
+          </TabsList>
 
-        {/* Tab Content */}
-        <Card variant="default" padding="lg">
-          {activeTab === 'summary' && (
+          {/* Tab Content */}
+          <Card variant="default" padding="lg">
+            <TabsContent value="summary">
             <div className="space-y-6">
               {/* Guest Details */}
               <div>
@@ -365,50 +357,50 @@ export default function BookingDetailPage() {
                 </div>
               )}
             </div>
-          )}
+            </TabsContent>
 
-          {activeTab === 'timeline' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-medium text-neutral-900 mb-4">Timeline</h2>
-              <BookingTimeline
-                auditLogs={booking.bookingAuditLogs || []}
-                payments={booking.payments || []}
-              />
-            </div>
-          )}
+            <TabsContent value="timeline">
+              <div className="space-y-4">
+                <h2 className="text-lg font-medium text-neutral-900 mb-4">Timeline</h2>
+                <BookingTimeline
+                  auditLogs={booking.bookingAuditLogs || []}
+                  payments={booking.payments || []}
+                />
+              </div>
+            </TabsContent>
 
-          {activeTab === 'payments' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-medium text-neutral-900 mb-4">Payments</h2>
-              <BookingPayments
-                payments={booking.payments || []}
-                outstandingBalance={outstandingBalance}
-                currency={booking.currency}
-                onChargeCard={() => {
-                  setChargeCardModalOpen(true);
-                }}
-                onRecordCash={() => {
-                  setRecordCashModalOpen(true);
-                }}
-                onIssueRefund={(paymentId) => {
-                  setSelectedPayment(paymentId);
-                  setIssueRefundModalOpen(true);
-                }}
-              />
-            </div>
-          )}
+            <TabsContent value="payments">
+              <div className="space-y-4">
+                <h2 className="text-lg font-medium text-neutral-900 mb-4">Payments</h2>
+                <BookingPayments
+                  payments={booking.payments || []}
+                  outstandingBalance={outstandingBalance}
+                  currency={booking.currency}
+                  onChargeCard={() => {
+                    setChargeCardModalOpen(true);
+                  }}
+                  onRecordCash={() => {
+                    setRecordCashModalOpen(true);
+                  }}
+                  onIssueRefund={(paymentId) => {
+                    setSelectedPayment(paymentId);
+                    setIssueRefundModalOpen(true);
+                  }}
+                />
+              </div>
+            </TabsContent>
 
-          {activeTab === 'notes' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-medium text-neutral-900 mb-4">Notes</h2>
-              <BookingNotes
-                booking={booking}
-                onUpdate={handleModalSuccess}
-              />
-            </div>
-          )}
+            <TabsContent value="notes">
+              <div className="space-y-4">
+                <h2 className="text-lg font-medium text-neutral-900 mb-4">Notes</h2>
+                <BookingNotes
+                  booking={booking}
+                  onUpdate={handleModalSuccess}
+                />
+              </div>
+            </TabsContent>
 
-          {activeTab === 'actions' && (
+            <TabsContent value="actions">
             <div className="space-y-4">
               <h2 className="text-lg font-medium text-neutral-900 mb-4">Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -486,9 +478,9 @@ export default function BookingDetailPage() {
                   Hold booking temporarily reserves the booking without full confirmation.
                 </p>
               </div>
-            </div>
-          )}
-        </Card>
+            </TabsContent>
+          </Card>
+        </Tabs>
       </div>
 
       {/* Modals */}

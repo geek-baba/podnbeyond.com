@@ -15,6 +15,7 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import TableContainer from '../../../components/ui/TableContainer';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
+import Pagination from '../../../components/ui/Pagination';
 import {
   getBookings,
   BookingFilters as BookingFiltersType,
@@ -245,29 +246,15 @@ export default function BookingsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-sm text-neutral-700">
-                    Showing {((filters.page || 1) - 1) * (filters.limit || 20) + 1} to{' '}
-                    {Math.min((filters.page || 1) * (filters.limit || 20), total)} of {total} bookings
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      onClick={() => handlePageChange((filters.page || 1) - 1)}
-                      disabled={(filters.page || 1) === 1}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      onClick={() => handlePageChange((filters.page || 1) + 1)}
-                      disabled={(filters.page || 1) >= totalPages}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      Next
-                    </Button>
-                  </div>
+                <div className="mt-4">
+                  <Pagination
+                    currentPage={filters.page || 1}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    itemsPerPage={filters.limit || 20}
+                    onPageChange={handlePageChange}
+                    showItemCount={true}
+                  />
                 </div>
               )}
             </>
