@@ -476,7 +476,6 @@ export default function BookingDetailPage() {
             </TabsContent>
           </Card>
         </Tabs>
-      </div>
 
       {/* Modals */}
       {booking && (
