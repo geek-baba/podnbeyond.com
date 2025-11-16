@@ -8,6 +8,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import FormField from '../components/ui/FormField';
+import DatePicker from '../components/ui/DatePicker';
 import Badge from '../components/ui/Badge';
 
 export default function BookingPage() {
@@ -189,26 +190,37 @@ export default function BookingPage() {
 
                       {/* Date Selection */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField label="Check-in *" required>
-                          <Input
-                            type="date"
-                            name="checkIn"
-                            value={formData.checkIn}
-                            onChange={handleInputChange}
-                            min={new Date().toISOString().split('T')[0]}
-                            required
-                          />
-                        </FormField>
-                        <FormField label="Check-out *" required>
-                          <Input
-                            type="date"
-                            name="checkOut"
-                            value={formData.checkOut}
-                            onChange={handleInputChange}
-                            min={formData.checkIn || new Date().toISOString().split('T')[0]}
-                            required
-                          />
-                        </FormField>
+                        <DatePicker
+                          label="Check-in *"
+                          name="checkIn"
+                          value={formData.checkIn}
+                          onChange={(date) => {
+                            setFormData({ ...formData, checkIn: date || '' });
+                            // Validate check-out is after new check-in
+                            if (formData.checkOut && date && formData.checkOut <= date) {
+                              setFormData({ ...formData, checkIn: date || '', checkOut: '' });
+                            }
+                          }}
+                          minDate={new Date().toISOString().split('T')[0]}
+                          required
+                          placeholder="Select check-in date"
+                        />
+                        <DatePicker
+                          label="Check-out *"
+                          name="checkOut"
+                          value={formData.checkOut}
+                          onChange={(date) => {
+                            // Validate checkOut > checkIn
+                            if (formData.checkIn && date && date <= formData.checkIn) {
+                              // Error will be shown by DatePicker's error prop or handled at form submit
+                              return;
+                            }
+                            setFormData({ ...formData, checkOut: date || '' });
+                          }}
+                          minDate={formData.checkIn || new Date().toISOString().split('T')[0]}
+                          required
+                          placeholder="Select check-out date"
+                        />
                       </div>
 
                       {/* Guests */}

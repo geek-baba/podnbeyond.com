@@ -8,6 +8,8 @@ import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import DateRangePicker from '../../components/ui/DateRangePicker';
+import FormField from '../../components/ui/FormField';
 
 interface AnalyticsData {
   overview: {
@@ -384,26 +386,24 @@ export default function AnalyticsPage() {
                   </select>
                 </div>
                 {filters.viewBy === 'custom' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-semibold text-neutral-700 mb-2">Start Date</label>
-                      <input
-                        type="date"
-                        value={filters.startDate}
-                        onChange={(e) => setFilters({...filters, startDate: e.target.value})}
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                  <div className="sm:col-span-2">
+                    <FormField label="Date Range">
+                      <DateRangePicker
+                        value={[filters.startDate, filters.endDate]}
+                        onChange={([start, end]) => {
+                          setFilters({
+                            ...filters,
+                            startDate: start || filters.startDate,
+                            endDate: end || filters.endDate,
+                          });
+                        }}
+                        startPlaceholder="Start Date"
+                        endPlaceholder="End Date"
+                        variant="separate"
+                        enforceRange={true}
                       />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-neutral-700 mb-2">End Date</label>
-                      <input
-                        type="date"
-                        value={filters.endDate}
-                        onChange={(e) => setFilters({...filters, endDate: e.target.value})}
-                        className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                      />
-                    </div>
-                  </>
+                    </FormField>
+                  </div>
                 )}
                 <div className={filters.viewBy === 'custom' ? '' : 'sm:col-span-2'}>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">Property</label>

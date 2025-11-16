@@ -9,6 +9,8 @@ import { useAuth } from '../../../lib/useAuth';
 import Head from 'next/head';
 import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
+import DateRangePicker from '../../../components/ui/DateRangePicker';
+import FormField from '../../../components/ui/FormField';
 import axios from 'axios';
 
 interface Perk {
@@ -551,27 +553,23 @@ export default function PerksPage() {
                     className="w-5 h-5"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg"
-                  />
+                <div className="md:col-span-2">
+                  <FormField label="Validity Period">
+                    <DateRangePicker
+                      value={[formData.startDate, formData.endDate]}
+                      onChange={([start, end]) => {
+                        setFormData({
+                          ...formData,
+                          startDate: start || '',
+                          endDate: end || '',
+                        });
+                      }}
+                      startPlaceholder="Start Date"
+                      endPlaceholder="End Date"
+                      variant="connected"
+                      enforceRange={true}
+                    />
+                  </FormField>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-neutral-700 mb-1">

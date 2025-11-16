@@ -9,6 +9,8 @@ import { useAuth } from '../../../lib/useAuth';
 import Head from 'next/head';
 import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
+import DateRangePicker from '../../../components/ui/DateRangePicker';
+import FormField from '../../../components/ui/FormField';
 import axios from 'axios';
 
 interface Campaign {
@@ -501,29 +503,25 @@ export default function CampaignsPage() {
                     className="w-5 h-5"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg"
-                    required
-                  />
+                <div className="md:col-span-2">
+                  <FormField label="Campaign Period" required>
+                    <DateRangePicker
+                      value={[formData.startDate, formData.endDate]}
+                      onChange={([start, end]) => {
+                        setFormData({
+                          ...formData,
+                          startDate: start || '',
+                          endDate: end || '',
+                        });
+                      }}
+                      startPlaceholder="Start Date"
+                      endPlaceholder="End Date"
+                      variant="connected"
+                      minDate={new Date().toISOString().split('T')[0]}
+                      enforceRange={true}
+                      required
+                    />
+                  </FormField>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-neutral-700 mb-1">

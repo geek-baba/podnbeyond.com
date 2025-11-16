@@ -9,6 +9,7 @@ import Card from '../ui/Card';
 import Input from '../ui/Input';
 import SelectNative from '../ui/SelectNative';
 import FormField from '../ui/FormField';
+import DateRangePicker from '../ui/DateRangePicker';
 import { BookingFilters as BookingFiltersType, BookingStatus, BookingSource } from '../../lib/booking';
 
 interface BookingFiltersProps {
@@ -115,39 +116,33 @@ export default function BookingFilters({ filters, onFiltersChange, properties = 
           </SelectNative>
         </FormField>
 
-        {/* Check-in From */}
-        <FormField label="Check-in From">
-          <Input
-            type="date"
-            value={localFilters.checkInFrom || ''}
-            onChange={(e) => handleFilterChange('checkInFrom', e.target.value || undefined)}
+        {/* Check-in Date Range */}
+        <FormField label="Check-in Date Range">
+          <DateRangePicker
+            value={[localFilters.checkInFrom, localFilters.checkInTo]}
+            onChange={([from, to]) => {
+              handleFilterChange('checkInFrom', from);
+              handleFilterChange('checkInTo', to);
+            }}
+            startPlaceholder="From"
+            endPlaceholder="To"
+            variant="separate"
+            enforceRange={true}
           />
         </FormField>
 
-        {/* Check-in To */}
-        <FormField label="Check-in To">
-          <Input
-            type="date"
-            value={localFilters.checkInTo || ''}
-            onChange={(e) => handleFilterChange('checkInTo', e.target.value || undefined)}
-          />
-        </FormField>
-
-        {/* Check-out From */}
-        <FormField label="Check-out From">
-          <Input
-            type="date"
-            value={localFilters.checkOutFrom || ''}
-            onChange={(e) => handleFilterChange('checkOutFrom', e.target.value || undefined)}
-          />
-        </FormField>
-
-        {/* Check-out To */}
-        <FormField label="Check-out To">
-          <Input
-            type="date"
-            value={localFilters.checkOutTo || ''}
-            onChange={(e) => handleFilterChange('checkOutTo', e.target.value || undefined)}
+        {/* Check-out Date Range */}
+        <FormField label="Check-out Date Range">
+          <DateRangePicker
+            value={[localFilters.checkOutFrom, localFilters.checkOutTo]}
+            onChange={([from, to]) => {
+              handleFilterChange('checkOutFrom', from);
+              handleFilterChange('checkOutTo', to);
+            }}
+            startPlaceholder="From"
+            endPlaceholder="To"
+            variant="separate"
+            enforceRange={true}
           />
         </FormField>
       </div>

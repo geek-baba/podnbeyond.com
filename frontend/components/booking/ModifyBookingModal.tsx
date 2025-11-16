@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Booking, updateBooking, formatDate, formatCurrency } from '../../lib/booking';
+import DatePicker from '../ui/DatePicker';
 
 interface ModifyBookingModalProps {
   booking: Booking;
@@ -156,33 +157,38 @@ export default function ModifyBookingModal({
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               {/* Check-in Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Check-in Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.checkIn}
-                  onChange={(e) => handleChange('checkIn', e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <DatePicker
+                label="Check-in Date"
+                value={formData.checkIn}
+                onChange={(date) => {
+                  handleChange('checkIn', date || '');
+                  // Validate check-out is after new check-in
+                  if (formData.checkOut && date && formData.checkOut <= date) {
+                    handleChange('checkOut', '');
+                  }
+                }}
+                required
+                placeholder="Select check-in date"
+              />
 
               {/* Check-out Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Check-out Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.checkOut}
-                  onChange={(e) => handleChange('checkOut', e.target.value)}
-                  required
-                  min={formData.checkIn}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <DatePicker
+                label="Check-out Date"
+                value={formData.checkOut}
+                onChange={(date) => {
+                  // Validate checkOut > checkIn
+                  if (formData.checkIn && date && date <= formData.checkIn) {
+                    setError('Check-out date must be after check-in date');
+                    return;
+                  }
+                  setError(null);
+                  handleChange('checkOut', date || '');
+                }}
+                minDate={formData.checkIn}
+                required
+                placeholder="Select check-out date"
+                error={error && error.includes('Check-out') ? error : undefined}
+              />
 
               {/* Room Type */}
               <div>
