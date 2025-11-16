@@ -10,7 +10,6 @@ import Header from '../../../components/layout/Header';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
-import type { BadgeVariant } from '../../../components/ui/Badge';
 import {
   getBooking,
   Booking,
@@ -24,6 +23,10 @@ import {
   holdBooking,
   duplicateBooking,
 } from '../../../lib/booking';
+import {
+  mapBookingStatusToBadgeVariant,
+  mapBookingSourceToBadgeVariant,
+} from '../../../lib/badge-mappers';
 import ModifyBookingModal from '../../../components/booking/ModifyBookingModal';
 import CheckInModal from '../../../components/booking/CheckInModal';
 import CheckOutModal from '../../../components/booking/CheckOutModal';
@@ -106,40 +109,6 @@ export default function BookingDetailPage() {
   }
 
   const outstandingBalance = calculateOutstandingBalance(booking);
-
-  // Helper functions to map booking status/source to Badge variants
-  const mapBookingStatusToBadgeVariant = (status: string): BadgeVariant => {
-    const statusMap: Record<string, BadgeVariant> = {
-      'PENDING': 'pending',
-      'CONFIRMED': 'confirmed',
-      'HOLD': 'hold',
-      'CANCELLED': 'cancelled',
-      'CHECKED_IN': 'checkedIn',
-      'CHECKED_OUT': 'checkedOut',
-      'NO_SHOW': 'noShow',
-      'COMPLETED': 'completed',
-      'FAILED': 'failed',
-      'REJECTED': 'failed',
-    };
-    return statusMap[status] || 'neutral';
-  };
-
-  const mapBookingSourceToBadgeVariant = (source: string): BadgeVariant => {
-    const sourceMap: Record<string, BadgeVariant> = {
-      'WEB_DIRECT': 'webDirect',
-      'WALK_IN': 'walkIn',
-      'PHONE': 'phone',
-      'CORPORATE': 'corporate',
-      'OTA_BOOKING_COM': 'ota',
-      'OTA_MMT': 'ota',
-      'OTA_GOIBIBO': 'ota',
-      'OTA_YATRA': 'ota',
-      'OTA_AGODA': 'ota',
-      'OTA_EASEMYTRIP': 'ota',
-      'OTA_CLEARTRIP': 'ota',
-    };
-    return sourceMap[source] || 'neutral';
-  };
 
   const handleAction = async (action: string, booking: Booking) => {
     switch (action) {

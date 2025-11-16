@@ -43,6 +43,7 @@ interface BadgeProps {
   children: React.ReactNode;
   variant?: BadgeVariant;
   size?: 'sm' | 'md' | 'lg';
+  icon?: React.ReactNode;
   className?: string;
 }
 
@@ -50,6 +51,7 @@ const Badge: React.FC<BadgeProps> = ({
   children,
   variant = 'neutral',
   size = 'md',
+  icon,
   className = '',
 }) => {
   // Variant styles - All use design system colors (neutral-* instead of gray-*)
@@ -120,10 +122,11 @@ const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded-full ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 font-medium rounded-full ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       role="status"
       aria-label={typeof children === 'string' ? children : undefined}
     >
+      {icon && <span className="flex-shrink-0">{icon}</span>}
       {children}
     </span>
   );

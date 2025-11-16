@@ -11,9 +11,12 @@ import Header from '../../../components/layout/Header';
 import Container from '../../../components/layout/Container';
 import Link from 'next/link';
 import Badge from '../../../components/ui/Badge';
-import type { BadgeVariant } from '../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import Card from '../../../components/ui/Card';
+import TableContainer from '../../../components/ui/TableContainer';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import EmptyState from '../../../components/ui/EmptyState';
+import { mapLoyaltyTierToBadgeVariant } from '../../../lib/badge-mappers';
 
 interface LoyaltyAccount {
   id: number;
@@ -119,18 +122,6 @@ export default function LoyaltyPage() {
 
     return true;
   });
-
-  // Helper function to map loyalty tier to Badge variant
-  const mapLoyaltyTierToBadgeVariant = (tier: string): BadgeVariant => {
-    const tierMap: Record<string, BadgeVariant> = {
-      'MEMBER': 'member',
-      'SILVER': 'silver',
-      'GOLD': 'gold',
-      'PLATINUM': 'platinum',
-      'DIAMOND': 'diamond',
-    };
-    return tierMap[tier] || 'neutral';
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -318,26 +309,21 @@ export default function LoyaltyPage() {
 
           {/* Loading State */}
           {loading && (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900"></div>
-              <p className="mt-2 text-neutral-600">Loading loyalty members...</p>
-            </div>
+            <TableContainer>
+              <TableSkeleton rows={8} columns={7} />
+            </TableContainer>
           )}
 
           {/* Accounts List */}
           {!loading && !error && (
-            <div className="bg-white shadow-card rounded-card overflow-hidden">
-              <div className="px-6 py-4 border-b border-neutral-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-neutral-900">
-                    Loyalty Members
-                  </h2>
-                  <span className="text-sm text-neutral-500">
-                    {filteredAccounts.length} {filteredAccounts.length === 1 ? 'member' : 'members'}
-                  </span>
-                </div>
-              </div>
-
+            <TableContainer
+              title="Loyalty Members"
+              subtitle={
+                filteredAccounts.length > 0
+                  ? `${filteredAccounts.length} ${filteredAccounts.length === 1 ? 'member' : 'members'}`
+                  : undefined
+              }
+            >
               {filteredAccounts.length > 0 ? (
                 <Table>
                   <TableHeader>
@@ -400,15 +386,21 @@ export default function LoyaltyPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center py-12">
-                  <p className="text-neutral-500">
-                    {search || tierFilter
-                      ? 'No members found matching your filters.'
-                      : 'No loyalty members yet.'}
-                  </p>
-                </div>
+                <EmptyState
+                  title={
+                    search || tierFilter
+                      ? 'No members found matching your filters'
+                      : 'No loyalty members yet'
+                  }
+                  description={
+                    search || tierFilter
+                      ? 'Try adjusting your search or filter criteria'
+                      : undefined
+                  }
+                  variant="table"
+                />
               )}
-            </div>
+            </TableContainer>
           )}
         </Container>
       </section>

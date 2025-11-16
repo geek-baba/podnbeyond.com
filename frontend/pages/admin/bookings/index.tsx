@@ -13,6 +13,8 @@ import BookingFilters from '../../../components/booking/BookingFilters';
 import BookingList from '../../../components/booking/BookingList';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import TableContainer from '../../../components/ui/TableContainer';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 import {
   getBookings,
   BookingFilters as BookingFiltersType,
@@ -229,18 +231,17 @@ export default function BookingsPage() {
 
           {/* Loading State */}
           {loading && (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900"></div>
-              <p className="mt-2 text-neutral-600">Loading bookings...</p>
-            </div>
+            <TableContainer>
+              <TableSkeleton rows={8} columns={9} />
+            </TableContainer>
           )}
 
           {/* Bookings List */}
           {!loading && !error && (
             <>
-              <Card variant="default" padding="none" className="overflow-hidden">
+              <TableContainer>
                 <BookingList bookings={bookings} onAction={handleAction} />
-              </Card>
+              </TableContainer>
 
               {/* Pagination */}
               {totalPages > 1 && (

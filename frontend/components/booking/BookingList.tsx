@@ -7,53 +7,22 @@ import React from 'react';
 import Link from 'next/link';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
-import type { BadgeVariant } from '../ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/Table';
+import EmptyState from '../ui/EmptyState';
 import {
   Booking,
   formatDate,
   formatCurrency,
   calculateOutstandingBalance,
 } from '../../lib/booking';
+import {
+  mapBookingStatusToBadgeVariant,
+  mapBookingSourceToBadgeVariant,
+} from '../../lib/badge-mappers';
 
 interface BookingListProps {
   bookings: Booking[];
   onAction?: (action: string, booking: Booking) => void;
-}
-
-// Helper functions to map booking status/source to Badge variants
-function mapBookingStatusToBadgeVariant(status: string): BadgeVariant {
-  const statusMap: Record<string, BadgeVariant> = {
-    'PENDING': 'pending',
-    'CONFIRMED': 'confirmed',
-    'HOLD': 'hold',
-    'CANCELLED': 'cancelled',
-    'CHECKED_IN': 'checkedIn',
-    'CHECKED_OUT': 'checkedOut',
-    'NO_SHOW': 'noShow',
-    'COMPLETED': 'completed',
-    'FAILED': 'failed',
-    'REJECTED': 'failed', // Rejected uses same style as failed
-  };
-  return statusMap[status] || 'neutral';
-}
-
-function mapBookingSourceToBadgeVariant(source: string): BadgeVariant {
-  const sourceMap: Record<string, BadgeVariant> = {
-    'WEB_DIRECT': 'webDirect',
-    'WALK_IN': 'walkIn',
-    'PHONE': 'phone',
-    'CORPORATE': 'corporate',
-    // All OTA sources map to 'ota' variant
-    'OTA_BOOKING_COM': 'ota',
-    'OTA_MMT': 'ota',
-    'OTA_GOIBIBO': 'ota',
-    'OTA_YATRA': 'ota',
-    'OTA_AGODA': 'ota',
-    'OTA_EASEMYTRIP': 'ota',
-    'OTA_CLEARTRIP': 'ota',
-  };
-  return sourceMap[source] || 'neutral';
 }
 
 export default function BookingList({ bookings, onAction }: BookingListProps) {
@@ -150,9 +119,10 @@ export default function BookingList({ bookings, onAction }: BookingListProps) {
         </TableBody>
       </Table>
       {bookings.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-neutral-500">No bookings found</p>
-        </div>
+        <EmptyState
+          title="No bookings found"
+          variant="table"
+        />
       )}
     </>
   );
