@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Header from '../../../components/layout/Header';
+import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShell';
+import PageHeader from '../../../components/layout/PageHeader';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
@@ -211,72 +211,35 @@ export default function BookingDetailPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Booking #{booking?.confirmationNumber || booking?.id} | POD N BEYOND Admin</title>
-        <meta name="description" content="Booking details" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      
-      <Header />
-      
-      {/* Booking Navigation - Only booking-related actions */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 flex-wrap mb-4">
-            <a href="/admin/bookings">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                📋 All Bookings
-              </button>
-            </a>
-            <a href="/admin/bookings/new">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ➕ Create Booking
-              </button>
-            </a>
-            <a href="/admin/bookings/calendar">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                📅 Calendar View
-              </button>
-            </a>
-            <a href="/admin">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ← Admin Dashboard
-              </button>
-            </a>
-          </div>
-        </div>
-      </section>
+  if (!booking) {
+    return null; // Loading/error states handled above
+  }
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.push('/admin/bookings')}
-            className="text-sm text-neutral-600 hover:text-neutral-900 mb-4"
-          >
-            ← Back to Bookings
-          </button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-neutral-900">
-                Booking #{booking.confirmationNumber || booking.id}
-              </h1>
-              <p className="mt-2 text-sm text-neutral-600">
-                {booking.guestName} • {booking.email}
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge variant={mapBookingStatusToBadgeVariant(booking.status)} size="md">
-                {booking.status.replace(/_/g, ' ')}
-              </Badge>
-              <Badge variant={mapBookingSourceToBadgeVariant(booking.source)} size="md">
-                {booking.source.replace(/_/g, ' ')}
-              </Badge>
-            </div>
-          </div>
-        </div>
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Bookings', href: '/admin/bookings' },
+    { label: `Booking #${booking.confirmationNumber || booking.id}` },
+  ];
+
+  return (
+    <AdminShell
+      title={`Booking #${booking.confirmationNumber || booking.id} | POD N BEYOND Admin`}
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title={`Booking #${booking.confirmationNumber || booking.id}`}
+        subtitle={`${booking.guestName} • ${booking.email}`}
+        secondaryActions={
+          <>
+            <Badge variant={mapBookingStatusToBadgeVariant(booking.status)} size="md">
+              {booking.status.replace(/_/g, ' ')}
+            </Badge>
+            <Badge variant={mapBookingSourceToBadgeVariant(booking.source)} size="md">
+              {booking.source.replace(/_/g, ' ')}
+            </Badge>
+          </>
+        }
+      />
 
         {/* Tabs */}
         <Tabs value={activeTab} onChange={(value) => setActiveTab(value as typeof activeTab)}>
@@ -568,7 +531,7 @@ export default function BookingDetailPage() {
           )}
         </>
       )}
-    </div>
+    </AdminShell>
   );
 }
 

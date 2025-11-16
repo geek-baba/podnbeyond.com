@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../lib/useAuth';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
+import AdminShell, { BreadcrumbItem } from '../components/layout/AdminShell';
+import PageHeader from '../components/layout/PageHeader';
 import Container from '../components/layout/Container';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -844,94 +843,17 @@ useEffect(() => {
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Dashboard' }];
+
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Admin Dashboard | POD N BEYOND</title>
-        <meta name="description" content="POD N BEYOND Admin Dashboard" />
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/logo-podnbeyond.png" />
-      </Head>
-
-      <Header />
-
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            {/* Left: User Info and Title */}
-            <div className="flex items-start gap-6">
-              {/* User Info - Top Left */}
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                  </p>
-                </div>
-                <div className="h-12 w-px bg-neutral-700"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Title */}
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Admin Dashboard</h1>
-              <p className="text-neutral-300 text-sm">POD N BEYOND Group Management</p>
-            </div>
-          </div>
-
-          {/* Header Tabs - Like Communication Hub */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <a href="/admin/bookings">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/bookings')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                📋 Bookings
-              </button>
-            </a>
-            <a href="/admin/communication-hub">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/communication-hub') ||
-                router.asPath?.startsWith('/admin/templates') ||
-                router.asPath?.startsWith('/admin/analytics')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                💬 Communication Hub
-              </button>
-            </a>
-            <a href="/admin/loyalty">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/loyalty')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ⭐ Loyalty Program
-              </button>
-            </a>
-            <a href="/admin/integrations">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/integrations')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ⚙️ Integrations
-              </button>
-            </a>
-          </div>
-        </Container>
-      </section>
+    <AdminShell
+      title="Admin Dashboard | POD N BEYOND"
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title="Admin Dashboard"
+        subtitle="POD N BEYOND Group Management"
+      />
 
       {/* Tabs - Removed Payment, OTA, Integrations */}
       <section className="bg-white border-b border-neutral-200 sticky top-0 z-20">
@@ -3221,9 +3143,7 @@ useEffect(() => {
           </div>
         </div>
       )}
-
-      <Footer />
-    </div>
+    </AdminShell>
   );
 }
 

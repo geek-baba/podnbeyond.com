@@ -6,8 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../lib/useAuth';
-import Head from 'next/head';
-import Header from '../../../components/layout/Header';
+import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShell';
+import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
 import BookingFilters from '../../../components/booking/BookingFilters';
 import BookingList from '../../../components/booking/BookingList';
@@ -130,91 +130,34 @@ export default function BookingsPage() {
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Bookings' },
+  ];
+
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Bookings | POD N BEYOND Admin</title>
-        <meta name="description" content="Manage bookings" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <Header />
-
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            {/* Left: User Info and Title */}
-            <div className="flex items-start gap-6">
-              {/* User Info - Top Left */}
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                  </p>
-                </div>
-                <div className="h-12 w-px bg-neutral-700"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Title */}
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Bookings</h1>
-              <p className="text-neutral-300 text-sm">Manage all bookings</p>
-            </div>
-          </div>
-
-          {/* Booking Navigation - Only booking-related actions */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <a href="/admin/bookings">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath === '/admin/bookings'
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                📋 All Bookings
-              </button>
-            </a>
-            <a href="/admin/bookings/new">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath === '/admin/bookings/new'
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ➕ Create Booking
-              </button>
-            </a>
+    <AdminShell
+      title="Bookings | POD N BEYOND Admin"
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title="Bookings"
+        subtitle="Manage all bookings across properties"
+        primaryAction={
+          <a href="/admin/bookings/new">
+            <Button>Create Booking</Button>
+          </a>
+        }
+        secondaryActions={
+          <>
             <a href="/admin/bookings/calendar">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath === '/admin/bookings/calendar'
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                📅 Calendar View
-              </button>
+              <Button variant="secondary" size="sm">Calendar View</Button>
             </a>
-            <a href="/admin">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ← Admin Dashboard
-              </button>
-            </a>
-          </div>
-        </Container>
-      </section>
+          </>
+        }
+      />
 
-      {/* Content */}
-      <section className="py-12">
-        <Container>
+      <Container>
 
           {/* Filters */}
           <BookingFilters
@@ -260,8 +203,7 @@ export default function BookingsPage() {
             </>
           )}
         </Container>
-      </section>
-    </div>
+    </AdminShell>
   );
 }
 

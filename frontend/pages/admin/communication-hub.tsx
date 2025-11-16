@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/useAuth';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Header from '../../components/layout/Header';
-import Footer from '../../components/layout/Footer';
+import AdminShell, { BreadcrumbItem } from '../../components/layout/AdminShell';
+import PageHeader from '../../components/layout/PageHeader';
 import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -838,154 +837,88 @@ export default function CommunicationHub() {
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Communication Hub' },
+  ];
+
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Communication Hub | POD N BEYOND Admin</title>
-        <meta name="description" content="Unified guest communications for POD N BEYOND" />
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/logo-podnbeyond.png" />
-      </Head>
+    <AdminShell
+      title="Communication Hub | POD N BEYOND Admin"
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title="Communication Hub"
+        subtitle="Unified conversations across email, WhatsApp, SMS, and voice"
+        secondaryActions={
+          <Button variant="secondary" size="sm" onClick={loadConversations}>
+            Refresh
+          </Button>
+        }
+      />
 
-      <Header />
+      {/* Integration Status Indicators */}
+      <div className="mb-8 flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <a href="/admin/integrations" className="text-neutral-600 hover:text-neutral-900 transition-colors flex items-center gap-1">
+            <span>📧</span>
+            <span>Email</span>
+          </a>
+          <span className="text-neutral-400">(</span>
+          <a 
+            href="https://account.postmarkapp.com/servers" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-neutral-600 hover:text-neutral-900 transition-colors"
+          >
+            Postmark
+          </a>
+          <span className="text-neutral-400">)</span>
+          <span className={`inline-block w-2 h-2 rounded-full ${
+            integrations.postmark?.enabled ? 'bg-green-500' : 'bg-amber-500'
+          }`} title={integrations.postmark?.enabled ? 'Active' : 'Not Configured'}></span>
+        </div>
+        <div className="flex items-center gap-2">
+          <a href="/admin/integrations" className="text-neutral-600 hover:text-neutral-900 transition-colors flex items-center gap-1">
+            <span>💬</span>
+            <span>WhatsApp</span>
+          </a>
+          <span className="text-neutral-400">(</span>
+          <a 
+            href="https://apps.gupshup.io/whatsapp/dashboard" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-neutral-600 hover:text-neutral-900 transition-colors"
+          >
+            Gupshup
+          </a>
+          <span className="text-neutral-400">)</span>
+          <span className={`inline-block w-2 h-2 rounded-full ${
+            integrations.gupshup?.enabled ? 'bg-green-500' : 'bg-amber-500'
+          }`} title={integrations.gupshup?.enabled ? 'Active' : 'Not Configured'}></span>
+        </div>
+        <div className="flex items-center gap-2">
+          <a href="/admin/integrations" className="text-neutral-600 hover:text-neutral-900 transition-colors flex items-center gap-1">
+            <span>📞</span>
+            <span>Voice & SMS</span>
+          </a>
+          <span className="text-neutral-400">(</span>
+          <a 
+            href="https://my.exotel.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-neutral-600 hover:text-neutral-900 transition-colors"
+          >
+            Exotel
+          </a>
+          <span className="text-neutral-400">)</span>
+          <span className={`inline-block w-2 h-2 rounded-full ${
+            integrations.exotel?.enabled ? 'bg-green-500' : 'bg-amber-500'
+          }`} title={integrations.exotel?.enabled ? 'Active' : 'Not Configured'}></span>
+        </div>
+      </div>
 
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            <div className="flex items-start gap-6">
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                  </p>
-                </div>
-                <div className="h-12 w-px bg-neutral-700"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Communication Hub</h1>
-              <p className="text-neutral-300 text-sm mb-3">Unified conversations across email, WhatsApp, SMS, and voice</p>
-              {/* Integration Status Indicators */}
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <a href="/admin/integrations" className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1">
-                    <span>📧</span>
-                    <span>Email</span>
-                  </a>
-                  <span className="text-neutral-400">(</span>
-                  <a 
-                    href="https://account.postmarkapp.com/servers" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-neutral-300 hover:text-white transition-colors"
-                  >
-                    Postmark
-                  </a>
-                  <span className="text-neutral-400">)</span>
-                  <span className={`inline-block w-2 h-2 rounded-full ${
-                    integrations.postmark?.enabled ? 'bg-green-500' : 'bg-amber-500'
-                  }`} title={integrations.postmark?.enabled ? 'Active' : 'Not Configured'}></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a href="/admin/integrations" className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1">
-                    <span>💬</span>
-                    <span>WhatsApp</span>
-                  </a>
-                  <span className="text-neutral-400">(</span>
-                  <a 
-                    href="https://apps.gupshup.io/whatsapp/dashboard" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-neutral-300 hover:text-white transition-colors"
-                  >
-                    Gupshup
-                  </a>
-                  <span className="text-neutral-400">)</span>
-                  <span className={`inline-block w-2 h-2 rounded-full ${
-                    integrations.gupshup?.enabled ? 'bg-green-500' : 'bg-amber-500'
-                  }`} title={integrations.gupshup?.enabled ? 'Active' : 'Not Configured'}></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a href="/admin/integrations" className="text-neutral-300 hover:text-white transition-colors flex items-center gap-1">
-                    <span>📞</span>
-                    <span>Voice & SMS</span>
-                  </a>
-                  <span className="text-neutral-400">(</span>
-                  <a 
-                    href="https://my.exotel.com/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-neutral-300 hover:text-white transition-colors"
-                  >
-                    Exotel
-                  </a>
-                  <span className="text-neutral-400">)</span>
-                  <span className={`inline-block w-2 h-2 rounded-full ${
-                    integrations.exotel?.enabled ? 'bg-green-500' : 'bg-amber-500'
-                  }`} title={integrations.exotel?.enabled ? 'Active' : 'Not Configured'}></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            <a href="/admin/communication-hub">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/communication-hub')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                💬 Communication Hub
-              </button>
-            </a>
-            <a href="/admin/templates">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/templates')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                📝 Templates
-              </button>
-            </a>
-            <a href="/admin/analytics">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/analytics')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                📊 Analytics
-              </button>
-            </a>
-            <a href="/admin">
-              <button className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900">
-                ← Admin Dashboard
-              </button>
-            </a>
-            <button 
-              onClick={loadConversations}
-              className="px-6 py-2 rounded-button font-semibold transition-all bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900"
-            >
-              🔄 Refresh
-            </button>
-          </div>
-        </Container>
-      </section>
-
-      {/* Communication Hub Body */}
-      <section className="py-10">
-        <Container>
+      <Container>
           <div className="space-y-6">
             {/* Filters & Search */}
             <Card variant="default" padding="lg">
@@ -1661,9 +1594,6 @@ export default function CommunicationHub() {
 
           </div>
         </Container>
-      </section>
-
-      <Footer />
-    </div>
+    </AdminShell>
   );
 }

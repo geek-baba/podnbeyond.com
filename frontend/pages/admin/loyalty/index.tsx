@@ -6,8 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../lib/useAuth';
-import Head from 'next/head';
-import Header from '../../../components/layout/Header';
+import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShell';
+import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
 import Link from 'next/link';
 import Badge from '../../../components/ui/Badge';
@@ -158,114 +158,39 @@ export default function LoyaltyPage() {
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Dashboard', href: '/admin' },
+    { label: 'Loyalty' },
+  ];
+
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Head>
-        <title>Loyalty Program | POD N BEYOND Admin</title>
-        <meta name="description" content="Manage loyalty program members" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <Header />
-
-      {/* Admin Header */}
-      <section className="pt-24 pb-6 bg-gradient-to-br from-neutral-900 to-neutral-800 text-white">
-        <Container>
-          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
-            {/* Left: User Info and Title */}
-            <div className="flex items-start gap-6">
-              {/* User Info - Top Left */}
-              <div className="flex items-center gap-4">
-                <div className="text-left">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">
-                    {session?.user?.email || 'Not signed in'}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {(session as any)?.user?.roles?.[0]?.key?.replace(/_/g, ' ') || 'MEMBER'}
-                  </p>
-                </div>
-                <div className="h-12 w-px bg-neutral-700"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-button text-sm font-semibold hover:bg-white hover:text-neutral-900 transition-all"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Title */}
-            <div className="text-right">
-              <h1 className="text-3xl font-bold mb-1">Loyalty Program</h1>
-              <p className="text-neutral-300 text-sm">Manage loyalty members and program settings</p>
-            </div>
-          </div>
-
-          {/* Header Tabs */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/admin/loyalty">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath === '/admin/loyalty'
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                👥 Members
-              </button>
-            </Link>
+    <AdminShell
+      title="Loyalty Program | POD N BEYOND Admin"
+      breadcrumbs={breadcrumbs}
+    >
+      <PageHeader
+        title="Loyalty Program"
+        subtitle="Manage loyalty members and program settings"
+        secondaryActions={
+          <>
             <Link href="/admin/loyalty/points-rules">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/loyalty/points-rules')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ⭐ Points Rules
-              </button>
+              <Button variant="secondary" size="sm">Points Rules</Button>
             </Link>
             <Link href="/admin/loyalty/perks">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/loyalty/perks')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                🎁 Perks
-              </button>
+              <Button variant="secondary" size="sm">Perks</Button>
             </Link>
             <Link href="/admin/loyalty/campaigns">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/loyalty/campaigns')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                📢 Campaigns
-              </button>
+              <Button variant="secondary" size="sm">Campaigns</Button>
             </Link>
             <Link href="/admin/loyalty/redemption-items">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath?.startsWith('/admin/loyalty/redemption-items')
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                🎫 Redemption Catalog
-              </button>
+              <Button variant="secondary" size="sm">Redemption Catalog</Button>
             </Link>
-            <Link href="/admin">
-              <button className={`px-6 py-2 rounded-button font-semibold transition-all ${
-                router.asPath === '/admin'
-                  ? 'bg-white text-neutral-900'
-                  : 'bg-white/10 border border-white/20 text-white hover:bg-white hover:text-neutral-900'
-              }`}>
-                ← Admin Dashboard
-              </button>
-            </Link>
-          </div>
-        </Container>
-      </section>
+          </>
+        }
+      />
 
-      {/* Content */}
-      <section className="py-12">
-        <Container>
-          {/* Filters */}
+      <Container>
+        {/* Filters */}
           <Card variant="default" padding="md" className="mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Search */}
@@ -398,8 +323,7 @@ export default function LoyaltyPage() {
             </TableContainer>
           )}
         </Container>
-      </section>
-    </div>
+    </AdminShell>
   );
 }
 
