@@ -10,6 +10,7 @@ import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShel
 import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
 import Card from '../../../components/ui/Card';
+import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import axios from 'axios';
 
@@ -196,18 +197,14 @@ export default function PointsRulesPage() {
     }
   };
 
-  const getRuleTypeColor = (type: string) => {
+  // Map rule type to Badge variant for consistent styling
+  const getRuleTypeVariant = (type: string): BadgeVariant => {
     switch (type) {
-      case 'BASE':
-        return 'bg-blue-100 text-blue-800';
-      case 'BONUS':
-        return 'bg-green-100 text-green-800';
-      case 'CAMPAIGN':
-        return 'bg-purple-100 text-purple-800';
-      case 'SEASONAL':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'BASE': return 'neutral';
+      case 'BONUS': return 'success';
+      case 'CAMPAIGN': return 'warning';
+      case 'SEASONAL': return 'warning';
+      default: return 'neutral';
     }
   };
 
@@ -330,19 +327,17 @@ export default function PointsRulesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRuleTypeColor(rule.ruleType)}`}>
+                      <Badge variant={getRuleTypeVariant(rule.ruleType)} size="sm">
                         {rule.ruleType}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
                       {rule.priority}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        rule.isActive ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-800'
-                      }`}>
+                      <Badge variant={rule.isActive ? 'success' : 'neutral'} size="sm">
                         {rule.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                       {rule.startDate || rule.endDate ? (

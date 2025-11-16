@@ -10,6 +10,7 @@ import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShel
 import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
 import Card from '../../../components/ui/Card';
+import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import axios from 'axios';
 
@@ -220,20 +221,15 @@ export default function RedemptionItemsPage() {
     }
   };
 
-  const getItemTypeColor = (type: string) => {
+  // Map item type to Badge variant for consistent styling
+  const getItemTypeVariant = (type: string): BadgeVariant => {
     switch (type) {
-      case 'FREE_NIGHT':
-        return 'bg-blue-100 text-blue-800';
-      case 'UPGRADE':
-        return 'bg-purple-100 text-purple-800';
-      case 'VOUCHER':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'DISCOUNT':
-        return 'bg-green-100 text-green-800';
-      case 'CASH':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'FREE_NIGHT': return 'neutral';
+      case 'UPGRADE': return 'warning';
+      case 'VOUCHER': return 'warning';
+      case 'DISCOUNT': return 'success';
+      case 'CASH': return 'warning';
+      default: return 'neutral';
     }
   };
 
@@ -358,9 +354,9 @@ export default function RedemptionItemsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getItemTypeColor(item.itemType)}`}>
+                      <Badge variant={getItemTypeVariant(item.itemType)} size="sm">
                         {item.itemType.replace(/_/g, ' ')}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
                       <div className="font-semibold">{item.basePointsRequired.toLocaleString()}</div>
@@ -389,11 +385,9 @@ export default function RedemptionItemsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <Badge variant={item.isActive ? 'success' : 'neutral'} size="sm">
                         {item.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button

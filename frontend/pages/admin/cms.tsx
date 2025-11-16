@@ -335,7 +335,7 @@ const CMSAdminPage: React.FC = () => {
       <Container>
         {/* Tabs */}
           <div className="mb-8">
-            <div className="border-b border-gray-200">
+            <div className="border-b border-neutral-200">
               <nav className="-mb-px flex space-x-8">
                 {tabs.map((tab) => (
                   <button
@@ -344,7 +344,7 @@ const CMSAdminPage: React.FC = () => {
                     className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
                     }`}
                   >
                     <span>{tab.icon}</span>
@@ -369,7 +369,7 @@ const CMSAdminPage: React.FC = () => {
             {loading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading...</p>
+                <p className="mt-4 text-neutral-600">Loading...</p>
               </div>
             ) : (
               <div className="p-6">
@@ -377,23 +377,23 @@ const CMSAdminPage: React.FC = () => {
                 {activeTab === 'content' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-semibold text-gray-900">Content Management</h2>
+                      <h2 className="text-xl font-semibold text-neutral-900">Content Management</h2>
                     </div>
                     
                     {/* Content Form */}
-                    <form onSubmit={handleContentSubmit} className="mb-8 bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    <form onSubmit={handleContentSubmit} className="mb-8 bg-neutral-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium text-neutral-900 mb-4">
                         {editingContent ? 'Edit Content' : 'Add New Content'}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Content Type
                           </label>
                           <select
                             value={contentForm.type}
                             onChange={(e) => setContentForm({...contentForm, type: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             required
                           >
                             <option value="">Select content type</option>
@@ -403,48 +403,48 @@ const CMSAdminPage: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Title
                           </label>
                           <input
                             type="text"
                             value={contentForm.title}
                             onChange={(e) => setContentForm({...contentForm, title: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Subtitle
                           </label>
                           <input
                             type="text"
                             value={contentForm.subtitle}
                             onChange={(e) => setContentForm({...contentForm, subtitle: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Sort Order
                           </label>
                           <input
                             type="number"
                             value={contentForm.sortOrder}
                             onChange={(e) => setContentForm({...contentForm, sortOrder: parseInt(e.target.value)})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                       </div>
                       <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
                           Description
                         </label>
                         <textarea
                           value={contentForm.description}
                           onChange={(e) => setContentForm({...contentForm, description: e.target.value})}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                       <div className="mt-6">
@@ -453,9 +453,9 @@ const CMSAdminPage: React.FC = () => {
                             type="checkbox"
                             checked={contentForm.isActive}
                             onChange={(e) => setContentForm({...contentForm, isActive: e.target.checked})}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Active</span>
+                          <span className="ml-2 text-sm text-neutral-700">Active</span>
                         </label>
                       </div>
                       <div className="mt-6">
@@ -471,12 +471,12 @@ const CMSAdminPage: React.FC = () => {
                     {/* Content List */}
                     <div className="space-y-4">
                       {contents.map((content) => (
-                        <div key={content.id} className="border border-gray-200 rounded-lg p-4">
+                        <div key={content.id} className="border border-neutral-200 rounded-lg p-4">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium text-gray-900">{content.type}</h4>
-                              {content.title && <p className="text-gray-600">{content.title}</p>}
-                              {content.description && <p className="text-gray-500 text-sm mt-1">{content.description}</p>}
+                              <h4 className="font-medium text-neutral-900">{content.type}</h4>
+                              {content.title && <p className="text-neutral-600">{content.title}</p>}
+                              {content.description && <p className="text-neutral-500 text-sm mt-1">{content.description}</p>}
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className={`px-2 py-1 text-xs rounded-full ${
@@ -496,21 +496,21 @@ const CMSAdminPage: React.FC = () => {
                 {activeTab === 'images' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-semibold text-gray-900">Image Management</h2>
+                      <h2 className="text-xl font-semibold text-neutral-900">Image Management</h2>
                     </div>
                     
                     {/* Image Upload Form */}
-                    <form onSubmit={handleImageUpload} className="mb-8 bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Upload New Image</h3>
+                    <form onSubmit={handleImageUpload} className="mb-8 bg-neutral-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium text-neutral-900 mb-4">Upload New Image</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Image Type
                           </label>
                           <select
                             value={imageForm.type}
                             onChange={(e) => setImageForm({...imageForm, type: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             required
                           >
                             <option value="">Select image type</option>
@@ -520,49 +520,49 @@ const CMSAdminPage: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Image File
                           </label>
                           <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Alt Text
                           </label>
                           <input
                             type="text"
                             value={imageForm.altText}
                             onChange={(e) => setImageForm({...imageForm, altText: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Title
                           </label>
                           <input
                             type="text"
                             value={imageForm.title}
                             onChange={(e) => setImageForm({...imageForm, title: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                       </div>
                       <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
                           Description
                         </label>
                         <textarea
                           value={imageForm.description}
                           onChange={(e) => setImageForm({...imageForm, description: e.target.value})}
                           rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                       <div className="mt-6">
@@ -578,7 +578,7 @@ const CMSAdminPage: React.FC = () => {
                     {/* Images Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {images.map((image) => (
-                        <div key={image.id} className="border border-gray-200 rounded-lg p-4">
+                        <div key={image.id} className="border border-neutral-200 rounded-lg p-4">
                           <img
                             src={image.url}
                             alt={image.altText || image.title}
@@ -586,8 +586,8 @@ const CMSAdminPage: React.FC = () => {
                           />
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium text-gray-900">{image.type}</h4>
-                              {image.title && <p className="text-gray-600 text-sm">{image.title}</p>}
+                              <h4 className="font-medium text-neutral-900">{image.type}</h4>
+                              {image.title && <p className="text-neutral-600 text-sm">{image.title}</p>}
                             </div>
                             <button
                               onClick={() => handleImageDelete(image.id)}
@@ -606,46 +606,46 @@ const CMSAdminPage: React.FC = () => {
                 {activeTab === 'testimonials' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-semibold text-gray-900">Testimonials Management</h2>
+                      <h2 className="text-xl font-semibold text-neutral-900">Testimonials Management</h2>
                     </div>
                     
                     {/* Testimonial Form */}
-                    <form onSubmit={handleTestimonialSubmit} className="mb-8 bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    <form onSubmit={handleTestimonialSubmit} className="mb-8 bg-neutral-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium text-neutral-900 mb-4">
                         {editingTestimonial ? 'Edit Testimonial' : 'Add New Testimonial'}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Guest Name
                           </label>
                           <input
                             type="text"
                             value={testimonialForm.guestName}
                             onChange={(e) => setTestimonialForm({...testimonialForm, guestName: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Guest Email
                           </label>
                           <input
                             type="email"
                             value={testimonialForm.guestEmail}
                             onChange={(e) => setTestimonialForm({...testimonialForm, guestEmail: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Rating
                           </label>
                           <select
                             value={testimonialForm.rating}
                             onChange={(e) => setTestimonialForm({...testimonialForm, rating: parseInt(e.target.value)})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           >
                             {[1, 2, 3, 4, 5].map(rating => (
                               <option key={rating} value={rating}>{rating} Star{rating !== 1 ? 's' : ''}</option>
@@ -653,37 +653,37 @@ const CMSAdminPage: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Sort Order
                           </label>
                           <input
                             type="number"
                             value={testimonialForm.sortOrder}
                             onChange={(e) => setTestimonialForm({...testimonialForm, sortOrder: parseInt(e.target.value)})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                       </div>
                       <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
                           Title
                         </label>
                         <input
                           type="text"
                           value={testimonialForm.title}
                           onChange={(e) => setTestimonialForm({...testimonialForm, title: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                       <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
                           Content
                         </label>
                         <textarea
                           value={testimonialForm.content}
                           onChange={(e) => setTestimonialForm({...testimonialForm, content: e.target.value})}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           required
                         />
                       </div>
@@ -693,9 +693,9 @@ const CMSAdminPage: React.FC = () => {
                             type="checkbox"
                             checked={testimonialForm.isActive}
                             onChange={(e) => setTestimonialForm({...testimonialForm, isActive: e.target.checked})}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Active</span>
+                          <span className="ml-2 text-sm text-neutral-700">Active</span>
                         </label>
                       </div>
                       <div className="mt-6">
@@ -711,19 +711,19 @@ const CMSAdminPage: React.FC = () => {
                     {/* Testimonials List */}
                     <div className="space-y-4">
                       {testimonials.map((testimonial) => (
-                        <div key={testimonial.id} className="border border-gray-200 rounded-lg p-4">
+                        <div key={testimonial.id} className="border border-neutral-200 rounded-lg p-4">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium text-gray-900">{testimonial.guestName}</h4>
+                              <h4 className="font-medium text-neutral-900">{testimonial.guestName}</h4>
                               <div className="flex items-center space-x-2 mt-1">
                                 {Array.from({ length: 5 }, (_, i) => (
-                                  <span key={i} className={`text-sm ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                                  <span key={i} className={`text-sm ${i < testimonial.rating ? 'text-yellow-400' : 'text-neutral-300'}`}>
                                     ★
                                   </span>
                                 ))}
                               </div>
-                              {testimonial.title && <p className="text-gray-600 text-sm mt-1">{testimonial.title}</p>}
-                              <p className="text-gray-500 text-sm mt-2">"{testimonial.content}"</p>
+                              {testimonial.title && <p className="text-neutral-600 text-sm mt-1">{testimonial.title}</p>}
+                              <p className="text-neutral-500 text-sm mt-2">"{testimonial.content}"</p>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className={`px-2 py-1 text-xs rounded-full ${
@@ -749,60 +749,60 @@ const CMSAdminPage: React.FC = () => {
                 {activeTab === 'amenities' && (
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-semibold text-gray-900">Amenities Management</h2>
+                      <h2 className="text-xl font-semibold text-neutral-900">Amenities Management</h2>
                     </div>
                     
                     {/* Amenity Form */}
-                    <form onSubmit={handleAmenitySubmit} className="mb-8 bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    <form onSubmit={handleAmenitySubmit} className="mb-8 bg-neutral-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium text-neutral-900 mb-4">
                         {editingAmenity ? 'Edit Amenity' : 'Add New Amenity'}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Name
                           </label>
                           <input
                             type="text"
                             value={amenityForm.name}
                             onChange={(e) => setAmenityForm({...amenityForm, name: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Icon Name
                           </label>
                           <input
                             type="text"
                             value={amenityForm.iconName}
                             onChange={(e) => setAmenityForm({...amenityForm, iconName: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             placeholder="e.g., wifi, pool, gym"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-neutral-700 mb-2">
                             Sort Order
                           </label>
                           <input
                             type="number"
                             value={amenityForm.sortOrder}
                             onChange={(e) => setAmenityForm({...amenityForm, sortOrder: parseInt(e.target.value)})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                       </div>
                       <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">
                           Description
                         </label>
                         <textarea
                           value={amenityForm.description}
                           onChange={(e) => setAmenityForm({...amenityForm, description: e.target.value})}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                       <div className="mt-6">
@@ -811,9 +811,9 @@ const CMSAdminPage: React.FC = () => {
                             type="checkbox"
                             checked={amenityForm.isActive}
                             onChange={(e) => setAmenityForm({...amenityForm, isActive: e.target.checked})}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
                           />
-                          <span className="ml-2 text-sm text-gray-700">Active</span>
+                          <span className="ml-2 text-sm text-neutral-700">Active</span>
                         </label>
                       </div>
                       <div className="mt-6">
@@ -829,12 +829,12 @@ const CMSAdminPage: React.FC = () => {
                     {/* Amenities List */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {amenities.map((amenity) => (
-                        <div key={amenity.id} className="border border-gray-200 rounded-lg p-4">
+                        <div key={amenity.id} className="border border-neutral-200 rounded-lg p-4">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium text-gray-900">{amenity.name}</h4>
-                              {amenity.description && <p className="text-gray-600 text-sm mt-1">{amenity.description}</p>}
-                              {amenity.iconName && <p className="text-gray-500 text-xs mt-1">Icon: {amenity.iconName}</p>}
+                              <h4 className="font-medium text-neutral-900">{amenity.name}</h4>
+                              {amenity.description && <p className="text-neutral-600 text-sm mt-1">{amenity.description}</p>}
+                              {amenity.iconName && <p className="text-neutral-500 text-xs mt-1">Icon: {amenity.iconName}</p>}
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className={`px-2 py-1 text-xs rounded-full ${

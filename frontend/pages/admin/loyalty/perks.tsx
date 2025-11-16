@@ -10,6 +10,7 @@ import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShel
 import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
 import Card from '../../../components/ui/Card';
+import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
@@ -241,20 +242,15 @@ export default function PerksPage() {
     }
   };
 
-  const getPerkTypeColor = (type: string) => {
+  // Map perk type to Badge variant for consistent styling
+  const getPerkTypeVariant = (type: string): BadgeVariant => {
     switch (type) {
-      case 'BENEFIT':
-        return 'bg-blue-100 text-blue-800';
-      case 'DISCOUNT':
-        return 'bg-green-100 text-green-800';
-      case 'UPGRADE':
-        return 'bg-purple-100 text-purple-800';
-      case 'VOUCHER':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'POINTS_BONUS':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'BENEFIT': return 'neutral';
+      case 'DISCOUNT': return 'success';
+      case 'UPGRADE': return 'warning';
+      case 'VOUCHER': return 'warning';
+      case 'POINTS_BONUS': return 'warning';
+      default: return 'neutral';
     }
   };
 
@@ -374,9 +370,9 @@ export default function PerksPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPerkTypeColor(perk.perkType)}`}>
-                        {perk.perkType}
-                      </span>
+                      <Badge variant={getPerkTypeVariant(perk.perkType)} size="sm">
+                        {perk.perkType.replace(/_/g, ' ')}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
                       <div>

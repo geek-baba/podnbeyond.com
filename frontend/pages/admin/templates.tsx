@@ -5,7 +5,7 @@ import AdminShell, { BreadcrumbItem } from '../../components/layout/AdminShell';
 import PageHeader from '../../components/layout/PageHeader';
 import Container from '../../components/layout/Container';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import Badge, { type BadgeVariant } from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
 type MessageTemplateType = 'BOOKING_CONFIRMATION' | 'CHECK_IN' | 'CHECK_OUT' | 'CANCELLATION' | 'FAQ' | 'CUSTOM';
@@ -248,7 +248,8 @@ export default function TemplatesPage() {
     }
   };
 
-  const getTypeColor = (type: MessageTemplateType) => {
+  // Map template type to Badge variant
+  const getTemplateTypeVariant = (type: MessageTemplateType): BadgeVariant => {
     switch (type) {
       case 'BOOKING_CONFIRMATION': return 'success';
       case 'CHECK_IN': return 'neutral';
@@ -331,7 +332,7 @@ export default function TemplatesPage() {
                             <h3 className="text-lg font-semibold text-neutral-900">
                               {getChannelIcon(template.channel)} {template.name}
                             </h3>
-                            <Badge variant={getTypeColor(template.type) as any} size="sm">
+                            <Badge variant={getTemplateTypeVariant(template.type)} size="sm">
                               {template.type.replace(/_/g, ' ')}
                             </Badge>
                             <Badge variant={template.isActive ? 'success' : 'neutral'} size="sm">

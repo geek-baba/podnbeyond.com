@@ -793,10 +793,11 @@ export default function CommunicationHub() {
     }
   };
 
-  const getStatusColor = (status: ConversationStatus): 'neutral' | 'success' | 'warning' | 'error' => {
+  // Map conversation status to Badge variant
+  const getConversationStatusVariant = (status: ConversationStatus): 'neutral' | 'success' | 'warning' | 'error' => {
     switch (status) {
       case 'NEW': return 'neutral';
-      case 'IN_PROGRESS': return 'neutral'; // Changed from 'primary' to 'neutral'
+      case 'IN_PROGRESS': return 'neutral';
       case 'WAITING_FOR_GUEST': return 'warning';
       case 'RESOLVED': return 'success';
       case 'ARCHIVED': return 'neutral';
@@ -1122,7 +1123,7 @@ export default function CommunicationHub() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant={getStatusColor(conv.status)} size="sm">
+                                    <Badge variant={getConversationStatusVariant(conv.status)} size="sm">
                                       {conv.status.replace(/_/g, ' ')}
                                     </Badge>
                                     <Badge variant={getPriorityColor(conv.priority)} size="sm">
@@ -1184,7 +1185,7 @@ export default function CommunicationHub() {
                             {getChannelIcon(selectedConversation.primaryChannel)} {selectedConversation.subject}
                           </h3>
                           <div className="flex flex-wrap gap-2 mb-3">
-                            <Badge variant={getStatusColor(selectedConversation.status)}>
+                            <Badge variant={getConversationStatusVariant(selectedConversation.status)}>
                               {selectedConversation.status.replace(/_/g, ' ')}
                             </Badge>
                             <Badge variant={getPriorityColor(selectedConversation.priority)}>

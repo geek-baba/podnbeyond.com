@@ -403,7 +403,7 @@ export default function IntegrationsAdmin() {
       VOICE: 'bg-orange-100 text-orange-800',
       OTA: 'bg-pink-100 text-pink-800',
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-neutral-100 text-neutral-800';
   };
 
   // Group integrations by category
@@ -545,16 +545,16 @@ export default function IntegrationsAdmin() {
                       return (
                         <div key={providerKey}>
                           <div
-                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                            className="border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="font-semibold text-lg text-gray-900">{name}</h3>
+                                  <h3 className="font-semibold text-lg text-neutral-900">{name}</h3>
                                   <Badge variant="neutral">Not Configured</Badge>
                                 </div>
                                 {description && (
-                                  <p className="text-sm text-gray-600">{description}</p>
+                                  <p className="text-sm text-neutral-600">{description}</p>
                                 )}
                               </div>
                               <div className="flex gap-2">
@@ -579,9 +579,9 @@ export default function IntegrationsAdmin() {
 
                           {/* Inline Configure Form for New Integrations */}
                           {isEditing && showForm && formData && (
-                            <div className="mt-4 border-t border-gray-200 pt-4">
+                            <div className="mt-4 border-t border-neutral-200 pt-4">
                               <Card className="border-2 border-blue-200 bg-blue-50/30">
-                                <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                                <div className="flex justify-between items-center mb-4 pb-3 border-b border-neutral-200">
                                   <div>
                                     <h3 className="text-lg font-bold text-neutral-900">
                                       Configure {formData.name}
@@ -756,8 +756,8 @@ export default function IntegrationsAdmin() {
           {Object.keys(groupedIntegrations).length === 0 && integrations.length === 0 && !loading && (
             <Card>
               <div className="text-center py-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Integrations Configured</h3>
-                <p className="text-gray-500 mb-4">
+                <h3 className="text-lg font-semibold text-neutral-900 mb-2">No Integrations Configured</h3>
+                <p className="text-neutral-500 mb-4">
                   You haven't configured any integrations yet. Add one from the available integrations above, or migrate existing configurations from environment variables.
                 </p>
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
@@ -790,7 +790,7 @@ export default function IntegrationsAdmin() {
                 {categoryIntegrations.map((integration) => (
                   <div key={integration.id}>
                     <div
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                      className="border border-neutral-200 rounded-lg p-4 hover:bg-neutral-50 transition-colors"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -802,7 +802,7 @@ export default function IntegrationsAdmin() {
                             )}
                           </div>
                           {integration.description && (
-                            <p className="text-sm text-gray-600 mb-2">{integration.description}</p>
+                            <p className="text-sm text-neutral-600 mb-2">{integration.description}</p>
                           )}
                           {integration.lastError && (
                             <p className="text-sm text-red-600 mb-2">
@@ -810,7 +810,7 @@ export default function IntegrationsAdmin() {
                             </p>
                           )}
                           {integration.lastTestedAt && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-neutral-500">
                               Last tested: {new Date(integration.lastTestedAt).toLocaleString()}
                             </p>
                           )}
@@ -853,9 +853,9 @@ export default function IntegrationsAdmin() {
 
                     {/* Inline Edit Form */}
                     {selectedIntegration?.id === integration.id && showForm && formData && (
-                      <div className="mt-4 border-t border-gray-200 pt-4">
+                      <div className="mt-4 border-t border-neutral-200 pt-4">
                         <Card className="border-2 border-blue-200 bg-blue-50/30">
-                          <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                          <div className="flex justify-between items-center mb-4 pb-3 border-b border-neutral-200">
                             <div>
                               <h3 className="text-lg font-bold text-neutral-900">
                                 Edit {formData.name}

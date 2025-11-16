@@ -10,6 +10,7 @@ import AdminShell, { BreadcrumbItem } from '../../../components/layout/AdminShel
 import PageHeader from '../../../components/layout/PageHeader';
 import Container from '../../../components/layout/Container';
 import Card from '../../../components/ui/Card';
+import Badge, { type BadgeVariant } from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import DateRangePicker from '../../../components/ui/DateRangePicker';
 import FormField from '../../../components/ui/FormField';
@@ -236,16 +237,13 @@ export default function CampaignsPage() {
     }
   };
 
-  const getCampaignTypeColor = (type: string) => {
+  // Map campaign type to Badge variant for consistent styling
+  const getCampaignTypeVariant = (type: string): BadgeVariant => {
     switch (type) {
-      case 'POINTS_MULTIPLIER':
-        return 'bg-blue-100 text-blue-800';
-      case 'BONUS_POINTS':
-        return 'bg-green-100 text-green-800';
-      case 'PERK_GIVEAWAY':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'POINTS_MULTIPLIER': return 'neutral';
+      case 'BONUS_POINTS': return 'success';
+      case 'PERK_GIVEAWAY': return 'warning';
+      default: return 'neutral';
     }
   };
 
@@ -369,9 +367,9 @@ export default function CampaignsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCampaignTypeColor(campaign.campaignType)}`}>
+                      <Badge variant={getCampaignTypeVariant(campaign.campaignType)} size="sm">
                         {campaign.campaignType.replace(/_/g, ' ')}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                       <div>
@@ -380,11 +378,12 @@ export default function CampaignsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        isActive(campaign) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <Badge 
+                        variant={isActive(campaign) ? 'success' : campaign.isActive ? 'neutral' : 'neutral'} 
+                        size="sm"
+                      >
                         {isActive(campaign) ? 'Active Now' : campaign.isActive ? 'Scheduled' : 'Inactive'}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
