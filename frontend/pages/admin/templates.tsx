@@ -387,9 +387,6 @@ export default function TemplatesPage() {
             </Card>
           </div>
         </Container>
-        
-        <Footer />
-      </div>
 
       {/* Create/Edit Modal */}
       {showModal && (
