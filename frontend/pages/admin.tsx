@@ -3,6 +3,7 @@ import { useAuth } from '../lib/useAuth';
 import { useRouter } from 'next/router';
 import AdminShell, { BreadcrumbItem } from '../components/layout/AdminShell';
 import PageHeader from '../components/layout/PageHeader';
+import AdminBreadcrumbs from '../components/layout/AdminBreadcrumbs';
 import Container from '../components/layout/Container';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -10,6 +11,8 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import FormField from '../components/ui/FormField';
 import { getBookings } from '../lib/booking';
+import { dashboardWidgets, isWidgetEnabledForRole } from '../lib/dashboardConfig';
+import { usePermissions } from '../lib/usePermissions';
 
 interface AdminDashboardProps {
   brands: any[];
@@ -41,6 +44,7 @@ interface NewUserFormState {
 
 export default function AdminDashboard({ brands, properties: initialProperties, bookings, loyalty, users, roomTypes: initialRoomTypes, stats }: AdminDashboardProps) {
   const { data: session, status: authStatus, signOut } = useAuth();
+  const { user, hasPermission } = usePermissions();
   const router = useRouter();
   const [authTimeout, setAuthTimeout] = useState(false);
 
@@ -880,126 +884,87 @@ useEffect(() => {
       <section className="py-12">
         <Container>
           {/* Overview Tab */}
-          {activeTab === 'overview' && (
-            <div className="space-y-8 animate-fade-in">
-              <div>
-                <h2 className="text-2xl font-bold text-neutral-900 mb-6">Dashboard Overview</h2>
-                
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                  <Card variant="default" padding="lg">
-                    <div className="text-sm font-semibold text-neutral-600 mb-2">Total Brands</div>
-                    <div className="text-4xl font-bold text-capsule-500">{stats.brands}</div>
-                    <div className="text-sm text-neutral-500 mt-2">
-                      {brands.filter(b => b.status === 'ACTIVE').length} active
-                    </div>
-                  </Card>
+          {activeTab === 'overview' && (() => {
+            // Filter widgets by permissions
+            const visibleWidgets = dashboardWidgets.filter((w) => {
+              const allowed = w.requiredPermissions.some((p) => hasPermission(p));
+              const roleKey = user?.roles?.[0]?.key || undefined;
+              const roleEnabled = isWidgetEnabledForRole(w.id, roleKey);
+              return allowed && roleEnabled;
+            });
 
-                  <Card variant="default" padding="lg">
-                    <div className="text-sm font-semibold text-neutral-600 mb-2">Total Properties</div>
-                    <div className="text-4xl font-bold text-smart-500">{stats.properties}</div>
-                    <div className="text-sm text-neutral-500 mt-2">
-                      Across {brands.length} brands
-                    </div>
-                  </Card>
+            // Group widgets by section
+            const today = visibleWidgets.filter((w) => w.section === 'today');
+            const queues = visibleWidgets.filter((w) => w.section === 'queues');
+            const recent = visibleWidgets.filter((w) => w.section === 'recent');
+            const system = visibleWidgets.filter((w) => w.section === 'system');
+            const quick = visibleWidgets.filter((w) => w.section === 'quickActions');
 
-                  <Card variant="default" padding="lg">
-                    <div className="text-sm font-semibold text-neutral-600 mb-2">Total Bookings</div>
-                    <div className="text-4xl font-bold text-sanctuary-500">
-                      {bookingsLoading ? '...' : bookingsCount}
-                    </div>
-                    <div className="text-sm text-neutral-500 mt-2">
-                      {bookingsLoading ? 'Loading...' : 'Click Bookings tab to view'}
-                    </div>
-                  </Card>
+            return (
+              <div className="space-y-8 animate-fade-in">
+                <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }]} />
 
-                  <Card variant="default" padding="lg">
-                    <div className="text-sm font-semibold text-neutral-600 mb-2">Loyalty Members</div>
-                    <div className="text-4xl font-bold text-sauna-500">
-                      {loyaltyLoading ? '...' : loyaltyCount}
+                {/* Today Section */}
+                {today.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">Today</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {today.map((widget) => (
+                        <div key={widget.id}>{widget.render()}</div>
+                      ))}
                     </div>
-                    <div className="text-sm text-neutral-500 mt-2">
-                      {loyaltyLoading ? 'Loading...' : 'Click Loyalty tab to view'}
-                    </div>
-                  </Card>
-
-                  <Card variant="default" padding="lg">
-                    <div className="text-sm font-semibold text-neutral-600 mb-2">Staff Members</div>
-                    <div className="text-4xl font-bold text-neutral-900">{usersList?.length || 0}</div>
-                    <div className="text-sm text-neutral-500 mt-2">
-                      {usersList?.filter(u => u.roleKey === 'SUPERADMIN' || u.roleKey === 'ADMIN').length || 0} admins
-                    </div>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Recent Bookings */}
-              <div>
-                <h3 className="text-xl font-bold text-neutral-900 mb-4">Recent Bookings</h3>
-                <Card variant="default" padding="none">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-neutral-100 border-b border-neutral-200">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Guest</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Check-in</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Room</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-neutral-200">
-                        {bookings && bookings.length > 0 ? bookings.slice(0, 5).map((booking) => (
-                          <tr key={booking.id} className="hover:bg-neutral-50">
-                            <td className="px-6 py-4">
-                              <div className="font-medium text-neutral-900">{booking.guestName}</div>
-                              <div className="text-sm text-neutral-500">{booking.email}</div>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-neutral-700">
-                              {new Date(booking.checkIn).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-neutral-700">
-                              <div className="font-medium text-neutral-900">
-                                {booking.roomType?.name || booking.roomType?.type || 'N/A'}
-                              </div>
-                              <div className="text-xs text-neutral-500">
-                                {booking.property?.name || booking.source || 'Direct'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Badge 
-                                variant={
-                                  booking.status === 'CONFIRMED' ? 'success' :
-                                  booking.status === 'HOLD' ? 'warning' :
-                                  booking.status === 'PENDING' ? 'warning' :
-                                  booking.status === 'CANCELLED' ? 'error' :
-                                  booking.status === 'FAILED' ? 'error' :
-                                  booking.status === 'NO_SHOW' ? 'error' : 'neutral'
-                                }
-                                size="sm"
-                              >
-                                {booking.status}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 font-semibold text-neutral-900">
-                              ₹{Number(booking.totalPrice || 0).toLocaleString()}
-                            </td>
-                          </tr>
-                        )) : (
-                          <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center text-neutral-500">
-                              <p className="mb-2">No bookings data available</p>
-                              <p className="text-sm">Test data: {bookings?.length || 0} bookings in database</p>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
                   </div>
-                </Card>
+                )}
+
+                {/* Queues Section */}
+                {queues.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">Queues</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {queues.map((widget) => (
+                        <div key={widget.id}>{widget.render()}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Section */}
+                {recent.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">Recent Activity</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {recent.map((widget) => (
+                        <div key={widget.id}>{widget.render()}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* System & Quick Actions Section */}
+                {(system.length > 0 || quick.length > 0) && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">System & Actions</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {system.map((widget) => (
+                        <div key={widget.id}>{widget.render()}</div>
+                      ))}
+                      {quick.map((widget) => (
+                        <div key={widget.id}>{widget.render()}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {visibleWidgets.length === 0 && (
+                  <Card>
+                    <div className="p-12 text-center">
+                      <p className="text-neutral-500">No widgets available based on your permissions.</p>
+                    </div>
+                  </Card>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Brands Tab */}
           {activeTab === 'brands' && (
