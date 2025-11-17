@@ -169,14 +169,13 @@ export default function PerksPage() {
       toast({
         variant: 'success',
         title: 'Perk deleted',
-        message: 'The perk has been removed',
       });
       fetchPerks();
     } catch (err: any) {
       console.error('Error deleting perk:', err);
       toast({
         variant: 'error',
-        title: 'Failed to delete perk',
+        title: "Couldn't delete perk",
         message: err.response?.data?.error || err.message,
       });
     }
@@ -204,8 +203,8 @@ export default function PerksPage() {
         toast({
           variant: 'error',
           title: 'Invalid JSON',
-          message: 'Please check the conditions or value JSON format',
-          duration: null, // Persistent until dismissed
+          message: 'Check the conditions or value JSON format',
+          duration: null,
         });
         return;
       }
@@ -233,8 +232,7 @@ export default function PerksPage() {
 
       toast({
         variant: 'success',
-        title: 'Perk saved',
-        message: editingPerk ? 'Perk updated successfully' : 'Perk created successfully',
+        title: editingPerk ? 'Perk updated' : 'Perk created',
       });
       setShowModal(false);
       fetchPerks();
@@ -242,7 +240,7 @@ export default function PerksPage() {
       console.error('Error saving perk:', err);
       toast({
         variant: 'error',
-        title: 'Failed to save perk',
+        title: "Couldn't save perk",
         message: err.response?.data?.error || err.message,
       });
     }

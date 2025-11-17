@@ -148,12 +148,16 @@ export default function PointsRulesPage() {
       await axios.delete(`${API_URL}/api/loyalty/points-rules/${id}`, {
         withCredentials: true,
       });
+      toast({
+        variant: 'success',
+        title: 'Points rule deleted',
+      });
       fetchRules();
     } catch (err: any) {
       console.error('Error deleting rule:', err);
       toast({
         variant: 'error',
-        title: 'Failed to delete rule',
+        title: "Couldn't delete rule",
         message: err.response?.data?.error || err.message,
       });
     }
@@ -201,11 +205,19 @@ export default function PointsRulesPage() {
         });
       }
 
+      toast({
+        variant: 'success',
+        title: editingRule ? 'Points rule updated' : 'Points rule created',
+      });
       setShowModal(false);
       fetchRules();
     } catch (err: any) {
       console.error('Error saving rule:', err);
-      setError(err.response?.data?.error || 'Failed to save rule');
+      toast({
+        variant: 'error',
+        title: "Couldn't save points rule",
+        message: err.response?.data?.error || err.message,
+      });
     }
   };
 

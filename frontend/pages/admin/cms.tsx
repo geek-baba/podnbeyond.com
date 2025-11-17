@@ -209,7 +209,6 @@ const CMSAdminPage: React.FC = () => {
       toast({
         variant: 'success',
         title: 'Image uploaded',
-        message: 'The image has been uploaded successfully.',
       });
       setSelectedFile(null);
       setImageForm({
@@ -223,8 +222,8 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to upload image' });
       toast({
         variant: 'error',
-        title: 'Failed to upload image',
-        message: error?.message || 'Please try again or check your network connection.',
+        title: "Couldn't upload image",
+        message: error?.message,
       });
     } finally {
       setLoading(false);
@@ -238,7 +237,6 @@ const CMSAdminPage: React.FC = () => {
       toast({
         variant: 'success',
         title: 'Image deleted',
-        message: 'The image has been removed successfully.',
       });
       setDeleteImageId(null);
       fetchData();
@@ -246,8 +244,8 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to delete image' });
       toast({
         variant: 'error',
-        title: 'Failed to delete image',
-        message: error?.message || 'Please try again or check your network connection.',
+        title: "Couldn't delete image",
+        message: error?.message,
       });
     }
   };
@@ -265,8 +263,7 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'success', text: 'Testimonial saved successfully' });
       toast({
         variant: 'success',
-        title: 'Testimonial saved',
-        message: 'The testimonial has been saved successfully.',
+        title: editingTestimonial ? 'Testimonial updated' : 'Testimonial created',
       });
       setEditingTestimonial(null);
       setTestimonialForm({
@@ -283,8 +280,8 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to save testimonial' });
       toast({
         variant: 'error',
-        title: 'Failed to save testimonial',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't save testimonial",
+        message: error?.message,
       });
     } finally {
       setLoading(false);
@@ -298,7 +295,6 @@ const CMSAdminPage: React.FC = () => {
       toast({
         variant: 'success',
         title: 'Testimonial deleted',
-        message: 'The testimonial has been removed successfully.',
       });
       setDeleteTestimonialId(null);
       fetchData();
@@ -306,8 +302,8 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to delete testimonial' });
       toast({
         variant: 'error',
-        title: 'Failed to delete testimonial',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't delete testimonial",
+        message: error?.message,
       });
     }
   };
@@ -325,8 +321,7 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'success', text: 'Amenity saved successfully' });
       toast({
         variant: 'success',
-        title: 'Amenity saved',
-        message: 'The amenity has been saved successfully.',
+        title: editingAmenity ? 'Amenity updated' : 'Amenity created',
       });
       setEditingAmenity(null);
       setAmenityForm({
@@ -341,8 +336,8 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to save amenity' });
       toast({
         variant: 'error',
-        title: 'Failed to save amenity',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't save amenity",
+        message: error?.message,
       });
     } finally {
       setLoading(false);
@@ -356,7 +351,6 @@ const CMSAdminPage: React.FC = () => {
       toast({
         variant: 'success',
         title: 'Amenity deleted',
-        message: 'The amenity has been removed successfully.',
       });
       setDeleteAmenityId(null);
       fetchData();
@@ -364,8 +358,8 @@ const CMSAdminPage: React.FC = () => {
       setMessage({ type: 'error', text: 'Failed to delete amenity' });
       toast({
         variant: 'error',
-        title: 'Failed to delete amenity',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't delete amenity",
+        message: error?.message,
       });
     }
   };

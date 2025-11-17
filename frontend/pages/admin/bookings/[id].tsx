@@ -172,7 +172,6 @@ export default function BookingDetailPage() {
       toast({
         variant: 'success',
         title: 'Booking confirmed',
-        message: 'The booking has been confirmed successfully',
         duration: 5000,
       });
       setConfirmBookingModalOpen(false);
@@ -180,7 +179,7 @@ export default function BookingDetailPage() {
     } catch (err: any) {
       toast({
         variant: 'error',
-        title: 'Failed to confirm booking',
+        title: "Couldn't confirm booking",
         message: err.message,
       });
     }
@@ -197,7 +196,6 @@ export default function BookingDetailPage() {
       toast({
         variant: 'warning',
         title: 'Booking held',
-        message: 'This booking is now on hold',
         duration: 4000,
       });
       setHoldBookingModalOpen(false);
@@ -206,7 +204,7 @@ export default function BookingDetailPage() {
     } catch (err: any) {
       toast({
         variant: 'error',
-        title: 'Failed to hold booking',
+        title: "Couldn't hold booking",
         message: err.message,
       });
     }
@@ -221,7 +219,6 @@ export default function BookingDetailPage() {
         toast({
           variant: 'success',
           title: 'Booking duplicated',
-          message: 'A copy of this booking has been created',
         });
         setDuplicateBookingModalOpen(false);
         router.push(`/admin/bookings/${response.data.id}`);
@@ -229,7 +226,7 @@ export default function BookingDetailPage() {
     } catch (err: any) {
       toast({
         variant: 'error',
-        title: 'Failed to duplicate booking',
+        title: "Couldn't duplicate booking",
         message: err.message,
       });
     }

@@ -169,14 +169,13 @@ export default function CampaignsPage() {
       toast({
         variant: 'success',
         title: 'Campaign deleted',
-        message: 'The campaign has been removed',
       });
       fetchCampaigns();
     } catch (err: any) {
       console.error('Error deleting campaign:', err);
       toast({
         variant: 'error',
-        title: 'Failed to delete campaign',
+        title: "Couldn't delete campaign",
         message: err.response?.data?.error || err.message,
       });
     }
@@ -203,8 +202,8 @@ export default function CampaignsPage() {
         toast({
           variant: 'error',
           title: 'Invalid JSON',
-          message: 'Please check the rules JSON format',
-          duration: null, // Persistent until dismissed
+          message: 'Check the rules JSON format',
+          duration: null,
         });
         return;
       }
@@ -228,8 +227,7 @@ export default function CampaignsPage() {
 
       toast({
         variant: 'success',
-        title: 'Campaign saved',
-        message: editingCampaign ? 'Campaign updated successfully' : 'Campaign created successfully',
+        title: editingCampaign ? 'Campaign updated' : 'Campaign created',
       });
       setShowModal(false);
       fetchCampaigns();
@@ -237,7 +235,7 @@ export default function CampaignsPage() {
       console.error('Error saving campaign:', err);
       toast({
         variant: 'error',
-        title: 'Failed to save campaign',
+        title: "Couldn't save campaign",
         message: err.response?.data?.error || err.message,
       });
     }

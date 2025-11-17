@@ -480,12 +480,12 @@ export default function CommunicationHub() {
           toast({
             variant: 'error',
             title: 'Network error',
-            message: 'Could not connect to the server. Please check your connection and try again.',
+            message: 'Check your connection and try again',
           });
         } else {
           toast({
             variant: 'error',
-            title: 'Failed to load conversation',
+            title: "Couldn't load conversation",
             message: errorMessage,
           });
         }
@@ -554,7 +554,7 @@ export default function CommunicationHub() {
       toast({
         variant: 'warning',
         title: 'Booking required',
-        message: 'This template requires a booking. Please select a conversation with a booking.',
+        message: 'Select a conversation with a booking',
       });
       return;
     }
@@ -588,16 +588,16 @@ export default function CommunicationHub() {
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to load template',
-          message: data.error || 'Please try again.',
+          title: "Couldn't load template",
+          message: data.error,
         });
       }
     } catch (error) {
       console.error('Error loading template:', error);
       toast({
         variant: 'error',
-        title: 'Failed to load template',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't load template",
+        message: error?.message,
       });
     } finally {
       setLoadingTemplate(false);
@@ -621,8 +621,8 @@ export default function CommunicationHub() {
       console.error('Failed to update status:', error);
       toast({
         variant: 'error',
-        title: 'Failed to update status',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't update status",
+        message: error?.message,
       });
     }
   };
@@ -644,8 +644,8 @@ export default function CommunicationHub() {
       console.error('Failed to update priority:', error);
       toast({
         variant: 'error',
-        title: 'Failed to update priority',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't update priority",
+        message: error?.message,
       });
     }
   };
@@ -667,8 +667,8 @@ export default function CommunicationHub() {
       console.error('Failed to assign conversation:', error);
       toast({
         variant: 'error',
-        title: 'Failed to assign conversation',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't assign conversation",
+        message: error?.message,
       });
     }
   };
@@ -698,7 +698,7 @@ export default function CommunicationHub() {
       toast({
         variant: 'warning',
         title: 'No conversations selected',
-        message: 'Please select at least one conversation to perform this action.',
+        message: 'Select at least one conversation',
       });
       return;
     }
@@ -733,22 +733,22 @@ export default function CommunicationHub() {
         toast({
           variant: 'success',
           title: 'Bulk action completed',
-          message: `Successfully ${action}ed ${data.updated} conversation(s)`,
+          message: `${data.updated} conversation(s) ${action}ed`,
         });
         setBulkActionModal(null);
       } else {
         toast({
           variant: 'error',
-          title: 'Bulk action failed',
-          message: data.error || 'Please try again.',
+          title: "Couldn't complete bulk action",
+          message: data.error,
         });
       }
     } catch (error) {
       console.error('Bulk action error:', error);
       toast({
         variant: 'error',
-        title: 'Bulk action failed',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't complete bulk action",
+        message: error?.message,
       });
     } finally {
       setBulkActionLoading(false);
@@ -786,13 +786,12 @@ export default function CommunicationHub() {
           toast({
             variant: 'success',
             title: 'Reply sent',
-            message: 'Your message has been sent successfully.',
           });
         } else {
           toast({
             variant: 'error',
-            title: 'Failed to send reply',
-            message: data.error || 'Please try again.',
+            title: "Couldn't send reply",
+            message: data.error,
           });
         }
       } else {
@@ -805,7 +804,7 @@ export default function CommunicationHub() {
           toast({
             variant: 'warning',
             title: 'Phone number required',
-            message: 'No phone number found for this conversation.',
+            message: 'No phone number found',
           });
           return;
         }
@@ -829,13 +828,12 @@ export default function CommunicationHub() {
           toast({
             variant: 'success',
             title: 'Reply sent',
-            message: 'Your message has been sent successfully.',
           });
         } else {
           toast({
             variant: 'error',
-            title: 'Failed to send reply',
-            message: data.error || 'Please try again.',
+            title: "Couldn't send reply",
+            message: data.error,
           });
         }
       }
@@ -843,8 +841,8 @@ export default function CommunicationHub() {
       console.error('Reply error:', error);
       toast({
         variant: 'error',
-        title: 'Failed to send reply',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't send reply",
+        message: error?.message,
       });
     } finally {
       setSending(false);
@@ -869,21 +867,20 @@ export default function CommunicationHub() {
         toast({
           variant: 'success',
           title: 'Note added',
-          message: 'Your note has been added successfully.',
         });
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to add note',
-          message: data.error || 'Please try again.',
+          title: "Couldn't add note",
+          message: data.error,
         });
       }
     } catch (error) {
       console.error('Note error:', error);
       toast({
         variant: 'error',
-        title: 'Failed to add note',
-        message: 'Please try again or check your network connection.',
+        title: "Couldn't add note",
+        message: error?.message,
       });
     }
   };
@@ -1594,7 +1591,7 @@ export default function CommunicationHub() {
                                         toast({
                                           variant: 'warning',
                                           title: 'Phone number required',
-                                          message: 'No phone number available for this booking.',
+                                          message: 'No phone number available',
                                         });
                                         return;
                                       }
@@ -1614,20 +1611,19 @@ export default function CommunicationHub() {
                                           toast({
                                             variant: 'success',
                                             title: 'Confirmation sent',
-                                            message: 'The booking confirmation has been sent successfully.',
                                           });
                                         } else {
                                           toast({
                                             variant: 'error',
-                                            title: 'Failed to send confirmation',
-                                            message: data.error || 'Please try again.',
+                                            title: "Couldn't send confirmation",
+                                            message: data.error,
                                           });
                                         }
                                       } catch (error) {
                                         toast({
                                           variant: 'error',
-                                          title: 'Failed to send confirmation',
-                                          message: 'Please try again or check your network connection.',
+                                          title: "Couldn't send confirmation",
+                                          message: error?.message,
                                         });
                                       }
                                     }}

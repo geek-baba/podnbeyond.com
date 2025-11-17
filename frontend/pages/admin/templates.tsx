@@ -154,23 +154,20 @@ export default function TemplatesPage() {
         toast({
           variant: 'success',
           title: editingTemplate ? 'Template updated' : 'Template created',
-          message: editingTemplate
-            ? 'The message template has been updated successfully.'
-            : 'A new message template has been created successfully.',
         });
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to save template',
-          message: data.error || 'An unexpected error occurred while saving the template.',
+          title: "Couldn't save template",
+          message: data.error,
         });
       }
     } catch (error: any) {
       console.error('Error saving template:', error);
       toast({
         variant: 'error',
-        title: 'Failed to save template',
-        message: error?.message || 'An unexpected error occurred while saving the template.',
+        title: "Couldn't save template",
+        message: error?.message,
       });
     }
   };
@@ -187,21 +184,20 @@ export default function TemplatesPage() {
         toast({
           variant: 'success',
           title: 'Template deleted',
-          message: 'The message template has been deleted successfully.',
         });
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to delete template',
-          message: data.error || 'An unexpected error occurred while deleting the template.',
+          title: "Couldn't delete template",
+          message: data.error,
         });
       }
     } catch (error: any) {
       console.error('Error deleting template:', error);
       toast({
         variant: 'error',
-        title: 'Failed to delete template',
-        message: error?.message || 'An unexpected error occurred while deleting the template.',
+        title: "Couldn't delete template",
+        message: error?.message,
       });
     }
   };
@@ -226,7 +222,7 @@ export default function TemplatesPage() {
       toast({
         variant: 'warning',
         title: 'Booking ID required',
-        message: 'Please enter a booking ID to generate a preview.',
+        message: 'Enter a booking ID to generate a preview',
       });
       return;
     }
@@ -244,16 +240,16 @@ export default function TemplatesPage() {
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to preview template',
-          message: data.error || 'An unexpected error occurred while generating the preview.',
+          title: "Couldn't preview template",
+          message: data.error,
         });
       }
     } catch (error: any) {
       console.error('Error previewing template:', error);
       toast({
         variant: 'error',
-        title: 'Failed to preview template',
-        message: error?.message || 'An unexpected error occurred while generating the preview.',
+        title: "Couldn't preview template",
+        message: error?.message,
       });
     }
   };

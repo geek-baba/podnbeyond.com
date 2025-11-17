@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
         toast({
           variant: 'error',
           title: 'Authentication required',
-          message: 'User session not found. Please log in again.',
+          message: 'Log in again to continue',
         });
         setLoading(false);
         return;
@@ -194,8 +194,8 @@ export default function AnalyticsPage() {
       const errorMessage = error.message || 'Failed to fetch analytics';
       toast({
         variant: 'error',
-        title: 'Failed to load analytics',
-        message: `${errorMessage}. Check browser console for more details.`,
+        title: "Couldn't load analytics",
+        message: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -240,15 +240,15 @@ export default function AnalyticsPage() {
       document.body.removeChild(a);
       toast({
         variant: 'success',
-        title: 'Export successful',
-        message: `Data exported successfully as ${format.toUpperCase()}.`,
+        title: 'Export started',
+        message: `Downloading ${format.toUpperCase()} file`,
       });
     } catch (error) {
       console.error('Export error:', error);
       toast({
         variant: 'error',
-        title: 'Export failed',
-        message: 'Failed to export data. Please try again or check your network connection.',
+        title: "Couldn't start export",
+        message: error?.message,
       });
     }
   };

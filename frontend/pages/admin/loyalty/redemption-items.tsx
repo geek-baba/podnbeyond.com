@@ -168,12 +168,16 @@ export default function RedemptionItemsPage() {
       await axios.delete(`${API_URL}/api/loyalty/redemption-items/${id}`, {
         withCredentials: true,
       });
+      toast({
+        variant: 'success',
+        title: 'Redemption item deleted',
+      });
       fetchItems();
     } catch (err: any) {
       console.error('Error deleting redemption item:', err);
       toast({
         variant: 'error',
-        title: 'Failed to delete redemption item',
+        title: "Couldn't delete redemption item",
         message: err.response?.data?.error || err.message,
       });
     }
@@ -225,11 +229,19 @@ export default function RedemptionItemsPage() {
         });
       }
 
+      toast({
+        variant: 'success',
+        title: editingItem ? 'Redemption item updated' : 'Redemption item created',
+      });
       setShowModal(false);
       fetchItems();
     } catch (err: any) {
       console.error('Error saving redemption item:', err);
-      setError(err.response?.data?.error || 'Failed to save redemption item');
+      toast({
+        variant: 'error',
+        title: "Couldn't save redemption item",
+        message: err.response?.data?.error || err.message,
+      });
     }
   };
 

@@ -205,8 +205,8 @@ export default function IntegrationsAdmin() {
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to load integrations',
-          message: data.error || 'Please refresh the page',
+          title: "Couldn't load integrations",
+          message: data.error,
         });
       }
     } catch (error: any) {
@@ -215,13 +215,13 @@ export default function IntegrationsAdmin() {
         toast({
           variant: 'error',
           title: 'Request timeout',
-          message: 'Please refresh the page',
+          message: 'Refresh the page and try again',
         });
       } else {
         toast({
           variant: 'error',
-          title: 'Failed to load integrations',
-          message: error.message || 'Unknown error',
+          title: "Couldn't load integrations",
+          message: error.message,
         });
       }
     } finally {
@@ -289,8 +289,7 @@ export default function IntegrationsAdmin() {
       if (data.success) {
         toast({
           variant: 'success',
-          title: 'Integration saved',
-          message: 'Configuration updated successfully',
+          title: 'Integration updated',
         });
         setShowForm(false);
         setFormData(null);
@@ -301,15 +300,15 @@ export default function IntegrationsAdmin() {
       } else {
         toast({
           variant: 'error',
-          title: 'Save failed',
-          message: data.error || 'Failed to save integration',
+          title: "Couldn't save integration",
+          message: data.error,
         });
       }
     } catch (error: any) {
       toast({
         variant: 'error',
-        title: 'Save failed',
-        message: error.message || 'Failed to save integration',
+        title: "Couldn't save integration",
+        message: error.message,
       });
     } finally {
       setSaving(false);
@@ -362,15 +361,15 @@ export default function IntegrationsAdmin() {
       } else {
         toast({
           variant: 'error',
-          title: 'Test failed',
-          message: 'Failed to test integration',
+          title: "Couldn't test integration",
+          message: data.error,
         });
       }
     } catch (error: any) {
       toast({
         variant: 'error',
-        title: 'Test failed',
-        message: error.message || 'Failed to test integration',
+        title: "Couldn't test integration",
+        message: error.message,
       });
     } finally {
       setTesting(null);
