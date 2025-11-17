@@ -14,6 +14,8 @@ import { getBookings } from '../lib/booking';
 import { dashboardWidgets, isWidgetEnabledForRole } from '../lib/dashboardConfig';
 import { usePermissions } from '../lib/usePermissions';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
+import { DashboardGridRow, DashboardTwoColumn, DashboardThreeColumn } from '../components/dashboard/DashboardLayout';
+import Link from 'next/link';
 
 interface AdminDashboardProps {
   brands: any[];
@@ -886,6 +888,25 @@ useEffect(() => {
       <PageHeader
         title="Admin Dashboard"
         subtitle="POD N BEYOND Group Management"
+        secondaryActions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/admin/bookings/new">
+              <Button size="sm" variant="secondary">New Booking</Button>
+            </Link>
+            <Link href="/admin/bookings/calendar">
+              <Button size="sm" variant="secondary">Calendar View</Button>
+            </Link>
+            <Link href="/admin/communication-hub">
+              <Button size="sm" variant="secondary">Messages</Button>
+            </Link>
+            <Link href="/admin/integrations">
+              <Button size="sm" variant="secondary">Manage Integrations</Button>
+            </Link>
+            <Link href="/admin/analytics">
+              <Button size="sm" variant="secondary">System Health</Button>
+            </Link>
+          </div>
+        }
       />
 
       {/* Tabs - Removed Payment, OTA, Integrations */}
@@ -910,9 +931,9 @@ useEffect(() => {
       </section>
 
       {/* Content */}
-      <section className="py-12">
+      <section className="py-6">
         <Container>
-          {/* Overview Tab */}
+          {/* Overview Tab - Phase 12: compact RBAC-ready dashboard layout */}
           {activeTab === 'overview' && (() => {
             // Filter widgets by permissions
             const visibleWidgets = dashboardWidgets.filter((w) => {
@@ -922,76 +943,111 @@ useEffect(() => {
               return allowed && roleEnabled;
             });
 
-            // Group widgets by section
-            const today = visibleWidgets.filter((w) => w.section === 'today');
-            const queues = visibleWidgets.filter((w) => w.section === 'queues');
-            const recent = visibleWidgets.filter((w) => w.section === 'recent');
-            const system = visibleWidgets.filter((w) => w.section === 'system');
-            const quick = visibleWidgets.filter((w) => w.section === 'quickActions');
+            // Find widgets by ID for the new layout structure
+            const occupancyWidget = visibleWidgets.find((w) => w.id === 'today.occupancy');
+            const arrivalsWidget = visibleWidgets.find((w) => w.id === 'today.arrivals');
+            const departuresWidget = visibleWidgets.find((w) => w.id === 'today.departures');
+            const inHouseWidget = visibleWidgets.find((w) => w.id === 'today.inHouse');
+            
+            const loyaltyRequestsWidget = visibleWidgets.find((w) => w.id === 'queues.loyaltyQueue');
+            const pendingBookingsWidget = visibleWidgets.find((w) => w.id === 'queues.pendingBookings');
+            const openThreadsWidget = visibleWidgets.find((w) => w.id === 'queues.openThreads');
+            const integrationsWidget = visibleWidgets.find((w) => w.id === 'system.integrations');
+            
+            const recentBookingsWidget = visibleWidgets.find((w) => w.id === 'recent.bookings');
+            const recentLoyaltyWidget = visibleWidgets.find((w) => w.id === 'recent.loyalty');
+            
+            const systemStatusWidget = visibleWidgets.find((w) => w.id === 'system.status');
+            const quickActionsWidget = visibleWidgets.find((w) => w.id === 'quickActions.main');
+
+            // Build secondary KPI row (map existing widgets to requested layout)
+            // Note: RevenueSummary widget doesn't exist yet, using available widgets
+            const secondaryKPIs = [
+              loyaltyRequestsWidget, // LoyaltySummary
+              pendingBookingsWidget, // PendingTasks
+              openThreadsWidget, // Additional metric (Open Conversations)
+              integrationsWidget, // IntegrationStatus
+            ].filter(Boolean);
 
             return (
-              <div className="space-y-8 animate-fade-in">
-                <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }]} />
-
-                {/* Today Section */}
-                {today.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">Today</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {today.map((widget) => (
-                        <ErrorBoundary key={widget.id}>
-                          {widget.render()}
-                        </ErrorBoundary>
-                      ))}
-                    </div>
-                  </div>
+              <main className="space-y-6 animate-fade-in">
+                {/* PRIMARY KPI ROW - 4 widgets */}
+                {(occupancyWidget || arrivalsWidget || departuresWidget || inHouseWidget) && (
+                  <DashboardGridRow>
+                    {occupancyWidget && (
+                      <ErrorBoundary key={occupancyWidget.id}>
+                        {occupancyWidget.render()}
+                      </ErrorBoundary>
+                    )}
+                    {arrivalsWidget && (
+                      <ErrorBoundary key={arrivalsWidget.id}>
+                        {arrivalsWidget.render()}
+                      </ErrorBoundary>
+                    )}
+                    {departuresWidget && (
+                      <ErrorBoundary key={departuresWidget.id}>
+                        {departuresWidget.render()}
+                      </ErrorBoundary>
+                    )}
+                    {inHouseWidget && (
+                      <ErrorBoundary key={inHouseWidget.id}>
+                        {inHouseWidget.render()}
+                      </ErrorBoundary>
+                    )}
+                  </DashboardGridRow>
                 )}
 
-                {/* Queues Section */}
-                {queues.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">Queues</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {queues.map((widget) => (
-                        <ErrorBoundary key={widget.id}>
-                          {widget.render()}
-                        </ErrorBoundary>
-                      ))}
-                    </div>
-                  </div>
+                {/* SECONDARY KPI ROW - 4 widgets */}
+                {secondaryKPIs.length > 0 && (
+                  <DashboardGridRow>
+                    {secondaryKPIs.map((widget) => (
+                      <ErrorBoundary key={widget!.id}>
+                        {widget!.render()}
+                      </ErrorBoundary>
+                    ))}
+                  </DashboardGridRow>
                 )}
 
-                {/* Recent Section */}
-                {recent.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">Recent Activity</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {recent.map((widget) => (
-                        <ErrorBoundary key={widget.id}>
-                          {widget.render()}
+                {/* RECENT ACTIVITY - 2 columns (compact) */}
+                {(recentBookingsWidget || recentLoyaltyWidget) && (
+                  <DashboardTwoColumn
+                    left={
+                      recentBookingsWidget ? (
+                        <ErrorBoundary key={recentBookingsWidget.id}>
+                          {recentBookingsWidget.render()}
                         </ErrorBoundary>
-                      ))}
-                    </div>
-                  </div>
+                      ) : (
+                        <div />
+                      )
+                    }
+                    right={
+                      recentLoyaltyWidget ? (
+                        <ErrorBoundary key={recentLoyaltyWidget.id}>
+                          {recentLoyaltyWidget.render()}
+                        </ErrorBoundary>
+                      ) : (
+                        <div />
+                      )
+                    }
+                  />
                 )}
 
-                {/* System & Quick Actions Section */}
-                {(system.length > 0 || quick.length > 0) && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-neutral-900 mb-4">System & Actions</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {system.map((widget) => (
-                        <ErrorBoundary key={widget.id}>
-                          {widget.render()}
-                        </ErrorBoundary>
-                      ))}
-                      {quick.map((widget) => (
-                        <ErrorBoundary key={widget.id}>
-                          {widget.render()}
-                        </ErrorBoundary>
-                      ))}
-                    </div>
-                  </div>
+                {/* SYSTEM & ACTIONS - 3 columns */}
+                {/* Note: Integrations widget is in secondary KPI row, not here */}
+                {(systemStatusWidget || quickActionsWidget) && (
+                  <DashboardThreeColumn>
+                    {systemStatusWidget && (
+                      <ErrorBoundary key={systemStatusWidget.id}>
+                        {systemStatusWidget.render()}
+                      </ErrorBoundary>
+                    )}
+                    {quickActionsWidget && (
+                      <ErrorBoundary key={quickActionsWidget.id}>
+                        {quickActionsWidget.render()}
+                      </ErrorBoundary>
+                    )}
+                    {/* Third column placeholder - can add Shortcuts widget here in future */}
+                  </DashboardThreeColumn>
                 )}
 
                 {visibleWidgets.length === 0 && (
@@ -1001,7 +1057,7 @@ useEffect(() => {
                     </div>
                   </Card>
                 )}
-              </div>
+              </main>
             );
           })()}
 

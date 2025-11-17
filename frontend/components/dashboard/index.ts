@@ -10,4 +10,5 @@ export { default as RecentLoyaltyMembersList } from './RecentLoyaltyMembersList'
 export { default as SystemStatusCard } from './SystemStatusCard';
 export { default as IntegrationsOverviewCard } from './IntegrationsOverviewCard';
 export { default as QuickActionsCard } from './QuickActionsCard';
+export { DashboardGridRow, DashboardTwoColumn, DashboardThreeColumn } from './DashboardLayout';
 

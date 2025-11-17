@@ -48,6 +48,38 @@ This document tracks future enhancements and improvements to be implemented afte
 ### Future Enhancements (Optional)
 - [ ] Add automated tests before deployment (currently placeholder)
 - [ ] Add linting checks before deployment (currently placeholder)
+
+---
+
+## 🎨 Admin Dashboard Enhancements
+
+### Phase 12: Compact RBAC-Ready Dashboard Layout ✅ **COMPLETED**
+
+**Status:** ✅ Implemented (2025-01-21)
+
+**What's Implemented:**
+- ✅ Compact, non-scrolly dashboard layout
+- ✅ Above-the-fold KPI rows (2 rows of 4 cards)
+- ✅ Compact Recent Activity section (2 columns)
+- ✅ Compact System & Actions section (3 columns)
+- ✅ PageHeader with quick action buttons
+- ✅ Layout helper components (DashboardGridRow, DashboardTwoColumn, DashboardThreeColumn)
+- ✅ RBAC-aware widget registry integration
+- ✅ Error boundaries for widget-level failures
+- ✅ Null-safety guards for all widgets
+
+**Layout Structure:**
+- **Primary KPI Row:** Occupancy, Today Arrivals, Today Departures, In-House Guests
+- **Secondary KPI Row:** Loyalty Requests, Pending Approvals, Open Conversations, Integration Status
+- **Recent Activity:** Recent Bookings (left), Recent Loyalty Members (right)
+- **System & Actions:** System Status, Quick Actions, (placeholder for future Shortcuts widget)
+
+**Future Enhancements:**
+- [ ] Create RevenueSummary widget for secondary KPI row
+- [ ] Create Shortcuts widget for System & Actions section
+- [ ] Add role-level widget toggles (Phase 12B - DB-backed widget config)
+- [ ] Add widget customization UI (drag-and-drop, show/hide per role)
+- [ ] Add widget refresh intervals and real-time updates
 - [ ] Add deployment notifications (Slack, email, etc.)
 
 ---
