@@ -5,6 +5,8 @@ import Spinner from '../ui/Spinner';
 import EmptyState from '../ui/EmptyState';
 import Link from 'next/link';
 
+const MAX_RECENT_MEMBERS = 8;
+
 interface LoyaltyMember {
   id: number;
   memberNumber: string;
@@ -94,14 +96,8 @@ export default function RecentLoyaltyMembersList() {
   return (
     <Card>
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h3 className="text-lg font-semibold text-neutral-900">Recent loyalty members</h3>
-          <Link
-            href="/admin/loyalty"
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
-            View all →
-          </Link>
         </div>
 
         {members.length === 0 ? (
@@ -111,29 +107,41 @@ export default function RecentLoyaltyMembersList() {
             variant="generic"
           />
         ) : (
-          <div className="space-y-3">
-            {members.map((member) => (
-              <Link
-                key={member.id}
-                href={`/admin/loyalty?memberId=${member.id}`}
-                className="block p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-neutral-900 truncate">
-                      {member.user?.name || member.memberNumber}
-                    </p>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      {member.memberNumber} • {member.points} points • {member.lifetimeStays} stays
-                    </p>
+          <>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {members.slice(0, MAX_RECENT_MEMBERS).map((member) => (
+                <Link
+                  key={member.id}
+                  href={`/admin/loyalty?memberId=${member.id}`}
+                  className="block p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-neutral-900 truncate">
+                        {member.user?.name || member.memberNumber}
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        {member.memberNumber} • {member.points} points • {member.lifetimeStays} stays
+                      </p>
+                    </div>
+                    <Badge variant={getTierVariant(member.tier)} size="sm">
+                      {member.tier || 'Unknown'}
+                    </Badge>
                   </div>
-                  <Badge variant={getTierVariant(member.tier)} size="sm">
-                    {member.tier || 'Unknown'}
-                  </Badge>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+            {members.length > MAX_RECENT_MEMBERS && (
+              <div className="mt-4 pt-4 border-t border-neutral-200">
+                <Link
+                  href="/admin/loyalty"
+                  className="text-sm text-neutral-500 hover:text-neutral-700 hover:underline float-right"
+                >
+                  View all loyalty members →
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
     </Card>
