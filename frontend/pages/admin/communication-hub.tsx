@@ -592,7 +592,7 @@ export default function CommunicationHub() {
           message: data.error,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading template:', error);
       toast({
         variant: 'error',
@@ -617,7 +617,7 @@ export default function CommunicationHub() {
         await loadConversationDetails(conversationId);
         await loadConversations();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update status:', error);
       toast({
         variant: 'error',
@@ -640,7 +640,7 @@ export default function CommunicationHub() {
         await loadConversationDetails(conversationId);
         await loadConversations();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update priority:', error);
       toast({
         variant: 'error',
@@ -663,7 +663,7 @@ export default function CommunicationHub() {
         await loadConversationDetails(conversationId);
         await loadConversations();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to assign conversation:', error);
       toast({
         variant: 'error',
@@ -743,7 +743,7 @@ export default function CommunicationHub() {
           message: data.error,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Bulk action error:', error);
       toast({
         variant: 'error',
@@ -837,7 +837,7 @@ export default function CommunicationHub() {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Reply error:', error);
       toast({
         variant: 'error',
@@ -875,7 +875,7 @@ export default function CommunicationHub() {
           message: data.error,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Note error:', error);
       toast({
         variant: 'error',
@@ -1619,7 +1619,7 @@ export default function CommunicationHub() {
                                             message: data.error,
                                           });
                                         }
-                                      } catch (error) {
+                                      } catch (error: any) {
                                         toast({
                                           variant: 'error',
                                           title: "Couldn't send confirmation",

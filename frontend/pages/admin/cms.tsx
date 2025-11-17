@@ -276,7 +276,7 @@ const CMSAdminPage: React.FC = () => {
         sortOrder: 0
       });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to save testimonial' });
       toast({
         variant: 'error',
@@ -298,7 +298,7 @@ const CMSAdminPage: React.FC = () => {
       });
       setDeleteTestimonialId(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to delete testimonial' });
       toast({
         variant: 'error',
@@ -332,7 +332,7 @@ const CMSAdminPage: React.FC = () => {
         sortOrder: 0
       });
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to save amenity' });
       toast({
         variant: 'error',
@@ -354,7 +354,7 @@ const CMSAdminPage: React.FC = () => {
       });
       setDeleteAmenityId(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       setMessage({ type: 'error', text: 'Failed to delete amenity' });
       toast({
         variant: 'error',
