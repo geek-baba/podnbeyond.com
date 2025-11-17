@@ -129,7 +129,7 @@ export default function RecentBookingsTable() {
                   </TableCell>
                   <TableCell align="right">
                     <span className="text-sm font-medium text-neutral-900">
-                      ₹{booking.totalAmount?.toLocaleString() || '0'}
+                      ₹{booking.totalPrice?.toLocaleString() || '0'}
                     </span>
                   </TableCell>
                 </TableRow>
