@@ -243,7 +243,7 @@ export default function AnalyticsPage() {
         title: 'Export started',
         message: `Downloading ${format.toUpperCase()} file`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export error:', error);
       toast({
         variant: 'error',
