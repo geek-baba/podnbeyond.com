@@ -99,7 +99,7 @@ export default function TodayArrivalsCard() {
                       {new Date(booking.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </p>
                     <Badge variant="confirmed" size="sm" className="mt-1">
-                      {booking.status}
+                      {booking.status || 'Unknown'}
                     </Badge>
                   </div>
                 </div>

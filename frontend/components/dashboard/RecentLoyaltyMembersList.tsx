@@ -52,7 +52,8 @@ export default function RecentLoyaltyMembersList() {
     fetchMembers();
   }, []);
 
-  const getTierVariant = (tier: string): 'member' | 'silver' | 'gold' | 'platinum' | 'diamond' => {
+  const getTierVariant = (tier?: string | null): 'member' | 'silver' | 'gold' | 'platinum' | 'diamond' => {
+    if (!tier) return 'member';
     switch (tier.toUpperCase()) {
       case 'MEMBER':
         return 'member';
@@ -127,7 +128,7 @@ export default function RecentLoyaltyMembersList() {
                     </p>
                   </div>
                   <Badge variant={getTierVariant(member.tier)} size="sm">
-                    {member.tier}
+                    {member.tier || 'Unknown'}
                   </Badge>
                 </div>
               </Link>

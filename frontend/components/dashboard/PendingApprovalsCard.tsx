@@ -88,7 +88,7 @@ export default function PendingApprovalsCard() {
                     </p>
                   </div>
                   <Badge variant="pending" size="sm">
-                    {booking.status}
+                    {booking.status || 'Unknown'}
                   </Badge>
                 </div>
               </Link>

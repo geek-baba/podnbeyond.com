@@ -46,7 +46,8 @@ export default function IntegrationsOverviewCard() {
     fetchIntegrations();
   }, []);
 
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'error' => {
+  const getStatusVariant = (status?: string | null): 'success' | 'warning' | 'error' => {
+    if (!status) return 'warning';
     switch (status) {
       case 'connected':
         return 'success';
@@ -113,7 +114,7 @@ export default function IntegrationsOverviewCard() {
                   <p className="text-xs text-neutral-500 mt-1">{integration.type}</p>
                 </div>
                 <Badge variant={getStatusVariant(integration.status)} size="sm">
-                  {integration.status}
+                  {integration.status || 'Unknown'}
                 </Badge>
               </div>
             ))}

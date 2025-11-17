@@ -35,7 +35,8 @@ export default function RecentBookingsTable() {
     fetchRecent();
   }, []);
 
-  const getStatusVariant = (status: string): 'pending' | 'confirmed' | 'checkedIn' | 'cancelled' | 'neutral' => {
+  const getStatusVariant = (status?: string | null): 'pending' | 'confirmed' | 'checkedIn' | 'cancelled' | 'neutral' => {
+    if (!status) return 'neutral';
     switch (status) {
       case 'PENDING':
         return 'pending';
@@ -124,7 +125,7 @@ export default function RecentBookingsTable() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(booking.status)} size="sm">
-                      {booking.status}
+                      {booking.status || 'Unknown'}
                     </Badge>
                   </TableCell>
                   <TableCell align="right">

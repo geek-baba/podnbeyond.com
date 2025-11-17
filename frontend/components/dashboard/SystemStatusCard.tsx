@@ -41,7 +41,8 @@ export default function SystemStatusCard() {
     return () => clearInterval(interval);
   }, []);
 
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'error' => {
+  const getStatusVariant = (status?: string | null): 'success' | 'warning' | 'error' => {
+    if (!status) return 'error';
     switch (status) {
       case 'healthy':
         return 'success';

@@ -89,7 +89,7 @@ export default function LoyaltyRequestsCard() {
                     </p>
                   </div>
                   <Badge variant="pending" size="sm">
-                    {request.status}
+                    {request.status || 'Unknown'}
                   </Badge>
                 </div>
               </Link>

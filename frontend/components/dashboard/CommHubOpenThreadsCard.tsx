@@ -68,7 +68,8 @@ export default function CommHubOpenThreadsCard() {
     );
   }
 
-  const getChannelBadgeVariant = (channel: string): 'neutral' | 'success' | 'warning' => {
+  const getChannelBadgeVariant = (channel?: string | null): 'neutral' | 'success' | 'warning' => {
+    if (!channel) return 'neutral';
     switch (channel.toUpperCase()) {
       case 'EMAIL':
         return 'neutral';
@@ -107,7 +108,7 @@ export default function CommHubOpenThreadsCard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant={getChannelBadgeVariant(conv.channel)} size="sm">
-                        {conv.channel}
+                        {conv.channel || 'Unknown'}
                       </Badge>
                       {conv.unreadCount > 0 && (
                         <Badge variant="error" size="sm">

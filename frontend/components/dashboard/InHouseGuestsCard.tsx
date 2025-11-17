@@ -88,7 +88,7 @@ export default function InHouseGuestsCard() {
                     </p>
                   </div>
                   <Badge variant="checkedIn" size="sm">
-                    {booking.status}
+                    {booking.status || 'Unknown'}
                   </Badge>
                 </div>
               </Link>

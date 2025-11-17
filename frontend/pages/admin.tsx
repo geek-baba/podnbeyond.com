@@ -13,6 +13,7 @@ import FormField from '../components/ui/FormField';
 import { getBookings } from '../lib/booking';
 import { dashboardWidgets, isWidgetEnabledForRole } from '../lib/dashboardConfig';
 import { usePermissions } from '../lib/usePermissions';
+import ErrorBoundary from '../components/ui/ErrorBoundary';
 
 interface AdminDashboardProps {
   brands: any[];
@@ -221,18 +222,30 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
       try {
         const results = await Promise.all(
           properties.map(async (property) => {
-            const response = await fetch(`/api/admin/properties/${property.id}/room-types`, {
-              credentials: 'include',
-              headers: {
-                Accept: 'application/json',
-              },
-            });
-            if (!response.ok) {
-              const message = await response.text();
-              throw new Error(message || `Failed to load room types for property ${property.id}`);
+            try {
+              const response = await fetch(`/api/admin/properties/${property.id}/room-types`, {
+                credentials: 'include',
+                headers: {
+                  Accept: 'application/json',
+                },
+              });
+              // Handle 404s gracefully - feature may not be configured yet
+              if (response.status === 404) {
+                console.warn(`Room types API not available for property ${property.id} (404)`);
+                return { propertyId: property.id, payload: null };
+              }
+              if (!response.ok) {
+                const message = await response.text();
+                console.error(`Failed to load room types for property ${property.id}:`, message);
+                return { propertyId: property.id, payload: null };
+              }
+              const payload = await response.json();
+              return { propertyId: property.id, payload: payload?.data };
+            } catch (err) {
+              // Catch network errors or other issues per property
+              console.error(`Error loading room types for property ${property.id}:`, err);
+              return { propertyId: property.id, payload: null };
             }
-            const payload = await response.json();
-            return { propertyId: property.id, payload: payload?.data };
           })
         );
 
@@ -365,6 +378,13 @@ export default function AdminDashboard({ brands, properties: initialProperties, 
           Accept: 'application/json',
         },
       });
+      // Handle 404s gracefully - feature may not be configured yet
+      if (response.status === 404) {
+        console.warn(`Room types API not available for property ${propertyId} (404)`);
+        setPropertyEditorLoading(false);
+        setPropertyEditorError('Room types feature is not available for this property.');
+        return;
+      }
       if (!response.ok) {
         const message = await response.text();
         throw new Error(message || 'Failed to load property room types');
@@ -731,6 +751,15 @@ useEffect(() => {
             Accept: 'application/json',
           },
         });
+        
+        // Handle 404s gracefully - feature may not be configured yet
+        if (response.status === 404) {
+          console.warn('Inventory API not available (404)');
+          setInventoryError('Inventory data is not available in this environment.');
+          setInventoryData(null);
+          return;
+        }
+        
         const contentType = response.headers.get('content-type') || '';
         let data: any = null;
 
@@ -910,7 +939,9 @@ useEffect(() => {
                     <h2 className="text-xl font-semibold text-neutral-900 mb-4">Today</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       {today.map((widget) => (
-                        <div key={widget.id}>{widget.render()}</div>
+                        <ErrorBoundary key={widget.id}>
+                          {widget.render()}
+                        </ErrorBoundary>
                       ))}
                     </div>
                   </div>
@@ -922,7 +953,9 @@ useEffect(() => {
                     <h2 className="text-xl font-semibold text-neutral-900 mb-4">Queues</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {queues.map((widget) => (
-                        <div key={widget.id}>{widget.render()}</div>
+                        <ErrorBoundary key={widget.id}>
+                          {widget.render()}
+                        </ErrorBoundary>
                       ))}
                     </div>
                   </div>
@@ -934,7 +967,9 @@ useEffect(() => {
                     <h2 className="text-xl font-semibold text-neutral-900 mb-4">Recent Activity</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {recent.map((widget) => (
-                        <div key={widget.id}>{widget.render()}</div>
+                        <ErrorBoundary key={widget.id}>
+                          {widget.render()}
+                        </ErrorBoundary>
                       ))}
                     </div>
                   </div>
@@ -946,10 +981,14 @@ useEffect(() => {
                     <h2 className="text-xl font-semibold text-neutral-900 mb-4">System & Actions</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {system.map((widget) => (
-                        <div key={widget.id}>{widget.render()}</div>
+                        <ErrorBoundary key={widget.id}>
+                          {widget.render()}
+                        </ErrorBoundary>
                       ))}
                       {quick.map((widget) => (
-                        <div key={widget.id}>{widget.render()}</div>
+                        <ErrorBoundary key={widget.id}>
+                          {widget.render()}
+                        </ErrorBoundary>
                       ))}
                     </div>
                   </div>
